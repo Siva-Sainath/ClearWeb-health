@@ -1,0 +1,15 @@
+# targets.yaml — Chargemaster Radar hospital targets
+# Schema: id, name, homepage, price_transparency_page, mrf_seed_url, format_hint, collector_id
+#
+# mrf_seed_url: manually verified fallback URL. May include a SAS token that rotates.
+#   The live collector_id is the authoritative source for the current URL — seed is fallback only.
+# collector_id: Bright Data Scraper Studio collector ID (pre-verified via discovery run).
+
+hospitals:
+  - id: hca_houston_medical_center
+    name: "HCA Houston Healthcare Medical Center"
+    homepage: "https://www.hcahoustonhealthcare.com/"
+    price_transparency_page: "https://www.hcahoustonhealthcare.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges"
+    mrf_seed_url: "https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/82-1635538_HCA-HOUSTON-HEALTHCARE-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D"
+    format_hint: json
+    collector_id: "c_mszwq5pr16a5s86zl8"  # pre-verified — do NOT re-create
