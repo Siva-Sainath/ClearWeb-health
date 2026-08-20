@@ -1,0 +1,16 @@
+---
+description: Clearweb Health UX and readability standards for frontend components
+globs: frontend/src/**/*
+alwaysApply: false
+---
+
+# Clearweb Health UX Standards
+
+- Body text ≥ 16px; voice captions ≥ 18px; labels ≥ 13px
+- Primary text `#F2F9F5` on `#070D0A`; secondary `#8BABA0`; never use `#4A6458` for primary content
+- One focal point per phase; progressive disclosure for charts in results
+- Min 44px tap targets; mic button 56px via VoiceShell
+- Voice + UI sync: dashboard updates within 500ms of agent tags
+- Include "AI guide — not medical advice" in voice UI
+- Use `cn()` from `@/lib/utils` and components from `@/components/ui/`
+- Framer springs only; respect `prefers-reduced-motion`

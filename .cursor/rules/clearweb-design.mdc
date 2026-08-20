@@ -1,0 +1,34 @@
+---
+description: Clearweb Health design system — tokens, contrast, phase UX
+globs: frontend/src/**/*
+alwaysApply: false
+---
+
+# Clearweb Health Design System
+
+## Tokens
+- Import colors from `@/lib/design-tokens` — never hardcode `#00C896`, `#00FFBA`, `#00E5C8`
+- Surfaces: neutral charcoal (`void`, `surface`, `surfaceRaised`), not forest-green tints
+- Accent `#34d399` for progress, CTAs, active states only — not body text on tinted backgrounds
+
+## Typography
+- Sans-serif (Inter) for UI chrome, labels, buttons, timelines
+- Mono only for timestamps, IDs, CPT codes
+- Body ≥ 16px; captions ≥ 18px in VoiceShell
+
+## Forbidden (vibe-coded patterns)
+- Green text on green borders or green-tinted backgrounds
+- Inline `style={{ color: '#00...' }}` in components
+- `font-mono` + ALL CAPS for tab labels
+- Multiple neon glows on one screen
+- Framer `scale` on SVG `<g>` elements
+
+## Phase UX
+- **Onboarding:** one focal card + profile checklist; voice shell at bottom
+- **Scraping:** progress bar + human timeline (not JSON terminal); no zoom/spring on graph
+- **Results:** map tab default; flashcards above fold; trust line visible
+
+## Components
+- Use `cn()` from `@/lib/utils`, shadcn `Button`, Header `.badge` classes
+- Use `BRAND` from `@/lib/brand` for product copy
+- Respect `useReducedMotion()` — disable parallax and springs when true

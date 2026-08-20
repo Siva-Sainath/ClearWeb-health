@@ -1,0 +1,321 @@
+# Static enrichment for Austin demo hospitals — addresses, coords, photos, contacts.
+
+hospitals:
+  st_davids_medical_center_austin:
+    address: "919 E 32nd St, Austin, TX 78705"
+    lat: 30.290
+    lng: -97.735
+    phone: "(512) 544-4240"
+    phoneNumber: "+15125444240"
+    phoneDepartment: "Central Scheduling"
+    bookingUrl: "https://www.stdavids.com/patient-resources"
+    bookingType: direct_portal
+    facilityType: "Hospital"
+    accredited: true
+    rating: 4.4
+    wait_days: 6
+    photoUrl: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital exterior (stock)"
+
+  st_davids_south_austin:
+    address: "901 W Ben White Blvd, Austin, TX 78704"
+    lat: 30.198
+    lng: -97.805
+    phone: "(512) 544-4240"
+    phoneNumber: "+15125444240"
+    phoneDepartment: "Imaging Scheduling"
+    bookingType: phone_only
+    facilityType: "Hospital"
+    accredited: true
+    rating: 4.3
+    wait_days: 5
+    photoUrl: "https://images.unsplash.com/photo-1586773866498-48b69a2f8a?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Medical center (stock)"
+
+  st_davids_north_austin:
+    address: "901 W 38th St, Austin, TX 78756"
+    lat: 30.308
+    lng: -97.745
+    phone: "(512) 544-4240"
+    phoneNumber: "+15125444240"
+    phoneDepartment: "Central Scheduling"
+    bookingType: phone_only
+    facilityType: "Hospital"
+    accredited: true
+    rating: 4.2
+    wait_days: 7
+    photoUrl: "https://images.unsplash.com/photo-1631217868264-e5b165bb6e13?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  st_davids_round_rock:
+    address: "2400 Round Rock Ave, Round Rock, TX 78681"
+    lat: 30.508
+    lng: -97.678
+    phone: "(512) 544-4240"
+    phoneNumber: "+15125444240"
+    phoneDepartment: "Central Scheduling"
+    bookingType: phone_only
+    facilityType: "Hospital"
+    accredited: true
+    rating: 4.3
+    wait_days: 6
+    photoUrl: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  heart_hospital_austin:
+    address: "3801 N Lamar Blvd, Austin, TX 78756"
+    lat: 30.275
+    lng: -97.728
+    phone: "(512) 544-4240"
+    phoneNumber: "+15125444240"
+    phoneDepartment: "Cardiology Scheduling"
+    bookingType: phone_only
+    facilityType: "Specialty Hospital"
+    accredited: true
+    rating: 4.7
+    wait_days: 4
+    photoUrl: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  st_davids_georgetown:
+    address: "2000 Scenic Dr, Georgetown, TX 78626"
+    lat: 30.633
+    lng: -97.677
+    phone: "(512) 544-4240"
+    phoneNumber: "+15125444240"
+    phoneDepartment: "Central Scheduling"
+    bookingType: phone_only
+    facilityType: "Hospital"
+    accredited: true
+    rating: 4.3
+    wait_days: 6
+    photoUrl: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  st_davids_surgical:
+    address: "1201 W 38th St, Austin, TX 78705"
+    lat: 30.308
+    lng: -97.745
+    phone: "(512) 544-4240"
+    phoneNumber: "+15125444240"
+    phoneDepartment: "Surgical Scheduling"
+    bookingType: phone_only
+    facilityType: "Surgical Hospital"
+    accredited: true
+    rating: 4.5
+    wait_days: 4
+    photoUrl: "https://images.unsplash.com/photo-1631217868264-e5b165bb6e13?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  st_davids_rehab:
+    address: "4455 Medical Pkwy, Austin, TX 78756"
+    lat: 30.335
+    lng: -97.745
+    phone: "(512) 544-4240"
+    phoneNumber: "+15125444240"
+    phoneDepartment: "Rehab Admissions"
+    bookingType: phone_only
+    facilityType: "Rehabilitation Hospital"
+    accredited: true
+    rating: 4.2
+    wait_days: 7
+    photoUrl: "https://images.unsplash.com/photo-1586773866498-48b69a2f8a?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  heart_hospital_round_rock:
+    address: "2400 Round Rock Ave, Round Rock, TX 78681"
+    lat: 30.508
+    lng: -97.678
+    phone: "(512) 544-4240"
+    phoneNumber: "+15125444240"
+    phoneDepartment: "Cardiology Scheduling"
+    bookingType: phone_only
+    facilityType: "Specialty Hospital"
+    accredited: true
+    rating: 4.6
+    wait_days: 5
+    photoUrl: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  bsw_medical_center_austin:
+    address: "5245 W US Hwy 290, Austin, TX 78735"
+    lat: 30.258
+    lng: -97.865
+    phone: "(512) 654-1000"
+    phoneNumber: "+15126541000"
+    phoneDepartment: "Radiology Scheduling"
+    bookingUrl: "https://www.bswhealth.com/locations/austin-hospital"
+    bookingType: direct_portal
+    facilityType: "Hospital"
+    accredited: true
+    rating: 4.5
+    wait_days: 3
+    photoUrl: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital exterior (stock)"
+
+  bsw_medical_center_round_rock:
+    address: "300 University Blvd, Round Rock, TX 78665"
+    lat: 30.518
+    lng: -97.678
+    phone: "(512) 509-9000"
+    phoneNumber: "+15125099000"
+    phoneDepartment: "Radiology Scheduling"
+    bookingUrl: "https://www.bswhealth.com/locations/round-rock-hospital"
+    bookingType: direct_portal
+    facilityType: "Hospital"
+    accredited: true
+    rating: 4.4
+    wait_days: 4
+    photoUrl: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  dell_seton_medical_center:
+    address: "1500 Red River St, Austin, TX 78701"
+    lat: 30.277
+    lng: -97.734
+    phone: "(512) 324-7000"
+    phoneNumber: "+15123247000"
+    phoneDepartment: "Outpatient Scheduling"
+    bookingUrl: "https://healthcare.ascension.org/locations/texas/txaus/austin-dell-seton-medical-center-at-the-university-of-texas"
+    bookingType: request_form
+    facilityType: "Academic Medical Center"
+    accredited: true
+    rating: 4.6
+    wait_days: 4
+    photoUrl: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital campus (stock)"
+
+  ascension_seton_medical_center_austin:
+    address: "1201 W 38th St, Austin, TX 78705"
+    lat: 30.308
+    lng: -97.745
+    phone: "(512) 324-7000"
+    phoneNumber: "+15123247000"
+    phoneDepartment: "Patient Access"
+    bookingType: phone_only
+    facilityType: "Hospital"
+    accredited: true
+    rating: 4.5
+    wait_days: 5
+    photoUrl: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  ascension_seton_northwest:
+    address: "11113 Research Blvd, Austin, TX 78759"
+    lat: 30.448
+    lng: -97.768
+    phone: "(512) 324-7000"
+    phoneNumber: "+15123247000"
+    phoneDepartment: "Patient Access"
+    bookingType: phone_only
+    facilityType: "Hospital"
+    accredited: true
+    rating: 4.4
+    wait_days: 5
+    photoUrl: "https://images.unsplash.com/photo-1631217868264-e5b165bb6e13?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  westlake_medical_center:
+    address: "5656 Bee Caves Rd, West Lake Hills, TX 78746"
+    lat: 30.295
+    lng: -97.810
+    phone: "(512) 327-0000"
+    phoneNumber: "+15123270000"
+    phoneDepartment: "Patient Access"
+    bookingType: phone_only
+    facilityType: "Physician-Owned Hospital"
+    accredited: true
+    rating: 4.6
+    wait_days: 4
+    photoUrl: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  austin_oaks_hospital:
+    address: "1407 W Stassney Ln, Austin, TX 78745"
+    lat: 30.245
+    lng: -97.820
+    phone: "(512) 440-4800"
+    phoneNumber: "+15124404800"
+    phoneDepartment: "Admissions"
+    bookingType: phone_only
+    facilityType: "Behavioral Health Hospital"
+    accredited: true
+    rating: 4.1
+    wait_days: 3
+    photoUrl: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  encompass_rehab_austin:
+    address: "330 W Ben White Blvd, Austin, TX 78704"
+    lat: 30.380
+    lng: -97.720
+    phone: "(512) 447-9991"
+    phoneNumber: "+15124479991"
+    phoneDepartment: "Admissions"
+    bookingType: phone_only
+    facilityType: "Rehabilitation Hospital"
+    accredited: true
+    rating: 4.3
+    wait_days: 5
+    photoUrl: "https://images.unsplash.com/photo-1586773866498-48b69a2f8a?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  encompass_rehab_round_rock:
+    address: "911 Union Pacific Blvd, Round Rock, TX 78665"
+    lat: 30.505
+    lng: -97.680
+    phone: "(512) 246-7800"
+    phoneNumber: "+15122467800"
+    phoneDepartment: "Admissions"
+    bookingType: phone_only
+    facilityType: "Rehabilitation Hospital"
+    accredited: true
+    rating: 4.2
+    wait_days: 5
+    photoUrl: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  shriners_childrens_texas:
+    address: "4400 Clayton Rd, Austin, TX 78756"
+    lat: 30.350
+    lng: -97.750
+    phone: "(512) 324-3600"
+    phoneNumber: "+15123243600"
+    phoneDepartment: "Patient Access"
+    bookingType: request_form
+    facilityType: "Pediatric Specialty Hospital"
+    accredited: true
+    rating: 4.8
+    wait_days: 6
+    photoUrl: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  christus_santa_rosa_san_marcos:
+    address: "600 S Edward Gary Dr, San Marcos, TX 78666"
+    lat: 29.885
+    lng: -97.940
+    phone: "(512) 353-8979"
+    phoneNumber: "+15123538979"
+    phoneDepartment: "Patient Access"
+    bookingType: phone_only
+    facilityType: "Community Hospital"
+    accredited: true
+    rating: 4.2
+    wait_days: 5
+    photoUrl: "https://images.unsplash.com/photo-1631217868264-e5b165bb6e13?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"
+
+  christus_santa_rosa_new_braunfels:
+    address: "600 N Union Ave, New Braunfels, TX 78130"
+    lat: 29.703
+    lng: -98.125
+    phone: "(830) 606-9000"
+    phoneNumber: "+18306069000"
+    phoneDepartment: "Patient Access"
+    bookingType: phone_only
+    facilityType: "Community Hospital"
+    accredited: true
+    rating: 4.3
+    wait_days: 5
+    photoUrl: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&q=80&auto=format&fit=crop"
+    photoAttribution: "Hospital (stock)"

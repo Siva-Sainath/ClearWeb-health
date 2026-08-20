@@ -1,0 +1,39 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.bak
+.pytest_cache/
+
+# Scraper cache and raw MRF downloads (large, regeneratable)
+scraper/data/
+
+# IDE / Cursor
+.cursor/debug*.log
+.cursor/mcp.json
+
+# Misc
+*.pem
+.vercel
