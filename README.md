@@ -6,6 +6,12 @@ Hospital prices are public, but they live in CMS **Machine Readable Files (MRFs)
 
 This is **v1**. Still early, still rough in places.
 
+## Version 1 demo
+
+Full walkthrough: voice onboarding, scrape replay, ranked prices, and Aria explaining while the UI reshapes.
+
+**[Watch the demo (MP4)](docs/demo/clearweb-v1-demo.mp4)**
+
 ## What it does
 
 1. **Voice onboarding** with Aria. Say your procedure, insurance, city, and ZIP.
