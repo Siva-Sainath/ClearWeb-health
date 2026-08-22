@@ -137,6 +137,7 @@ def download_file(
     sample_mb: int | None = None,
     system: str = "",
     force_unlocker: bool = False,
+    no_unlocker: bool = False,
 ) -> DownloadResult:
     """Download MRF via Bright Data Web Unlocker with cache, ZIP extraction, and retries."""
     RAW_DIR.mkdir(parents=True, exist_ok=True)
@@ -156,21 +157,27 @@ def download_file(
                 logger.warning("[ingest] Ignoring bad cache %s: %s", path.name, exc)
                 path.unlink(missing_ok=True)
 
-    if _is_public_mrf_api(url):
+    skip_unlocker = no_unlocker or str(os.environ.get("SKIP_UNLOCKER", "")).lower() in ("1", "true")
+
+    if _is_public_mrf_api(url) and not skip_unlocker:
+        # Public APIs go direct; if skip_unlocker is true, it goes direct below anyway
         return _download_direct(url, hospital_id, url_hash, sample_mb=sample_mb)
 
-    if not use_unlocker_for_download(force=force_unlocker):
+    if not skip_unlocker and not use_unlocker_for_download(force=force_unlocker):
         require_unlocker()
 
     last_err: Exception | None = None
     for attempt in range(1, 4):
         try:
-            return _download_via_unlocker(url, hospital_id, url_hash, sample_mb=sample_mb)
-        except RuntimeError as exc:
+            if skip_unlocker:
+                return _download_direct(url, hospital_id, url_hash, sample_mb=sample_mb)
+            else:
+                return _download_via_unlocker(url, hospital_id, url_hash, sample_mb=sample_mb)
+        except Exception as exc:
             last_err = exc
-            logger.warning("[ingest] Unlocker attempt %d failed for %s: %s", attempt, hospital_id, exc)
+            logger.warning("[ingest] Download attempt %d failed for %s: %s", attempt, hospital_id, exc)
             time.sleep(attempt * 2)
-    raise RuntimeError(f"Web Unlocker download failed for {hospital_id} after 3 attempts: {last_err}")
+    raise RuntimeError(f"Download failed for {hospital_id} after 3 attempts: {last_err}")
 
 
 def _download_direct(

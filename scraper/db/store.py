@@ -78,6 +78,18 @@ def init_db() -> None:
                 created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS collector_jobs (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                hospital_name   TEXT NOT NULL,
+                slug            TEXT NOT NULL,
+                domain          TEXT NOT NULL,
+                target_url      TEXT NOT NULL,
+                collector_id    TEXT NOT NULL,
+                status          TEXT NOT NULL,
+                reason          TEXT,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_price_hospital
                 ON price_records (hospital_id);
 
@@ -211,3 +223,69 @@ def insert_heal_job(
         logger.info(f"[db] Logged heal_job: collector={collector_id}, status={status}, reason={reason}")
     finally:
         conn.close()
+
+
+def insert_collector_job(hospital_name: str, slug: str, domain: str, target_url: str, collector_id: str) -> None:
+    """Insert a new pending collector job."""
+    conn = _connect()
+    try:
+        conn.execute(
+            """
+            INSERT INTO collector_jobs
+                (hospital_name, slug, domain, target_url, collector_id, status)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (hospital_name, slug, domain, target_url, collector_id, "pending"),
+        )
+        conn.commit()
+        logger.info(f"[db] Inserted pending collector_job for {slug} ({collector_id})")
+    finally:
+        conn.close()
+
+
+def update_collector_job_status(collector_id: str, status: str, reason: str = "") -> None:
+    """Update the status of a collector job."""
+    conn = _connect()
+    try:
+        conn.execute(
+            """
+            UPDATE collector_jobs
+            SET status = ?, reason = ?
+            WHERE collector_id = ?
+            """,
+            (status, reason, collector_id),
+        )
+        conn.commit()
+        logger.info(f"[db] Updated collector_job {collector_id} to status='{status}'")
+    finally:
+        conn.close()
+
+
+def get_pending_collector_jobs() -> list[dict]:
+    """Return all pending collector jobs."""
+    conn = _connect()
+    try:
+        cursor = conn.execute("SELECT * FROM collector_jobs WHERE status = 'pending'")
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def count_verified_collectors() -> int:
+    """Return the total number of verified collectors."""
+    conn = _connect()
+    try:
+        row = conn.execute("SELECT COUNT(*) FROM collector_jobs WHERE status = 'verified'").fetchone()
+        return row[0]
+    finally:
+        conn.close()
+
+def collector_job_exists(slug: str) -> bool:
+    """Return True if a collector job already exists for this slug."""
+    conn = _connect()
+    try:
+        row = conn.execute("SELECT COUNT(*) FROM collector_jobs WHERE slug = ?", (slug,)).fetchone()
+        return row[0] > 0
+    finally:
+        conn.close()
+

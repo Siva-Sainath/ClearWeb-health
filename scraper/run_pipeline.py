@@ -113,7 +113,7 @@ def step1_discover(hospital: dict, use_seed: bool = False) -> str:
     return seed_url
 
 
-def step2_ingest(mrf_url: str, hospital_id: str, skip_to: Path | None) -> Path:
+def step2_ingest(mrf_url: str, hospital_id: str, skip_to: Path | None, no_unlocker: bool = False) -> Path:
     """
     Download the MRF file to disk. If --skip-download was passed, use that path instead.
     Returns the Path to the local file.
@@ -125,7 +125,7 @@ def step2_ingest(mrf_url: str, hospital_id: str, skip_to: Path | None) -> Path:
             raise FileNotFoundError(f"--skip-download path does not exist: {skip_to}")
         return skip_to
 
-    return download_file(mrf_url, hospital_id).path
+    return download_file(mrf_url, hospital_id, no_unlocker=no_unlocker).path
 
 
 def step3_normalize(raw_path: Path, hospital: dict, mrf_url: str) -> list[dict]:
@@ -214,6 +214,11 @@ def main() -> None:
         default=TARGET_HOSPITAL_ID,
         help=f"Hospital ID to process (default: {TARGET_HOSPITAL_ID})",
     )
+    parser.add_argument(
+        "--no-unlocker",
+        action="store_true",
+        help="Skip Bright Data Web Unlocker and use direct requests.get()",
+    )
     args = parser.parse_args()
 
     t_start = time.monotonic()
@@ -236,7 +241,7 @@ def main() -> None:
     mrf_url = step1_discover(hospital, use_seed=args.use_seed)
 
     # Step 2 — Ingest
-    raw_path = step2_ingest(mrf_url, hospital_id, skip_path)
+    raw_path = step2_ingest(mrf_url, hospital_id, skip_path, no_unlocker=args.no_unlocker)
 
     # Step 3 — Normalize
     rows = step3_normalize(raw_path, hospital, mrf_url)
