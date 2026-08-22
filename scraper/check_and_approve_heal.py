@@ -4,6 +4,8 @@ import requests
 import argparse
 from dotenv import load_dotenv
 
+from pipeline.heal import process_heal_approval
+
 load_dotenv()
 
 def check_and_approve(collector_id: str):
@@ -36,17 +38,19 @@ def check_and_approve(collector_id: str):
         print("Job is already resolved (done/applied). Nothing to do.")
         sys.exit(0)
         
-    if status == "pending_answer":
-        print("Job is awaiting approval. Approving immediately...")
-        resume_url = f"https://api.brightdata.com/dca/collectors/{collector_id}/resume_automation_job"
-        payload = {"message": True, "auto_save": True}
-        resume_resp = requests.post(resume_url, headers=headers, json=payload)
+    if status in ("pending_answer", "awaiting_approval"):
+        print("Job is awaiting approval. Fetching preview result...")
         
-        if resume_resp.status_code == 200:
-            print("Successfully approved and auto-saved.")
+        # Bright Data API returns 'output' as the preview result in refactor_template/progress
+        preview_result = data.get("output", [])
+        
+        print(f"Preview result: {preview_result}")
+        approved = process_heal_approval(collector_id, preview_result)
+        
+        if approved:
+            print("Successfully validated preview and approved.")
         else:
-            print(f"Failed to approve (HTTP {resume_resp.status_code}): {resume_resp.text}")
-            sys.exit(1)
+            print("Validation failed. Rejected and marked as needs_human.")
             
     elif status in ("failed", "error", "cancelled"):
         print("Job has failed or was cancelled.")
@@ -61,3 +65,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     check_and_approve(args.collector_id)
+

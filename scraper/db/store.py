@@ -12,6 +12,9 @@ price_records
 heal_events
   Append-only log of heal operations (mirrors heal_log.jsonl for API access).
 
+heal_jobs
+  Log of automated heal reviews (preview evaluations), tracking auto-approvals and needs_human rejections.
+
 Usage
 -----
   from db.store import init_db, upsert_to_db, get_rows_for_hospital
@@ -63,6 +66,16 @@ def init_db() -> None:
                 success         INTEGER,    -- 0 or 1
                 before_sample   TEXT,       -- JSON
                 after_sample    TEXT        -- JSON
+            );
+            
+            CREATE TABLE IF NOT EXISTS heal_jobs (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id          TEXT,
+                collector_id    TEXT NOT NULL,
+                hospital_id     TEXT,
+                status          TEXT NOT NULL,
+                reason          TEXT,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE INDEX IF NOT EXISTS idx_price_hospital
@@ -173,5 +186,28 @@ def insert_heal_event(
             ),
         )
         conn.commit()
+    finally:
+        conn.close()
+
+def insert_heal_job(
+    job_id: str | None,
+    collector_id: str,
+    hospital_id: str | None,
+    status: str,
+    reason: str,
+) -> None:
+    """Persist a heal job status check to the heal_jobs table."""
+    conn = _connect()
+    try:
+        conn.execute(
+            """
+            INSERT INTO heal_jobs
+                (job_id, collector_id, hospital_id, status, reason)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (job_id, collector_id, hospital_id, status, reason),
+        )
+        conn.commit()
+        logger.info(f"[db] Logged heal_job: collector={collector_id}, status={status}, reason={reason}")
     finally:
         conn.close()
