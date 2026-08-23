@@ -25,15 +25,11 @@ export default function ScrapeDemoActions() {
         <Sparkles size={18} className="shrink-0 mt-0.5" style={{ color: tokens.accent }} />
         <div className="space-y-1 min-w-0">
           <p className="text-sm font-medium text-[var(--color-text-primary)]">
-            {scrapePresentationMode === "instant" ||
-            scrapePresentationMode === "proof-reel"
-              ? "Prices from a recent hospital scrape"
-              : "Hospital search tools"}
+            Bright Data platform proof — Austin metro
           </p>
           <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-            {scrapePresentationMode === "instant"
-              ? "These numbers came from real Austin hospital price files we already collected. Watch a fast replay of how we crawled each site, or run a fresh live scrape through Bright Data."
-              : "Replay the last search path or run Bright Data collectors live against hospital sites."}
+            Scraper Studio collectors, Web Unlocker downloads, and self-healing — replayed from real
+            events. Prices are from verified CMS machine-readable files (MRF), not estimates.
           </p>
         </div>
       </div>
@@ -66,7 +62,7 @@ export default function ScrapeDemoActions() {
           className="inline-flex items-center h-9 px-3 text-xs rounded-md border border-sky-500/30 text-sky-200 hover:bg-sky-950/40 transition-colors"
         >
           <Wrench size={14} className="mr-1.5" />
-          Watch St. Luke&apos;s self-heal
+          Watch St. Luke&apos;s self-heal (BD Act 2)
         </Link>
       </div>
 

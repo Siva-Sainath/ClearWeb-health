@@ -1,8 +1,15 @@
-# Judge quickstart — Clearweb Health (Scrape-Verse / Bright Data)
+# Judge quickstart — Clearweb Health (Austin demo + Bright Data)
 
-This is the **honest** path to evaluate the hackathon submission. The deployed URL matches what you see in the demo video: real recorded scrape events, no fabricated prices.
+**Primary demo:** Austin metro only — ZIP **78701** (or any **787xx** below), real cached MRF prices, proof-reel with self-heal.
 
-## What is real vs replay
+**Act 2 (Bright Data platform):** [`/showcase/heal`](/showcase/heal) — recorded St. Luke's self-heal + collector pipeline stats.
+
+## Quick test (local)
+
+Open **http://localhost:3000** — backend must be on **http://localhost:3001**.
+
+Say: *Brain MRI, CPT 70553, Aetna, Austin, ZIP 78701.*
+
 
 | Claim | Truth |
 |-------|--------|

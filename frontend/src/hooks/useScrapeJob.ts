@@ -206,13 +206,15 @@ export function useScrapeJob() {
 
       const cacheStatus = await checkZipCache(profileNorm);
       const hasCache = cacheStatus?.cached === true;
+      const zipKnown = cacheStatus?.zipKnown !== false;
 
-      if (HACKATHON_DEMO_MODE && !hasCache) {
+      if (HACKATHON_DEMO_MODE && !hasCache && zipKnown) {
         await startLiveScrape(profileNorm);
         return;
       }
 
-      if (hasCache) {
+      if (hasCache || !zipKnown) {
+        // Austin ZIP with cache, or out-of-coverage ZIP → proof-reel + honest snapshot fallback
         await startProofReelFlow(profileNorm);
         return;
       }

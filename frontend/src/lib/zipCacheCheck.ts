@@ -5,9 +5,10 @@ const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 export type ZipCacheStatus = {
   cached: boolean;
   hospitalCount: number;
-  zipKnown: boolean;
+  zipKnown?: boolean;
   zip: string;
   radiusMi: number;
+  reason?: string;
 };
 
 export async function checkZipCache(

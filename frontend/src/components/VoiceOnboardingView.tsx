@@ -35,12 +35,22 @@ function CacheStatusBanner({
 
   if (zipProbe.status === "error") return null;
 
-  const { cached, hospitalCount } = zipProbe.data;
+  const { cached, hospitalCount, zipKnown } = zipProbe.data;
   if (cached) {
     return (
       <p className="mt-3 flex items-center justify-center gap-2 text-xs text-violet-300">
         <Database size={13} />
-        {hospitalCount} hospital{hospitalCount === 1 ? "" : "s"} cached near you — instant verified replay
+        {hospitalCount} Austin-metro hospital{hospitalCount === 1 ? "" : "s"} cached — verified proof-reel
+      </p>
+    );
+  }
+
+  if (zipKnown === false) {
+    return (
+      <p className="mt-3 text-center text-xs text-amber-200/90 leading-relaxed max-w-md mx-auto">
+        Demo coverage is <strong className="font-medium">Austin metro only</strong> (ZIP 78701–78759).
+        Try <span className="font-mono">78701</span> for 12 real cached hospitals — or continue for Austin
+        proof-reel with your procedure.
       </p>
     );
   }
@@ -48,7 +58,7 @@ function CacheStatusBanner({
   return (
     <p className="mt-3 flex items-center justify-center gap-2 text-xs text-emerald-300/90">
       <Radio size={13} />
-      No cache yet — Bright Data will run a live scrape (a few minutes)
+      No cache for this ZIP — live scrape needs local Bright Data (Austin 787xx recommended)
     </p>
   );
 }
@@ -158,9 +168,11 @@ export default function VoiceOnboardingView() {
   const buttonLabel =
     zipProbe.status === "ready" && zipProbe.data.cached
       ? "Show cached prices (verified replay)"
-      : zipProbe.status === "ready" && !zipProbe.data.cached
-        ? "Run live Bright Data scrape"
-        : "Pull hospital prices near you";
+      : zipProbe.status === "ready" && zipProbe.data.zipKnown === false
+        ? "Show Austin demo (proof-reel)"
+        : zipProbe.status === "ready" && !zipProbe.data.cached
+          ? "Run live Bright Data scrape"
+          : "Pull hospital prices near you";
 
   return (
     <div className="pb-24">
