@@ -47,7 +47,7 @@ export const PHASE_LABEL: Record<JourneyPhase, string> = {
 };
 
 export const HERO_SUBTITLE: Record<JourneyPhase, string> = {
-  onboarding: "Look at the coverage panel — then tell Aria what to price",
+  onboarding: "Tap anywhere to hear Aria, then tell her what to price",
   scraping: "Pulling prices from hospitals near you…",
   results: "Here’s what we found — tap a chip or just ask.",
 };

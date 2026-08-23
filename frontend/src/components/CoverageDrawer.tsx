@@ -42,11 +42,13 @@ export default function CoverageDrawer({ open, onOpenChange }: CoverageDrawerPro
           <motion.aside
             role="dialog"
             aria-labelledby="coverage-title"
+            id="coverage-panel"
+            aria-modal="true"
             initial={{ x: 28, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 28, opacity: 0 }}
             transition={{ type: "spring", stiffness: 380, damping: 34 }}
-            className="fixed right-0 top-0 z-[70] h-[100dvh] w-full max-w-md overflow-y-auto border-l border-emerald-500/20 bg-[#070D0A]/95 p-5 sm:p-6 shadow-2xl backdrop-blur-xl"
+            className="fixed z-[70] overflow-y-auto border-emerald-500/20 bg-[#070D0A]/95 p-5 sm:p-6 shadow-2xl backdrop-blur-xl max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:h-[min(78dvh,40rem)] max-md:rounded-t-3xl max-md:border-t md:right-0 md:top-0 md:h-[100dvh] md:w-full md:max-w-md md:border-l"
           >
             <div className="flex items-start justify-between gap-3 mb-5">
               <div>

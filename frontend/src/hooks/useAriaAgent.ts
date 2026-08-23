@@ -59,6 +59,8 @@ export interface UseAriaAgentOptions {
   executiveSummary?: ScrapeExecutiveSummary | null;
   onRouteFacility?: (facilityId: string) => void;
   resultsSource?: ScrapePresentationMode;
+  /** Fires when onboarding welcome TTS actually starts (first user tap). */
+  onWelcomeStart?: () => void;
 }
 
 export interface UseAriaAgentReturn {
@@ -105,6 +107,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
     executiveSummary,
     onRouteFacility,
     resultsSource,
+    onWelcomeStart,
   } = options;
 
   const [messages, setMessages] = useState<VapiMessage[]>([]);
@@ -518,8 +521,11 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
         try {
           if (phase === "onboarding") {
             const chunks = getOnboardingWelcomeChunks();
-            for (const chunk of chunks) {
+            for (let i = 0; i < chunks.length; i++) {
+              const chunk = chunks[i];
+              const lookRightCue = i === Math.min(1, chunks.length - 1);
               setCaption(chunk);
+              if (lookRightCue) onWelcomeStart?.();
               await speakTts(chunk, {
                 audioRef: ttsAudioRef,
                 onPlaying: () => startSpeakLevelSim(),
@@ -550,7 +556,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
         globalSpeakWelcomeLock = null;
       }
     },
-    [phase, pauseListening, startSpeakLevelSim, stopSpeakLevelSim]
+    [phase, pauseListening, startSpeakLevelSim, stopSpeakLevelSim, onWelcomeStart]
   );
 
   // Keep a live mic visualizer running while the Web Speech session is hot.
@@ -1259,9 +1265,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       clearError();
       setIsActive(true);
       setMessages([{ id: "greet", role: "agent", text: greeting }]);
-      setCaption(
-        phase === "onboarding" ? getOnboardingWelcomeSpoken() : VOICE_COPY.standby
-      );
+      setCaption(VOICE_COPY.standby);
     }, 0);
 
     if (phase !== "onboarding") {

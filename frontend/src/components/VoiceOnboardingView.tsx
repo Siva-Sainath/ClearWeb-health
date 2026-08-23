@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Database, Radio, Loader2 } from "lucide-react";
+import { Database, Radio, Loader2, PanelRightOpen } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useDashboard } from "@/context/DashboardContext";
 import { useAriaAgent } from "@/hooks/useAriaAgent";
@@ -76,12 +76,14 @@ export default function VoiceOnboardingView() {
   const { startScrape } = useScrapeJob();
   const zipProbe = useZipCacheProbe(patientProfile);
   const { applyActions, state: dashState, dispatch } = useDashboard();
-  const [coverageOpen, setCoverageOpen] = useState(true);
+  const [coverageOpen, setCoverageOpen] = useState(false);
+  const [coverageHintReady, setCoverageHintReady] = useState(false);
   const [textInputOpen, setTextInputOpen] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [transitioning, setTransitioning] = useState(false);
   const [scrapeConfirmed, setScrapeConfirmed] = useState(false);
   const transitioningRef = useRef(false);
+  const coverageOpenTimerRef = useRef<number | null>(null);
   const beginPriceSearchRef = useRef<(profile?: PatientProfile) => void>(() => {});
 
   const agentDashState = useMemo(
@@ -123,6 +125,14 @@ export default function VoiceOnboardingView() {
     onUIActions: applyActions,
     onThinkingChange: (thinking) => dispatch({ type: "SET_THINKING", payload: thinking }),
     dashState: agentDashState,
+    onWelcomeStart: () => {
+      setCoverageHintReady(true);
+      if (coverageOpenTimerRef.current) window.clearTimeout(coverageOpenTimerRef.current);
+      coverageOpenTimerRef.current = window.setTimeout(() => {
+        coverageOpenTimerRef.current = null;
+        if (!transitioningRef.current) setCoverageOpen(true);
+      }, 650);
+    },
   });
 
   const beginPriceSearch = useCallback(
@@ -138,6 +148,12 @@ export default function VoiceOnboardingView() {
       if (!isProfileCoreReady(profile)) return;
 
       transitioningRef.current = true;
+      if (coverageOpenTimerRef.current) {
+        window.clearTimeout(coverageOpenTimerRef.current);
+        coverageOpenTimerRef.current = null;
+      }
+      setCoverageOpen(false);
+      setCoverageHintReady(false);
       agent.stopVoiceSession();
       setScrapeConfirmed(true);
       setTransitioning(true);
@@ -180,15 +196,25 @@ export default function VoiceOnboardingView() {
   return (
     <div className="pb-24">
       <div className="px-6 pt-6 max-w-lg mx-auto">
-        <div className="flex justify-center mb-3">
-          <button
-            type="button"
-            onClick={() => setCoverageOpen(true)}
-            className="text-xs font-medium rounded-full px-3 py-1.5 border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15"
-          >
-            Coverage — ZIPs, hospitals, procedures, payers
-          </button>
-        </div>
+        {coverageHintReady && (
+          <div className="flex flex-col items-center mb-4 gap-1.5">
+            <button
+              type="button"
+              onClick={() => setCoverageOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={coverageOpen}
+              aria-controls="coverage-panel"
+              aria-describedby="coverage-btn-help"
+              className="inline-flex items-center gap-2 min-h-12 px-5 py-3 rounded-2xl text-base font-semibold text-[#07140f] bg-emerald-300 hover:bg-emerald-200 shadow-[0_0_28px_rgba(52,211,153,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
+            >
+              <PanelRightOpen size={20} aria-hidden />
+              See what Aria can price
+            </button>
+            <p id="coverage-btn-help" className="text-xs text-center text-emerald-200/80 max-w-xs">
+              Opens the Austin list: ZIPs, hospitals, procedures, and insurance plans.
+            </p>
+          </div>
+        )}
         <OnboardingProgress profile={patientProfile} />
         <CacheStatusBanner zipProbe={zipProbe} />
         {canPullPrices && !transitioning && (

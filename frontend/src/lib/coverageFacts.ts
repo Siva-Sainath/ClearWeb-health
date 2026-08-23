@@ -88,7 +88,8 @@ export const COVERAGE_INSURERS = [
 
 export function getCoverageWelcomeChunks(agentName: string): string[] {
   return [
-    `Hi, I'm ${agentName}. Look to your right — that panel lists every ZIP, hospital, treatment, and insurer I already have scraped. What do you need priced today?`,
+    `Hi, I'm ${agentName}.`,
+    `Look to your right. Tap See what Aria can price for every ZIP, hospital, treatment, and insurer I already have scraped. What do you need priced today?`,
   ];
 }
 
