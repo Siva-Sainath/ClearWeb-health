@@ -13,7 +13,7 @@ function checkAuth(request: Request): boolean {
 
 const VALID_TYPES = new Set([
   "tab", "spotlight", "filter", "sort", "compare", "show_card", "reset",
-  "layout", "highlight", "reveal", "call", "book", "route", "chip",
+  "layout", "highlight", "reveal", "call", "book", "route", "chip", "expand_stage",
   "navigate_phase", "navigate_panel", "navigate_scroll", "navigate_url",
 ]);
 

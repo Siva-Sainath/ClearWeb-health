@@ -16,6 +16,7 @@ import { resolveFacilityCoords } from "@/lib/facilityGeo";
 import VoiceShell from "./VoiceShell";
 import AgentLiveRibbon from "./AgentLiveRibbon";
 import ExecutiveSummaryPanel from "./ExecutiveSummaryPanel";
+import DynamicHospitalStage from "./DynamicHospitalStage";
 import ConsumerOptionCard from "./ConsumerOptionCard";
 import ExplanationStage from "./ExplanationStage";
 import ResultsTabShell from "./ResultsTabShell";
@@ -102,6 +103,20 @@ export default function ResultsView() {
       document.getElementById(`facility-${facilityId}`)?.scrollIntoView({ behavior: "smooth" });
     },
     [dispatch]
+  );
+
+  const handleStageSelect = useCallback(
+    (id: string | null) => {
+      if (!id) {
+        if (dashState.spotlightId) {
+          dispatch({ type: "spotlight", payload: dashState.spotlightId });
+        }
+        dispatch({ type: "layout", payload: "explore" });
+        return;
+      }
+      dispatch({ type: "expand_stage", payload: id });
+    },
+    [dispatch, dashState.spotlightId]
   );
 
   const summary = useMemo(
@@ -481,47 +496,22 @@ export default function ResultsView() {
         }
         cards={
           <section className="space-y-4 w-full" aria-live="polite" aria-atomic="false">
-            <h2 className="text-sm font-medium uppercase tracking-wider text-[var(--color-text-tertiary)]">
-              Ranked for you
-            </h2>
             {llmExplanation && !walkthroughDone && !AGENTIC_RESULTS && cardsToShow.length === 0 && (
               <p className="text-sm text-[var(--color-text-secondary)] glass rounded-2xl p-4">
-                Cards appear here as Aria walks through each hospital option.
+                Hospitals appear here as Aria walks through each option.
               </p>
             )}
-            <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
-            <AnimatePresence initial={false}>
-              {cardsToShow.map((option) => (
-                <motion.div
-                  key={option.id}
-                  id={`facility-${option.id}`}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  layout
-                  className={`w-full ${
-                    dashState.highlightId === option.id
-                      ? "ring-2 ring-emerald-400/50 rounded-2xl"
-                      : ""
-                  }`}
-                >
-                  <ConsumerOptionCard
-                    option={option}
-                    highlighted={option.rank === 1}
-                    spotlight={dashState.spotlightId === option.id}
-                    driveLabel={driveLabelFor(option.id)}
-                    onShowRoute={
-                      userCoords ? () => handleRouteFacility(option.id) : undefined
-                    }
-                    onSpotlight={() => {
-                      dispatch({ type: "spotlight", payload: option.id });
-                      dispatch({ type: "layout", payload: "spotlightHero" });
-                    }}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            </div>
+            {cardsToShow.length > 0 && (
+              <DynamicHospitalStage
+                options={cardsToShow}
+                activeSpotlightId={
+                  dashState.layoutMode === "stageFocus" ? dashState.spotlightId : null
+                }
+                highlightedId={dashState.highlightId ?? dashState.spotlightId}
+                onSelectOption={handleStageSelect}
+                onShowRoute={userCoords ? handleRouteFacility : undefined}
+              />
+            )}
           </section>
         }
       />

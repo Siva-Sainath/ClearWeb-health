@@ -1,6 +1,8 @@
 import type { PatientProfile, FacilityResult, ScraperLog } from "@/lib/types";
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { LlmExplanation } from "@/lib/llmExplanation";
+import type { UIAction } from "@/lib/uiActions";
+import type { PresentationStep } from "@/hooks/usePresentationOrchestrator";
 
 export interface ScrapeContextPayload {
   dataSource: string;
@@ -49,8 +51,8 @@ export interface BrainSessionResponse {
   explanationSource?: "deterministic" | "conductor";
   presentation?: {
     spokenScript?: string;
-    steps?: Array<{ tool?: string; args?: Record<string, unknown>; delayMs?: number; caption?: string; actions?: unknown[] }>;
-    actions?: unknown[];
+    steps?: PresentationStep[];
+    actions?: UIAction[];
     uiActions?: string[];
     source?: string;
   } | null;

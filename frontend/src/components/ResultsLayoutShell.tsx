@@ -30,14 +30,18 @@ export default function ResultsLayoutShell({
   const reducedMotion = useReducedMotion();
 
   const chartClass =
-    layoutMode === "chartFocus" || layoutMode === "savingsStory"
+    layoutMode === "stageFocus"
+      ? "order-3 opacity-30 pointer-events-none max-h-[200px] overflow-hidden"
+      : layoutMode === "chartFocus" || layoutMode === "savingsStory"
       ? "order-1"
       : layoutMode === "compareSplit"
         ? "order-3"
         : "order-2";
 
   const cardsClass =
-    layoutMode === "spotlightHero" || layoutMode === "mapRoute"
+    layoutMode === "stageFocus"
+      ? "order-1 relative z-10"
+      : layoutMode === "spotlightHero" || layoutMode === "mapRoute"
       ? "order-3 opacity-90"
       : layoutMode === "chartFocus"
         ? "order-3"
@@ -101,7 +105,7 @@ export default function ResultsLayoutShell({
 
       {summary && layoutMode === "explore" && <div className="order-0">{summary}</div>}
 
-      {flashcards && layoutMode !== "trustGaps" && (
+      {flashcards && layoutMode !== "trustGaps" && layoutMode !== "stageFocus" && (
         <motion.div layout className="order-1">{flashcards}</motion.div>
       )}
 

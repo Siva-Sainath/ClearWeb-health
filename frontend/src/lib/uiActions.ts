@@ -10,6 +10,7 @@ export type FilterMode = "none" | "accredited" | "close" | "cheap";
 
 export type LayoutMode =
   | "explore"
+  | "stageFocus"
   | "chartFocus"
   | "compareSplit"
   | "mapRoute"
@@ -20,6 +21,7 @@ export type LayoutMode =
 export type UIAction =
   | { type: "tab"; payload: TabId }
   | { type: "spotlight"; payload: string }
+  | { type: "expand_stage"; payload: string }
   | { type: "filter"; payload: FilterMode }
   | { type: "sort"; payload: SortMode }
   | { type: "compare"; facilityA: string; facilityB: string }
@@ -59,6 +61,8 @@ function parseActionRaw(raw: string): UIAction | null {
       return parts[1] ? { type: "tab", payload: parts[1] as TabId } : null;
     case "spotlight":
       return parts[1] ? { type: "spotlight", payload: parts[1] } : null;
+    case "expand_stage":
+      return parts[1] ? { type: "expand_stage", payload: parts[1] } : null;
     case "filter":
       return parts[1] ? { type: "filter", payload: parts[1] as FilterMode } : null;
     case "sort":

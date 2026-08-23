@@ -47,6 +47,7 @@ const INITIAL: DashboardState = {
 
 const LAYOUT_LABELS: Record<LayoutMode, string> = {
   explore: "Explore view",
+  stageFocus: "Full-stage analysis",
   chartFocus: "Chart focus",
   compareSplit: "Compare split",
   mapRoute: "Map & route",
@@ -73,6 +74,13 @@ function reducer(
         ...state,
         spotlightId: action.payload === state.spotlightId ? null : action.payload,
         lastAction: "Spotlighting facility",
+      };
+    case "expand_stage":
+      return {
+        ...state,
+        spotlightId: action.payload,
+        layoutMode: "stageFocus",
+        lastAction: "Expanding facility to full stage",
       };
     case "highlight":
       return {

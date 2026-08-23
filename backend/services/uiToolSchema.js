@@ -18,6 +18,7 @@ const UI_PRESENTATION_TOOLS = [
             type: "string",
             enum: [
               "explore",
+              "stageFocus",
               "chartFocus",
               "compareSplit",
               "mapRoute",
@@ -28,6 +29,21 @@ const UI_PRESENTATION_TOOLS = [
           },
         },
         required: ["mode"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "expand_viewport_stage",
+      description: "Expand a facility to a full-window modal-less analysis stage",
+      parameters: {
+        type: "object",
+        properties: {
+          facilityId: { type: "string" },
+          depth: { type: "string", enum: ["hero", "fullWindow", "splitInspect"] },
+        },
+        required: ["facilityId"],
       },
     },
   },
@@ -131,7 +147,7 @@ const PRESENTATION_JSON_SCHEMA = `Return ONLY valid JSON:
   "spokenScript": "2-4 sentences opener — mention data source honestly",
   "steps": [
     {
-      "tool": "set_layout|spotlight_facility|set_tab|reveal_facility|compare_facilities|filter_results|sort_results|show_route",
+      "tool": "set_layout|expand_viewport_stage|spotlight_facility|set_tab|reveal_facility|compare_facilities|filter_results|sort_results|show_route",
       "args": {},
       "delayMs": 800,
       "caption": "Short line spoken while this UI change happens"
@@ -145,6 +161,8 @@ function toolCallToUiAction(name, args) {
   switch (name) {
     case "set_layout":
       return { type: "layout", payload: a.mode };
+    case "expand_viewport_stage":
+      return { type: "expand_stage", payload: a.facilityId };
     case "spotlight_facility":
       return { type: "spotlight", payload: a.facilityId };
     case "set_tab":
