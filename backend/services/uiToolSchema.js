@@ -9,6 +9,15 @@ const UI_PRESENTATION_TOOLS = [
   {
     type: "function",
     function: {
+      name: "show_self_heal_proof",
+      description:
+        "Open the Bright Data trust panel showing collector IDs (c_*) and self-heal events — use when explaining how scrapers recovered from broken hospital portals",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "set_layout",
       description: "Reshape the results page layout mode",
       parameters: {
@@ -147,20 +156,23 @@ const PRESENTATION_JSON_SCHEMA = `Return ONLY valid JSON:
   "spokenScript": "2-4 sentences opener — mention data source honestly",
   "steps": [
     {
-      "tool": "set_layout|expand_viewport_stage|spotlight_facility|set_tab|reveal_facility|compare_facilities|filter_results|sort_results|show_route",
+      "tool": "set_layout|show_self_heal_proof|expand_viewport_stage|spotlight_facility|set_tab|reveal_facility|compare_facilities|filter_results|sort_results|show_route",
       "args": {},
       "delayMs": 800,
       "caption": "Short line spoken while this UI change happens"
     }
   ]
 }
-Rules: 5-9 steps, stagger delays 600-1800ms, start with set_layout explore, spotlight the recommended facility, end on map or chart. Use real facility ids from data.`;
+Rules: 5-9 steps, stagger delays 600-1800ms, start with set_layout explore, spotlight the recommended facility, end on map or chart. Use real facility ids from data.
+If SCRAPE CONTEXT mentions self-healing or heal events, include show_self_heal_proof early (after opener) with a caption naming the collector id and that Bright Data repaired the scraper without app code changes.`;
 
 function toolCallToUiAction(name, args) {
   const a = args || {};
   switch (name) {
     case "set_layout":
       return { type: "layout", payload: a.mode };
+    case "show_self_heal_proof":
+      return { type: "layout", payload: "trustGaps" };
     case "expand_viewport_stage":
       return { type: "expand_stage", payload: a.facilityId };
     case "spotlight_facility":

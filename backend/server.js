@@ -15,6 +15,7 @@ const { handleAgentChatStream, extractProfile, analyseResults } = require("./ser
 const { conductResults } = require("./services/resultsConductor");
 const { createSession, getSession } = require("./services/brainService");
 const { runCollectorStatus } = require("./services/collectorStatusService");
+const { runCollectorHeal } = require("./services/collectorHealService");
 const scrapeService = require("./services/scrapeService");
 const { queryCachedPrices } = require("./services/priceQueryService");
 const multer = require("multer");
@@ -170,6 +171,30 @@ app.get("/api/collectors/status", async (_req, res) => {
     res.json(status);
   } catch (err) {
     console.error("[collectors/status]", err.message);
+    res.status(503).json({ error: err.message });
+  }
+});
+
+/** Trigger Bright Data self-heal on a collector (judge demo / brain recovery) */
+app.post("/api/collectors/heal", async (req, res) => {
+  try {
+    const { collectorId, reason, seedUrl, slug, name, domain, tier, rerun } = req.body || {};
+    if (!collectorId || !reason) {
+      return res.status(400).json({ error: "collectorId and reason required" });
+    }
+    const result = await runCollectorHeal({
+      collectorId,
+      reason,
+      seedUrl,
+      slug,
+      name,
+      domain,
+      tier: typeof tier === "number" ? tier : 1,
+      rerun: rerun !== false,
+    });
+    res.json(result);
+  } catch (err) {
+    console.error("[collectors/heal]", err.message);
     res.status(503).json({ error: err.message });
   }
 });

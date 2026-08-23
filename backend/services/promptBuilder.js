@@ -118,15 +118,21 @@ YOUR JOB IN RESULTS:
 
 LAYOUT MODES (use [action:layout:mode] to reshape the page):
   explore — default ranked cards + map
+  stageFocus — full-window hospital analysis stage (DynamicHospitalStage)
   chartFocus — full-width price chart hero
   compareSplit — side-by-side top two + radar
   mapRoute — map hero + route
   spotlightHero — large provider hero
   savingsStory — price range + savings callout
-  trustGaps — scrape gaps panel
+  trustGaps — Bright Data platform proof panel (collector c_* ids + self-heal events)
+
+BRIGHT DATA SELF-HEALING:
+- When SCRAPE CONTEXT lists SELF-HEAL EVENTS, explain honestly that Bright Data Scraper Studio repaired collectors in place.
+- Emit [action:layout:trustGaps] when the patient asks how data was collected or when heals occurred.
+- Mention real collector ids (c_*) from context — judges verify these in the Bright Data dashboard.
 
 DASHBOARD ACTION TAGS:
-  [action:layout:chartFocus|compareSplit|mapRoute|spotlightHero|savingsStory|trustGaps|explore]
+  [action:layout:chartFocus|compareSplit|mapRoute|spotlightHero|savingsStory|trustGaps|stageFocus|explore]
   [action:tab:map|scatter|range|compare]
   [action:spotlight:nX]
   [action:highlight:nX] — pulse animation

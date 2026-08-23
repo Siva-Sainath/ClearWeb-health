@@ -20,8 +20,8 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 logger = logging.getLogger(__name__)
 
-# Default: sync mode (~5–50s) for live demo after onboarding. Set 0 for async batch polling.
-SYNC_MODE = os.environ.get("BRIGHTDATA_SCRAPER_SYNC", "1") not in ("0", "false", "False")
+# Default: async for batch/Texas expansion. Set BRIGHTDATA_SCRAPER_SYNC=1 for live demo only.
+SYNC_MODE = os.environ.get("BRIGHTDATA_SCRAPER_SYNC", "0") not in ("0", "false", "False")
 # Bright Data CLI --sync-timeout must be 25–50 seconds
 SYNC_TIMEOUT = min(50, max(25, int(os.environ.get("BRIGHTDATA_SYNC_TIMEOUT", "50"))))
 BD_API_BASE = "https://api.brightdata.com"
@@ -67,57 +67,109 @@ def _extract_response_id(text: str) -> str | None:
     return m.group(1) if m else None
 
 
+def _normalize_collector_result(data) -> dict:
+    """Normalize BD get_result / CLI output to a single dict row."""
+    if isinstance(data, str):
+        data = json.loads(data)
+    if isinstance(data, list):
+        if not data:
+            raise RuntimeError("Collector returned empty list")
+        data = data[0]
+    if not isinstance(data, dict):
+        raise RuntimeError(f"Unexpected collector result type: {type(data)}")
+    return data
+
+
 def get_result_by_response_id(response_id: str, timeout_s: int = 300) -> dict:
-    """Poll GET /dca/get_result by response_id after async/sync-timeout run."""
+    """Poll GET /dca/get_result by response_id (async real-time or sync-timeout recovery)."""
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         resp = requests.get(
             f"{BD_API_BASE}/dca/get_result",
             headers=_auth_headers(),
-            params={"response_id": response_id},
-            timeout=60,
+            params={"response_id": response_id, "timeout": "50s"},
+            timeout=65,
         )
         if resp.status_code == 429:
             raise RuntimeError("rate_limited: Bright Data get_result rate limited")
+        if resp.status_code == 202:
+            continue
         if resp.status_code in (404, 400):
             time.sleep(3)
             continue
         if not resp.ok:
             raise RuntimeError(f"get_result failed ({resp.status_code}): {resp.text[:400]}")
         data = resp.json()
+        if data is None:
+            time.sleep(3)
+            continue
+        if isinstance(data, dict) and data.get("pending"):
+            time.sleep(3)
+            continue
+        if isinstance(data, list) and data:
+            return {"result": data}
         status = (data.get("status") or data.get("state") or "").lower()
         if status in ("done", "complete", "success", "finished") or data.get("result"):
             return data
         if status in ("failed", "error"):
             raise RuntimeError(f"Collector REST run failed: {data}")
+        if any(k in data for k in ("mrf_url", "pricing_files", "standard_charges_files", "file_url")):
+            return {"result": data}
         time.sleep(3)
     raise RuntimeError(f"get_result timed out after {timeout_s}s for response_id={response_id}")
 
 
 def collector_info_rest(collector_id: str) -> dict:
-    """GET collector metadata — used to detect missing template."""
+    """GET automate_template progress — canonical template readiness signal per BD docs."""
     resp = requests.get(
-        f"{BD_API_BASE}/dca/collectors/{collector_id}",
+        f"{BD_API_BASE}/dca/collectors/{collector_id}/automate_template/progress",
         headers=_auth_headers(),
         timeout=30,
     )
+    if resp.status_code == 404:
+        return {"status": "unknown", "status_code": 404}
     if not resp.ok:
         return {"error": resp.text[:200], "status_code": resp.status_code}
     return resp.json()
 
 
 def collector_ready(collector_id: str) -> tuple[bool, str]:
-    """Return (ready, reason). False when BD reports no template / still building."""
+    """Return (ready, reason) using automate_template/progress (not the nonexistent GET /collectors/{id})."""
     info = collector_info_rest(collector_id)
-    if info.get("error"):
-        return True, "collector info unavailable — proceed with run"
-    err = (info.get("error_message") or info.get("error") or "").lower()
-    if "template" in err and "not" in err:
-        return False, "Collector does not have a template"
-    status = (info.get("status") or info.get("state") or "").lower()
-    if status in ("building", "pending", "creating"):
-        return False, f"Collector still {status}"
+    status_code = info.get("status_code")
+    if status_code == 404:
+        return True, "no automate progress — proceed with run"
+
+    status = (info.get("status") or "").lower()
+    step = info.get("step") or ""
+
+    if status == "done":
+        return True, "ready"
+    if status in ("failed", "error", "cancelled"):
+        err = info.get("error") or step or status
+        return False, f"template generation {status}: {str(err)[:120]}"
+    if status in ("queued", "planner", "running") or step:
+        return False, f"Collector still building ({step or status})"
     return True, "ready"
+
+
+def wait_for_collector_ready(
+    collector_id: str,
+    timeout_s: int = 900,
+    poll_s: int = 30,
+) -> tuple[bool, str]:
+    """Poll until BD collector has a template and is runnable."""
+    deadline = time.time() + timeout_s
+    last_reason = "unknown"
+    while time.time() < deadline:
+        ready, reason = collector_ready(collector_id)
+        last_reason = reason
+        if ready:
+            return True, reason
+        if "does not have a template" in reason.lower():
+            logger.info("Collector %s still building template…", collector_id)
+        time.sleep(poll_s)
+    return False, f"Collector not ready after {timeout_s}s: {last_reason}"
 
 
 def trigger_immediate_rest(collector_id: str, seed_url: str = "") -> dict:
@@ -133,7 +185,7 @@ def trigger_immediate_rest(collector_id: str, seed_url: str = "") -> dict:
     )
     if resp.status_code == 429:
         raise RuntimeError("rate_limited: Bright Data trigger_immediate rate limited")
-    if not resp.ok:
+    if resp.status_code not in (200, 202):
         raise RuntimeError(f"trigger_immediate failed ({resp.status_code}): {resp.text[:400]}")
     return resp.json()
 
@@ -181,17 +233,22 @@ def refactor_template_rest(collector_id: str, prompt: str) -> dict:
 
 
 def run_collector_rest(collector_id: str, seed_url: str = "", timeout_s: int | None = None) -> dict:
-    """Run collector via REST trigger + poll (CLI fallback)."""
-    trigger_immediate_rest(collector_id, seed_url)
-    raw = get_result_rest(collector_id, timeout_s=timeout_s or int(os.environ.get("BRIGHTDATA_ASYNC_TIMEOUT", "300")))
+    """Run collector via REST trigger_immediate + poll by response_id (BD recommended async path)."""
+    async_timeout = timeout_s or int(os.environ.get("BRIGHTDATA_ASYNC_TIMEOUT", "300"))
+    trigger = trigger_immediate_rest(collector_id, seed_url)
+    response_id = (
+        trigger.get("response_id")
+        or trigger.get("id")
+        or trigger.get("responseId")
+    )
+    if not response_id:
+        raise RuntimeError(
+            f"trigger_immediate returned no response_id for {collector_id}: {trigger!r}"
+        )
+    logger.info("REST async run %s response_id=%s", collector_id, response_id)
+    raw = get_result_by_response_id(response_id, timeout_s=async_timeout)
     result = raw.get("result") or raw.get("data") or raw
-    if isinstance(result, str):
-        result = json.loads(result)
-    if isinstance(result, list):
-        if not result:
-            raise RuntimeError(f"Collector {collector_id} REST returned empty list")
-        result = result[0]
-    return result
+    return _normalize_collector_result(result)
 
 
 def create_collector(
@@ -270,20 +327,18 @@ def run_collector(
                 raise RuntimeError(f"rate_limited: {result.stderr[-200:]}")
             combined = (result.stdout or "") + (result.stderr or "")
             response_id = _extract_response_id(combined)
-            if response_id and use_sync and "timed out" in combined.lower():
-                logger.info("Sync timed out for %s — polling response_id %s", collector_id, response_id)
+            if response_id and ("timed out" in combined.lower() or not use_sync):
+                logger.info(
+                    "Recovering async result for %s via response_id %s",
+                    collector_id,
+                    response_id,
+                )
                 raw = get_result_by_response_id(
                     response_id,
                     timeout_s=int(os.environ.get("BRIGHTDATA_ASYNC_TIMEOUT", "300")),
                 )
                 data = raw.get("result") or raw.get("data") or raw
-                if isinstance(data, str):
-                    data = json.loads(data)
-                if isinstance(data, list):
-                    if not data:
-                        raise RuntimeError(f"Collector {collector_id} async returned empty list")
-                    data = data[0]
-                return data
+                return _normalize_collector_result(data)
             raise RuntimeError(
                 f"brightdata scraper run failed (exit {result.returncode}):\n"
                 f"stdout: {result.stdout[-800:]}\nstderr: {result.stderr[-400:]}"
@@ -300,12 +355,7 @@ def run_collector(
                 f"brightdata scraper run output is not valid JSON for collector {collector_id}:\n{output[:500]}"
             )
 
-        if isinstance(data, list):
-            if not data:
-                raise RuntimeError(f"Collector {collector_id} returned an empty list.")
-            data = data[0]
-
-        return data
+        return _normalize_collector_result(data)
     except Exception as cli_exc:
         logger.warning("CLI run_collector failed for %s, trying REST: %s", collector_id, cli_exc)
         if "does not have a template" in str(cli_exc).lower():

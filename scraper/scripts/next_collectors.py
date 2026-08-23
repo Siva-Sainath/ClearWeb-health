@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT))
 
 from db.store import init_db, collector_job_exists
 from pipeline.bulk_create import create_collectors_bulk, HospitalCandidate
+from studio.prompts import infer_system
 
 CANDIDATES = ROOT / "data" / "texas_candidates.json"
 TARGETS = ROOT / "targets.yaml"
@@ -91,6 +92,7 @@ def filter_candidates(candidates: list[dict]) -> list[HospitalCandidate]:
                 "url": c["url"],
                 "city": c.get("city", ""),
                 "region": region,
+                "system": c.get("system") or infer_system(c.get("domain", ""), slug, c["url"]),
             }
         )
     return out

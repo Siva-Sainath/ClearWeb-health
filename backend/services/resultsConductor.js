@@ -40,12 +40,67 @@ function presentationHonestyBlock(mode) {
   return "SCRAPE CONTEXT: Cached hospital price database.";
 }
 
-function buildUiContext({ presentationMode, healCount, facilityCount }) {
+function buildUiContext({ presentationMode, healCount, facilityCount, healEvents = [] }) {
+  const healLines =
+    healEvents.length > 0
+      ? healEvents
+          .slice(0, 3)
+          .map(
+            (h) =>
+              `collector ${h.collector_id || "?"} ${h.success ? "recovered" : "attempted"}: ${(h.reason || "").slice(0, 100)}`
+          )
+          .join("; ")
+      : "none";
   return `UI CONTEXT:
 - presentationMode: ${presentationMode || "unknown"}
 - facilityCount: ${facilityCount ?? 0}
 - healEventsDuringScrape: ${healCount ?? 0}
-- Start walkthrough with set_layout explore, then spotlight the recommended facility.`;
+- selfHealDetails: ${healLines}
+- Start walkthrough with set_layout explore, then spotlight the recommended facility.
+- If healEventsDuringScrape > 0, call show_self_heal_proof once to open Bright Data platform proof panel.`;
+}
+
+function healPresentationStep(healEvents, scrapeContext) {
+  const evt = (healEvents || [])[0];
+  const collectorId =
+    evt?.collector_id ||
+    scrapeContext?.healEvents?.[0]?.collector_id ||
+    scrapeContext?.replayTimeline?.find((t) => t.phase === "heal")?.label?.match(/c_[a-z0-9]+/i)?.[0] ||
+    "";
+  const caption = collectorId
+    ? `When a hospital portal broke, Bright Data self-healing repaired collector ${collectorId} — no frontend code changed.`
+    : "Bright Data self-healing recovered a broken hospital scraper while you watched the replay.";
+  return {
+    tool: "show_self_heal_proof",
+    args: {},
+    delayMs: 1100,
+    caption,
+    actions: [{ type: "layout", payload: "trustGaps" }],
+  };
+}
+
+function injectHealSteps(plan, healEvents, scrapeContext) {
+  const count = Array.isArray(healEvents) ? healEvents.length : 0;
+  const healFromContext = scrapeContext?.stats?.healTriggered > 0;
+  if (!count && !healFromContext) return plan;
+
+  const steps = [...(plan.steps || [])];
+  const healStep = healPresentationStep(healEvents, scrapeContext);
+  const insertAt = steps.length > 1 ? 1 : steps.length;
+  steps.splice(insertAt, 0, healStep);
+
+  const spoken = plan.spokenScript || "";
+  const healLine = healEvents?.[0]?.collector_id
+    ? ` During the scrape, Bright Data self-healing fixed collector ${healEvents[0].collector_id} when a portal layout broke.`
+    : healFromContext
+      ? " Our scrapers self-healed when hospital sites changed — I'll show the Bright Data proof panel."
+      : "";
+
+  return {
+    ...plan,
+    spokenScript: spoken.includes("self-heal") ? spoken : `${spoken}${healLine}`.trim(),
+    steps: enrichSteps(steps),
+  };
 }
 
 function stepActions(tool, args) {
@@ -150,7 +205,8 @@ async function conductResults({
       executiveSummary,
       scrapeContext,
     });
-    const steps = plan.steps || [];
+    const withHeal = injectHealSteps(plan, healEvents, scrapeContext);
+    const steps = withHeal.steps || [];
     const allActions = stepsToUiActions(steps);
 
     if (queueWebcmd && allActions.length) {
@@ -158,11 +214,11 @@ async function conductResults({
     }
 
     return {
-      spokenScript: plan.spokenScript || "",
+      spokenScript: withHeal.spokenScript || "",
       steps,
       actions: allActions,
       scrapeContext,
-      source: plan.source || "plan",
+      source: withHeal.source || "plan",
       uiActions: allActions
         .map((a) => {
           if (a.type === "compare") return `compare:${a.facilityA}:${a.facilityB}`;
@@ -181,7 +237,7 @@ async function conductResults({
   let uiContext =
     presentationHonestyBlock(presentationMode) +
     "\n" +
-    buildUiContext({ presentationMode, healCount, facilityCount });
+    buildUiContext({ presentationMode, healCount, facilityCount, healEvents });
 
   if (executiveSummary?.recommendation?.id) {
     uiContext += `\nRecommended facility id: ${executiveSummary.recommendation.id}`;

@@ -35,6 +35,23 @@ def studio_context_for_system(system: str) -> str:
     )
 
 
+def infer_system(domain: str = "", slug: str = "", url: str = "") -> str:
+    """Map hospital domain/slug to a Scraper Studio interaction template."""
+    d = (domain or "").lower()
+    u = (url or "").lower()
+    s = (slug or "").lower()
+    if any(x in d or x in u for x in ("bswhealth",)):
+        return "bsw"
+    if any(x in d or x in u for x in ("ascension.org", "healthcare.ascension")):
+        return "ascension"
+    if any(
+        x in d or x in s or x in u
+        for x in ("hca", "medicalcityhealth", "hcahouston", "st davids", "stdavids")
+    ):
+        return "hca"
+    return ""
+
+
 def enrich_heal_prompt(hospital: dict, reason: str, tier: int = 0) -> str:
     """
     Build a heal prompt with studio template context and tier-specific escalation.
@@ -44,7 +61,11 @@ def enrich_heal_prompt(hospital: dict, reason: str, tier: int = 0) -> str:
     tier 3: recreate collector from scratch
     """
     name = hospital.get("name", hospital.get("id", "hospital"))
-    system = hospital.get("system", "")
+    system = hospital.get("system") or infer_system(
+        hospital.get("domain", ""),
+        hospital.get("slug", hospital.get("id", "")),
+        hospital.get("price_transparency_page", hospital.get("url", "")),
+    )
     studio = studio_context_for_system(system)
 
     base = f"The collector for {name} failed. {reason[:400]}."
@@ -72,7 +93,11 @@ def enrich_heal_prompt(hospital: dict, reason: str, tier: int = 0) -> str:
 
 def enrich_create_prompt(hospital: dict, prompt: str) -> str:
     """Append studio template to collector create prompts."""
-    system = hospital.get("system", "")
+    system = hospital.get("system") or infer_system(
+        hospital.get("domain", ""),
+        hospital.get("slug", hospital.get("id", "")),
+        hospital.get("url", ""),
+    )
     studio = studio_context_for_system(system)
     if not studio:
         return prompt

@@ -167,6 +167,21 @@ function scrapeContextBlock(ctx) {
     const recent = ctx.replayTimeline.slice(-8).map((t) => `- ${t.label}`).join("\n");
     lines.push(`REPLAY TIMELINE (recent):\n${recent}`);
   }
+  if (ctx.healEvents?.length) {
+    const healLines = ctx.healEvents
+      .slice(-5)
+      .map(
+        (h) =>
+          `- ${h.collector_id || "collector"}: ${h.success ? "healed" : "needs_human"} — ${(h.reason || "").slice(0, 120)}`
+      )
+      .join("\n");
+    lines.push(`SELF-HEAL EVENTS (Bright Data Scraper Studio):\n${healLines}`);
+  }
+  if (ctx.collectorPipeline) {
+    lines.push(
+      `TEXAS COLLECTOR PIPELINE: ${ctx.collectorPipeline.verified} verified, ${ctx.collectorPipeline.pending} pending, ${ctx.collectorPipeline.failed} failed.`
+    );
+  }
   return lines.join("\n");
 }
 

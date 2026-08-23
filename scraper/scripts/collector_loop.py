@@ -36,6 +36,7 @@ from db.store import (
 )
 from collectors.brightdata import run_collector, collector_ready
 from pipeline.heal import validate_preview, heal_collector, log_heal_event
+from studio.prompts import infer_system
 from sweep_collector_jobs import add_to_targets
 
 logging.basicConfig(
@@ -87,11 +88,27 @@ def _run_and_validate(collector_id: str, url: str, attempt: int) -> tuple[bool, 
     return ok, reason, result
 
 
-def process_job(job: dict, *, dry_run: bool = False) -> bool:
+def _hospital_for_job(job: dict) -> dict:
+    slug = job["slug"]
+    url = job.get("target_url", "")
+    domain = job.get("domain", "")
+    return {
+        "id": slug,
+        "slug": slug,
+        "name": job.get("hospital_name", slug),
+        "domain": domain,
+        "url": url,
+        "price_transparency_page": url,
+        "system": infer_system(domain, slug, url),
+    }
+
+
+def process_job(job: dict, *, dry_run: bool = False) -> bool | str:
     collector_id: str = job["collector_id"]
     slug: str = job["slug"]
     url: str = job.get("target_url", "")
     hospital_name: str = job.get("hospital_name", slug)
+    hospital = _hospital_for_job(job)
 
     logger.info(
         f"{'[DRY-RUN] ' if dry_run else ''}Processing job: {slug} | collector={collector_id}"
@@ -102,11 +119,24 @@ def process_job(job: dict, *, dry_run: bool = False) -> bool:
     ready, ready_reason = collector_ready(collector_id)
     if not ready:
         logger.warning(f"[{slug}] Not ready: {ready_reason}")
-        if "template" in ready_reason.lower():
-            update_collector_job_status(collector_id, "failed", ready_reason)
-            return False
-        update_collector_job_status(collector_id, "pending", ready_reason)
-        return False
+        if "template" in ready_reason.lower() or "generation error" in ready_reason.lower():
+            logger.info(f"[{slug}] Attempting tier-3 heal to fix template: {ready_reason[:80]}")
+            try:
+                heal_collector(
+                    collector_id,
+                    reason="Collector has no template — build navigation from seed URL",
+                    hospital=hospital,
+                    tier=3,
+                    auto_approve=True,
+                )
+                ready, ready_reason = collector_ready(collector_id)
+            except RuntimeError as exc:
+                logger.error(f"[{slug}] Template heal failed: {exc}")
+                update_collector_job_status(collector_id, "failed", str(exc)[:300])
+                return False
+        if not ready:
+            update_collector_job_status(collector_id, "pending", ready_reason)
+            return "pending"
 
     ok, reason, result = _run_and_validate(collector_id, url, attempt=1)
     if ok:
@@ -122,7 +152,7 @@ def process_job(job: dict, *, dry_run: bool = False) -> bool:
             "pending" if reason == "collector_still_building" else "failed",
             reason,
         )
-        return False
+        return "pending" if reason == "collector_still_building" else False
 
     logger.info(f"[{slug}] First run failed ({reason[:120]}). Initiating heal...")
     before_sample = (result or [])[:5]
@@ -130,14 +160,12 @@ def process_job(job: dict, *, dry_run: bool = False) -> bool:
         heal_result = heal_collector(
             collector_id,
             reason=reason,
-            hospital={"id": slug, "name": hospital_name},
+            hospital=hospital,
+            tier=1,
             auto_approve=True,
         )
         heal_status = heal_result.get("status", "unknown")
         logger.info(f"[{slug}] heal status={heal_status!r} approved={heal_result.get('approved')}")
-        if heal_status == "heal_rest_triggered":
-            logger.info(f"[{slug}] Waiting {HEAL_COOLDOWN_SEC}s after REST heal...")
-            time.sleep(HEAL_COOLDOWN_SEC)
     except RuntimeError as exc:
         logger.error(f"[{slug}] heal_collector failed: {exc}")
         log_heal_event(collector_id, before_sample, [], str(exc)[:400], False)
@@ -182,16 +210,19 @@ def main(argv: list[str] | None = None) -> None:
             print(f"{i}. {job.get('slug')} {job.get('collector_id')} {job.get('target_url', '')[:60]}")
         return
 
-    verified = failed = 0
+    verified = failed = pending = 0
     for i, job in enumerate(jobs, 1):
         logger.info(f"--- [{i}/{len(jobs)}] {job.get('slug')} ---")
-        if process_job(job):
+        outcome = process_job(job)
+        if outcome is True:
             verified += 1
+        elif outcome == "pending":
+            pending += 1
         else:
             failed += 1
 
     logger.info(
-        f"Loop complete — verified={verified}, failed={failed} | "
+        f"Loop complete — verified={verified}, pending={pending}, failed={failed} | "
         f"total verified in DB: {count_verified_collectors()}"
     )
 

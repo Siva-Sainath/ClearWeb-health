@@ -79,7 +79,7 @@ def main() -> None:
         return
 
     loop = ROOT / "scripts" / "collector_loop.py"
-    logger.info("Running collector_loop --max %d (sync scrape + heal + targets.yaml)", args.run_max)
+    logger.info("Running collector_loop --max %d (async scrape + heal + targets.yaml)", args.run_max)
     subprocess.run(
         [sys.executable, str(loop), "--max", str(args.run_max)],
         cwd=str(ROOT),

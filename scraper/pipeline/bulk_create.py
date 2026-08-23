@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -18,8 +19,9 @@ load_dotenv(ROOT / ".env")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from collectors.brightdata import create_collector as bd_create_collector
+from collectors.brightdata import create_collector as bd_create_collector, wait_for_collector_ready
 from db.store import init_db, insert_collector_job, collector_job_exists
+from studio.prompts import infer_system
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -39,20 +41,41 @@ class HospitalCandidate(TypedDict, total=False):
     url: str
     city: str
     region: str
+    system: str
+
+
+def _hospital_dict(hospital: HospitalCandidate) -> dict:
+    slug = hospital["slug"]
+    return {
+        "id": slug,
+        "slug": slug,
+        "name": hospital["name"],
+        "domain": hospital.get("domain", ""),
+        "url": hospital["url"],
+        "price_transparency_page": hospital["url"],
+        "system": hospital.get("system")
+        or infer_system(hospital.get("domain", ""), slug, hospital["url"]),
+    }
 
 
 def create_collector(hospital: HospitalCandidate) -> str | None:
     """Create one BD collector; blocks until AI generation completes."""
     slug = hospital["slug"]
     url = hospital["url"]
+    hosp = _hospital_dict(hospital)
 
     if collector_job_exists(slug):
         logger.info("[%s] Already in collector_jobs — skip", slug)
         return None
 
-    logger.info("[%s] Creating BD collector for %s", slug, url)
+    logger.info(
+        "[%s] Creating BD collector for %s (system=%s)",
+        slug,
+        url,
+        hosp.get("system") or "generic",
+    )
     try:
-        result = bd_create_collector(url, CREATE_PROMPT, name=slug, timeout=600)
+        result = bd_create_collector(url, CREATE_PROMPT, name=slug, timeout=600, hospital=hosp)
     except Exception as exc:
         logger.error("[%s] create failed: %s", slug, exc)
         return None
@@ -69,7 +92,14 @@ def create_collector(hospital: HospitalCandidate) -> str | None:
         target_url=url,
         collector_id=collector_id,
     )
-    logger.info("[%s] SUCCESS collector_id=%s", slug, collector_id)
+    logger.info("[%s] SUCCESS collector_id=%s — waiting for template", slug, collector_id)
+
+    if os.environ.get("COLLECTOR_WAIT_FOR_TEMPLATE", "1") not in ("0", "false", "False"):
+        wait_s = int(os.environ.get("COLLECTOR_TEMPLATE_WAIT_SEC", "600"))
+        ready, reason = wait_for_collector_ready(collector_id, timeout_s=wait_s, poll_s=20)
+        if not ready:
+            logger.warning("[%s] Template not ready yet: %s (job stays pending)", slug, reason)
+
     return collector_id
 
 
