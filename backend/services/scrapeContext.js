@@ -178,8 +178,11 @@ function scrapeContextBlock(ctx) {
     lines.push(`SELF-HEAL EVENTS (Bright Data Scraper Studio):\n${healLines}`);
   }
   if (ctx.collectorPipeline) {
+    const asOf = ctx.collectorPipeline.asOf
+      ? ` (as of ${new Date(ctx.collectorPipeline.asOf).toLocaleDateString()})`
+      : "";
     lines.push(
-      `TEXAS COLLECTOR PIPELINE: ${ctx.collectorPipeline.verified} verified, ${ctx.collectorPipeline.pending} pending, ${ctx.collectorPipeline.failed} failed.`
+      `TEXAS COLLECTOR PIPELINE${asOf}: ${ctx.collectorPipeline.verified} verified, ${ctx.collectorPipeline.pending} pending, ${ctx.collectorPipeline.failed} failed. Scale-out is separate from Austin consumer prices.`
     );
   }
   return lines.join("\n");

@@ -332,8 +332,12 @@ export default function DynamicHospitalStage({
                         </span>
                       </div>
                       <div className="flex justify-between text-white/70">
-                        <span>Price Certainty Confidence:</span>
-                        <span className="font-mono text-emerald-400">98.4% (Live Cache)</span>
+                        <span>Price source:</span>
+                        <span className="font-mono text-emerald-400">
+                          {activeOption.facility.price_source === "mrf_scraped"
+                            ? "Verified MRF scrape"
+                            : "Hospital price file"}
+                        </span>
                       </div>
                     </div>
                   </div>

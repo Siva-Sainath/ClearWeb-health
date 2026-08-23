@@ -1,0 +1,143 @@
+{
+  "byStatus": {
+    "failed": 2,
+    "pending": 11
+  },
+  "verified": 0,
+  "pending": 11,
+  "failed": 2,
+  "recent": [
+    {
+      "slug": "el_paso_childrens",
+      "hospitalName": "El Paso Children's Hospital",
+      "collectorId": "c_mt5lta4i21vh6thw7",
+      "status": "pending",
+      "reason": null,
+      "targetUrl": "https://elpasochildrens.org/cms-hpt.txt"
+    },
+    {
+      "slug": "childrens_hospital_sa",
+      "hospitalName": "The Children's Hospital of San Antonio",
+      "collectorId": "c_mt5lk4q11kzln3rie2",
+      "status": "pending",
+      "reason": null,
+      "targetUrl": "https://christushealth.org/cms-hpt.txt"
+    },
+    {
+      "slug": "chi_st_lukes_patients",
+      "hospitalName": "CHI St. Luke's Health Patients Medical Center",
+      "collectorId": "c_mt5lh6bd55f1tp7qb",
+      "status": "pending",
+      "reason": null,
+      "targetUrl": "https://www.stlukeshealth.org/patients-visitors/billing-insurance/price-transparency"
+    },
+    {
+      "slug": "methodist_stone_oak_sa",
+      "hospitalName": "Methodist Hospital Stone Oak",
+      "collectorId": "c_mt5lg65f15im2oxigs",
+      "status": "pending",
+      "reason": null,
+      "targetUrl": "https://sahealth.com/cms-hpt.txt"
+    },
+    {
+      "slug": "christus_santa_rosa_sa",
+      "hospitalName": "Christus Santa Rosa Hospital San Antonio",
+      "collectorId": "c_mt5l7e8i19kk3s1onz",
+      "status": "pending",
+      "reason": null,
+      "targetUrl": "https://christushealth.org/cms-hpt.txt"
+    },
+    {
+      "slug": "methodist_dallas_medical",
+      "hospitalName": "Methodist Dallas Medical Center",
+      "collectorId": "c_mt5k6ivs1f2ozqfx6q",
+      "status": "pending",
+      "reason": "Collector not found (c_mt5k6ivs1f2ozqfx6q)",
+      "targetUrl": "https://methodisthealthsystem.org/cms-hpt.txt"
+    },
+    {
+      "slug": "bsw_all_saints_fort_worth",
+      "hospitalName": "Baylor Scott & White All Saints Medical Center - Fort Worth",
+      "collectorId": "c_mt5jz2ta1mnfh7kwpg",
+      "status": "pending",
+      "reason": "Collector not found (c_mt5jz2ta1mnfh7kwpg)",
+      "targetUrl": "https://bswhealth.com/cms-hpt.txt"
+    },
+    {
+      "slug": "parkland_dallas",
+      "hospitalName": "Parkland Memorial Hospital",
+      "collectorId": "c_mt5ho4zj21owytzg5g",
+      "status": "pending",
+      "reason": "Collector not found (c_mt5ho4zj21owytzg5g)",
+      "targetUrl": "https://www.parklandhealth.org/cms-hpt.txt"
+    },
+    {
+      "slug": "harris_health_lbj",
+      "hospitalName": "Harris Health Lyndon B. Johnson Hospital",
+      "collectorId": "c_mt5h68pvcm4r2pbv5",
+      "status": "pending",
+      "reason": "Collector not found (c_mt5h68pvcm4r2pbv5)",
+      "targetUrl": "https://www.harrishealth.org/patients-visitors/billing-insurance/Pages/price-transparency.aspx"
+    },
+    {
+      "slug": "md_anderson_houston",
+      "hospitalName": "MD Anderson Cancer Center",
+      "collectorId": "c_mt5gy41fox65bviaz",
+      "status": "pending",
+      "reason": "Collector not found (c_mt5gy41fox65bviaz)",
+      "targetUrl": "https://www.mdanderson.org/patients-family/becoming-our-patient/getting-started/price-transparency.html"
+    },
+    {
+      "slug": "texas_childrens_houston",
+      "hospitalName": "Texas Children's Hospital",
+      "collectorId": "c_mt5gsveu1j066hutk5",
+      "status": "failed",
+      "reason": "heal error: heal job exceeded 900s local wait, job_id=c_mt5gsveu1j066hutk5.",
+      "targetUrl": "https://www.texaschildrens.org/patients-visitors/billing-insurance/price-transparency"
+    },
+    {
+      "slug": "stlukes_baylor_houston",
+      "hospitalName": "St. Luke's Health Baylor St. Luke's Medical Center",
+      "collectorId": "c_mt5goll71eekdhe91q",
+      "status": "failed",
+      "reason": "Still failed after heal: preview missing expected specific CSV/file URL fields",
+      "targetUrl": "https://www.stlukeshealth.org/patients-visitors/billing-insurance/price-transparency"
+    },
+    {
+      "slug": "houston_methodist_main",
+      "hospitalName": "Houston Methodist Hospital",
+      "collectorId": "c_mt5fv6sn2r3dqy5225",
+      "status": "pending",
+      "reason": "template generation error: output_schema_generator",
+      "targetUrl": "https://www.houstonmethodist.org/patients-visitors/billing-insurance/price-transparency/"
+    }
+  ],
+  "healEvents": [
+    {
+      "timestamp": "2026-08-23T09:45:42.690630+00:00",
+      "collector_id": "c_mt5gsveu1j066hutk5",
+      "reason": "heal job exceeded 900s local wait, job_id=c_mt5gsveu1j066hutk5.",
+      "success": false,
+      "before_sample": "[{\"input\": {\"url\": \"https://www.texaschildrens.org/patients-visitors/billing-insurance/price-transparency\"}, \"error\": \"Crawler error: Navigation failed: Request was aborted\", \"error_code\": \"net_err_aborted\"}]",
+      "after_sample": "[]"
+    },
+    {
+      "timestamp": "2026-08-23T09:27:45.919157+00:00",
+      "collector_id": "c_mt5goll71eekdhe91q",
+      "reason": "preview missing expected specific CSV/file URL fields",
+      "success": false,
+      "before_sample": "[{\"mrf_files\": [], \"product_page_url\": \"https://www.commonspirit.org/content/dam/commonspiritorg/en/stluh/soho/finance/price-transparency/CTXWH_the-woodlands-hospital_2025.07.01_CDM.xlsx\", \"input\": {\"url\": \"https://www.stlukeshealth.org/patients-visitors/billing-insurance/price-transparency\"}}]",
+      "after_sample": "[{\"mrf_files\": [], \"product_page_url\": \"https://www.commonspirit.org/content/dam/commonspiritorg/en/stluh/soho/finance/price-transparency/CTXLH_lakeside-hospital-the-woodlands_2025.07.01_CDM.xlsx\", \"input\": {\"url\": \"https://www.stlukeshealth.org/patients-visitors/billing-insurance/price-transparency\"}}]"
+    },
+    {
+      "timestamp": "2026-08-23T03:45:31.043947+00:00",
+      "collector_id": "c_mt170e801we1fjgf8d",
+      "reason": "All 1 prices for CPT 70553 (MRI Brain w/ & w/o Contrast) are outside the expected range $500–$15,000. Sample values: [339.46]. The extractor may be reading gross charges or a different field instead of payer-specific negotiated rates (standard_charge_dollar).",
+      "success": false,
+      "before_sample": "[{\"procedure_code\": \"70551\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); without contrast material\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / AllPayerAppendix\", \"payer_name\": \"United\", \"plan_name\": \"AllPayerAppendix\", \"price\": 517.79, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:24.354124+00:00\"}, {\"procedure_code\": \"70551\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); without contrast material\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / MGMCD\", \"payer_name\": \"United\", \"plan_name\": \"MGMCD\", \"price\": 208.23, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:24.354124+00:00\"}, {\"procedure_code\": \"70551\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); without contrast material\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / NarrowNetworkHIX\", \"payer_name\": \"United\", \"plan_name\": \"NarrowNetworkHIX\", \"price\": 352.1, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:24.354124+00:00\"}, {\"procedure_code\": \"70551\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); without contrast material\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / SmallGroup\", \"payer_name\": \"United\", \"plan_name\": \"SmallGroup\", \"price\": 517.79, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:24.354124+00:00\"}, {\"procedure_code\": \"70553\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); without contrast material, followed by contrast material(s) and further sequences\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / MGMCD\", \"payer_name\": \"United\", \"plan_name\": \"MGMCD\", \"price\": 339.46, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:24.354124+00:00\"}, {\"procedure_code\": \"70552\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); with contrast material(s)\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / MGMCD\", \"payer_name\": \"United\", \"plan_name\": \"MGMCD\", \"price\": 288.33, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:24.354124+00:00\"}]",
+      "after_sample": "[{\"procedure_code\": \"70552\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); with contrast material(s)\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / AllPayerAppendix\", \"payer_name\": \"United\", \"plan_name\": \"AllPayerAppendix\", \"price\": 828.27, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_HEART-HOSP-OF-AUSTIN-AT-ST.-DAVID'S-ROUND-ROCK_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:30.964978+00:00\"}, {\"procedure_code\": \"70552\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); with contrast material(s)\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / MGMCD\", \"payer_name\": \"United\", \"plan_name\": \"MGMCD\", \"price\": 288.33, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_HEART-HOSP-OF-AUSTIN-AT-ST.-DAVID'S-ROUND-ROCK_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:30.964978+00:00\"}, {\"procedure_code\": \"70552\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); with contrast material(s)\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / NarrowNetworkHIX\", \"payer_name\": \"United\", \"plan_name\": \"NarrowNetworkHIX\", \"price\": 563.22, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_HEART-HOSP-OF-AUSTIN-AT-ST.-DAVID'S-ROUND-ROCK_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:30.964978+00:00\"}, {\"procedure_code\": \"70552\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); with contrast material(s)\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / SmallGroup\", \"payer_name\": \"United\", \"plan_name\": \"SmallGroup\", \"price\": 828.27, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_HEART-HOSP-OF-AUSTIN-AT-ST.-DAVID'S-ROUND-ROCK_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:30.964978+00:00\"}, {\"procedure_code\": \"70551\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); without contrast material\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / MGMCD\", \"payer_name\": \"United\", \"plan_name\": \"MGMCD\", \"price\": 208.23, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_HEART-HOSP-OF-AUSTIN-AT-ST.-DAVID'S-ROUND-ROCK_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:30.964978+00:00\"}, {\"procedure_code\": \"70553\", \"procedure_name\": \"Magnetic resonance (eg, proton) imaging, brain (including brain stem); without contrast material, followed by contrast material(s) and further sequences\", \"hospital_id\": \"st_davids_medical_center_austin\", \"payer\": \"United / MGMCD\", \"payer_name\": \"United\", \"plan_name\": \"MGMCD\", \"price\": 339.46, \"price_type\": \"negotiated\", \"setting\": \"outpatient\", \"source_url\": \"https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_HEART-HOSP-OF-AUSTIN-AT-ST.-DAVID'S-ROUND-ROCK_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D\", \"scraped_at\": \"2026-08-23T03:45:30.964978+00:00\"}]"
+    }
+  ],
+  "healSuccessCount": 0,
+  "asOf": "2026-08-23T12:00:00.000Z"
+}

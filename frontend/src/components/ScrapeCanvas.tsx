@@ -25,6 +25,25 @@ import { tokens } from "@/lib/design-tokens";
 import type { ScraperLog } from "@/lib/types";
 import { nodeDisplayLabel } from "@/lib/austinNodes";
 import { Button } from "@/components/ui/button";
+import SelfHealCinematic from "@/components/SelfHealCinematic";
+import type { HealLogStep } from "@/lib/healShowcase";
+import { SHOWCASE_ST_LUKES_NODE, resolveShowcaseNodeId } from "@/lib/healShowcase";
+
+export interface ScrapeCanvasShowcaseMode {
+  replayEvents: ScraperLog[];
+  healLog?: HealLogStep[];
+  facilityName: string;
+  collectorId: string;
+  headerLabel?: string;
+  bannerLabel?: string;
+  onReplayComplete?: () => void;
+}
+
+export interface ScrapeCanvasProps {
+  showcaseMode?: ScrapeCanvasShowcaseMode;
+}
+
+const SHOWCASE_NODES = [SHOWCASE_ST_LUKES_NODE];
 
 const NODE_STROKE: Record<string, string> = {
   idle: tokens.textTertiary,
@@ -283,7 +302,7 @@ function BrightDataExplainer() {
   );
 }
 
-export default function ScrapeCanvas() {
+export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
   const {
     scrapeStatus,
     patientProfile,
@@ -300,9 +319,15 @@ export default function ScrapeCanvas() {
   const { cancelScrape } = useScrapeJob();
 
   const isProofReel =
-    scrapePresentationMode === "proof-reel" || scrapePresentationMode === "replay";
-  const isLive = scrapePresentationMode === "live";
-  const isAnimating = scrapeStatus === "running" && (isProofReel || isLive);
+    showcaseMode != null ||
+    scrapePresentationMode === "proof-reel" ||
+    scrapePresentationMode === "replay";
+  const isLive = !showcaseMode && scrapePresentationMode === "live";
+  const isAnimating = showcaseMode
+    ? true
+    : scrapeStatus === "running" && (isProofReel || isLive);
+
+  const effectiveReplayEvents = showcaseMode?.replayEvents ?? replayEvents;
 
   const [narrationComplete, setNarrationComplete] = useState(false);
   const [narrationCaption, setNarrationCaption] = useState("");
@@ -325,23 +350,30 @@ export default function ScrapeCanvas() {
   }, []);
 
   const timelineActive =
-    isAnimating && (isLive || replayEvents.length > 0);
+    isAnimating && (isLive || effectiveReplayEvents.length > 0);
 
   const timeline = useScrapeTimeline({
     mode: isLive ? "live" : "replay",
     active: timelineActive,
-    events: replayEvents,
+    events: effectiveReplayEvents,
     jobId: scrapeJobId,
-    speedMultiplier: 8,
+    speedMultiplier: showcaseMode ? 4 : 8,
+    healCinematicEnabled: isProofReel,
+    healDwellMs: showcaseMode ? 18000 : 14000,
+    initialNodes: showcaseMode ? SHOWCASE_NODES : undefined,
+    resolveNodeId: showcaseMode ? () => resolveShowcaseNodeId() : undefined,
     onHealEvent: handleHealEvent,
+    onTimelineComplete: showcaseMode?.onReplayComplete,
   });
 
-  const scrapeComplete = isLive
-    ? scrapeStatus === "complete" && timeline.timelineComplete
-    : timeline.timelineComplete && replayEvents.length > 0;
+  const scrapeComplete = showcaseMode
+    ? timeline.timelineComplete
+    : isLive
+      ? scrapeStatus === "complete" && timeline.timelineComplete
+      : timeline.timelineComplete && effectiveReplayEvents.length > 0;
 
   useScrapeNarration({
-    active: isAnimating,
+    active: isAnimating && !showcaseMode,
     profile: patientProfile,
     summary: executiveSummary,
     scrapeComplete,
@@ -356,7 +388,7 @@ export default function ScrapeCanvas() {
   });
 
   const { forceAdvance } = useScrapeOrchestrator({
-    active: isAnimating,
+    active: isAnimating && !showcaseMode,
     jobDataReady: isLive ? scrapeStatus === "complete" : true,
     timelineComplete: timeline.timelineComplete,
     narrationComplete,
@@ -387,6 +419,8 @@ export default function ScrapeCanvas() {
     failureCount,
     healCount,
     mitigationLabel,
+    activeHealEvent,
+    healDwellActive,
   } = timeline;
 
   const isReplay = isProofReel;
@@ -405,17 +439,25 @@ export default function ScrapeCanvas() {
           <div className="flex flex-wrap justify-between items-start gap-2">
             <div className="flex flex-wrap gap-2">
               <span className="badge badge-neutral text-xs">
-                {patientProfile.procedure || patientProfile.condition || "Price search"}
+                {showcaseMode?.headerLabel ||
+                  patientProfile.procedure ||
+                  patientProfile.condition ||
+                  "Price search"}
               </span>
-              <span className="badge badge-neutral text-xs">{patientProfile.insurance}</span>
+              {!showcaseMode && (
+                <span className="badge badge-neutral text-xs">{patientProfile.insurance}</span>
+              )}
             </div>
             <div className="flex items-center gap-2">
-              {scrapeStatus === "running" && (
+              {isAnimating && (
                 <>
                   <span className="badge badge-live">
                     <span className="badge-dot" />
-                    {healingNode ? "Self-healing" : "Scraping Austin hospitals"}
+                    {healingNode || healDwellActive
+                      ? "Self-healing"
+                      : showcaseMode?.bannerLabel || "Scraping Austin hospitals"}
                   </span>
+                  {!showcaseMode && (
                   <Button
                     type="button"
                     variant="ghost"
@@ -431,11 +473,12 @@ export default function ScrapeCanvas() {
                   >
                     {isProofReel ? "Skip replay" : "Stop job"}
                   </Button>
+                  )}
                 </>
               )}
             </div>
           </div>
-          {scrapeStatus === "running" && (
+          {isAnimating && (
             <ScrapeModeBanner
               isLiveScraping={isLiveScraping}
               isCacheOnly={isCacheOnly}
@@ -475,6 +518,13 @@ export default function ScrapeCanvas() {
               </motion.div>
             )}
           </AnimatePresence>
+          <SelfHealCinematic
+            active={healDwellActive && !!activeHealEvent}
+            healEvent={activeHealEvent}
+            healLog={showcaseMode?.healLog}
+            collectorId={showcaseMode?.collectorId}
+            facilityName={showcaseMode?.facilityName}
+          />
           <svg
             viewBox="0 0 900 560"
             className="absolute inset-0 w-full h-full"
@@ -636,7 +686,7 @@ export default function ScrapeCanvas() {
               </div>
             </motion.div>
           )}
-          {scrapeStatus === "complete" && journeyPhase === "scraping" && (
+          {scrapeStatus === "complete" && journeyPhase === "scraping" && !showcaseMode && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

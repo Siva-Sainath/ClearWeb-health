@@ -1,217 +1,219 @@
 hospitals:
-  # 17 Austin metro hospitals — 3 health systems (10) + 7 independent websites (7).
-  # System hospitals: Scraper Studio collectors (sync). Independents: Web Unlocker cms-hpt discovery.
-
-  - id: st_davids_medical_center_austin
-    name: "St. David's Medical Center"
-    collector_name: st_davids_medical_center_austin
-    homepage: "https://www.stdavids.com/"
-    price_transparency_page: "https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges"
-    mrf_seed_url: "https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D"
-    format_hint: json
-    collector_id: "c_mt170e801we1fjgf8d"
-    node_id: n1
-    system: hca
-    domain: stdavids.com
-
-  - id: st_davids_south_austin
-    name: "St. David's South Austin Medical Center"
-    collector_name: st_davids_south_austin
-    homepage: "https://www.stdavids.com/"
-    price_transparency_page: "https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges"
-    mrf_seed_url: "https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-SOUTH-AUSTIN-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D"
-    format_hint: json
-    collector_id: "c_mt170fwu1rd4bzevmb"
-    node_id: n2
-    system: hca
-    domain: stdavids.com
-
-  - id: st_davids_north_austin
-    name: "St. David's North Austin Medical Center"
-    collector_name: st_davids_north_austin
-    homepage: "https://www.stdavids.com/"
-    price_transparency_page: "https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges"
-    mrf_seed_url: "https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-NORTH-AUSTIN-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D"
-    format_hint: json
-    collector_id: "c_mt170hsi1l3cw4lfje"
-    node_id: n3
-    system: hca
-    domain: stdavids.com
-
-  - id: st_davids_round_rock
-    name: "St. David's Round Rock Medical Center"
-    collector_name: st_davids_round_rock
-    homepage: "https://www.stdavids.com/"
-    price_transparency_page: "https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges"
-    mrf_seed_url: "https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-ROUND-ROCK-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D"
-    format_hint: json
-    collector_id: "c_mt170e801we1fjgf8d"
-    node_id: n4
-    system: hca
-    domain: stdavids.com
-
-  - id: heart_hospital_austin
-    name: "Heart Hospital of Austin"
-    collector_name: heart_hospital_austin
-    homepage: "https://www.stdavids.com/"
-    price_transparency_page: "https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges"
-    mrf_seed_url: "https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_HEART-HOSP-OF-AUSTIN_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D"
-    format_hint: json
-    collector_id: "c_mt170fwu1rd4bzevmb"
-    node_id: n5
-    system: hca
-    domain: stdavids.com
-
-  - id: bsw_medical_center_austin
-    name: "Baylor Scott & White Medical Center - Austin"
-    collector_name: bsw_austin
-    homepage: "https://www.bswhealth.com/"
-    price_transparency_page: "https://www.bswhealth.com/patient-tools/registration-and-billing/estimate-your-cost-of-care"
-    mrf_seed_url: "https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/813040663_baylor-scott--white-medical-center--austin_standardcharges.csv"
-    format_hint: csv
-    collector_id: "c_mt170mssv9p1942lp"
-    node_id: n6
-    system: bsw
-    domain: bswhealth.com
-
-  - id: bsw_medical_center_round_rock
-    name: "Baylor Scott & White Medical Center - Round Rock"
-    collector_name: bsw_round_rock
-    homepage: "https://www.bswhealth.com/"
-    price_transparency_page: "https://www.bswhealth.com/patient-tools/registration-and-billing/estimate-your-cost-of-care"
-    mrf_seed_url: "https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/203749695_baylor-scott--white-medical-center--round-rock_standardcharges.csv"
-    format_hint: csv
-    collector_id: "c_mt170mssv9p1942lp"
-    node_id: n7
-    system: bsw
-    domain: bswhealth.com
-
-  - id: dell_seton_medical_center
-    name: "Dell Seton Medical Center at UT"
-    collector_name: dell_seton_medical_center
-    homepage: "https://healthcare.ascension.org/"
-    price_transparency_page: "https://healthcare.ascension.org/price-transparency"
-    mrf_seed_url: "https://healthcare.ascension.org/-/media/project/ascension/healthcare/price-transparency-files/tx-csv/741109643-1093810327_ascension-seton_standardcharges.csv"
-    format_hint: csv
-    collector_id: "c_mt170jgmk4v6gtqml"
-    node_id: n8
-    system: ascension
-    domain: ascension.org
-
-  - id: ascension_seton_northwest
-    name: "Ascension Seton Northwest"
-    collector_name: ascension_seton_northwest
-    homepage: "https://healthcare.ascension.org/"
-    price_transparency_page: "https://healthcare.ascension.org/price-transparency"
-    mrf_seed_url: "https://healthcare.ascension.org/-/media/project/ascension/healthcare/price-transparency-files/tx-csv/741109643-1124137054_ascension-seton_standardcharges.csv"
-    format_hint: csv
-    collector_id: "c_mt170jgmk4v6gtqml"
-    node_id: n9
-    system: ascension
-    domain: ascension.org
-
-  - id: ascension_seton_medical_center_austin
-    name: "Ascension Seton Medical Center Austin"
-    collector_name: ascension_seton_austin
-    homepage: "https://healthcare.ascension.org/"
-    price_transparency_page: "https://healthcare.ascension.org/price-transparency"
-    mrf_seed_url: "https://healthcare.ascension.org/-/media/project/ascension/healthcare/price-transparency-files/tx-csv/741109643-1164526786_ascension-seton_standardcharges.csv"
-    format_hint: csv
-    collector_id: "c_mt170jgmk4v6gtqml"
-    node_id: n10
-    system: ascension
-    domain: ascension.org
-
-  # 7 independent Austin-metro hospitals — unique domains, cms-hpt discovery via Web Unlocker.
-  # Scraper Studio collectors optional (collector_id empty → Unlocker cms-hpt + seed fallback).
-
-  - id: westlake_medical_center
-    name: "The Hospital at Westlake Medical Center"
-    collector_name: westlake_medical_center
-    homepage: "https://www.westlakemedical.com/"
-    price_transparency_page: "https://www.westlakemedical.com/"
-    cms_hpt_url: "https://www.westlakemedical.com/cms-hpt.txt"
-    mrf_seed_url: "https://www.westlakemedical.com/wp-content/uploads/2024/10/820578078_westlake-surgical_standardcharges.csv"
-    format_hint: csv
-    collector_id: "c_mt1ebgigryzknrqoy"
-    node_id: n11
-    system: independent
-    domain: westlakemedical.com
-
-  - id: austin_oaks_hospital
-    name: "Austin Oaks Hospital"
-    collector_name: austin_oaks_hospital
-    homepage: "https://www.austinoakshospital.com/"
-    price_transparency_page: "https://www.austinoakshospital.com/"
-    cms_hpt_url: "https://www.austinoakshospital.com/cms-hpt.txt"
-    mrf_seed_url: "https://uhsfilecdn.eskycity.net/bh/841618661_austin-oaks_standardcharges.csv"
-    format_hint: csv
-    collector_id: "c_mt1g5fwiu5urga1sq"
-    node_id: n12
-    system: independent
-    domain: austinoakshospital.com
-
-  - id: encompass_rehab_austin
-    name: "Encompass Health Rehabilitation Hospital of Austin"
-    collector_name: encompass_rehab_austin
-    homepage: "https://www.encompasshealth.com/"
-    price_transparency_page: "https://www.encompasshealth.com/locations/austin-rehab/financial-information/price-transparency"
-    cms_hpt_url: "https://www.encompasshealth.com/cms-hpt.txt"
-    mrf_seed_url: "https://edge.sitecorecloud.io/encompasshee178-encompasshed9db-prodb258-07da/media/Project/EncompassHealth/encompasshealth/Files/1-price-transparency/261408389_Encompass-Health-Rehabilitation-Hospital-of-Austin_standardcharges.csv"
-    format_hint: csv
-    collector_id: "c_mt1erfkc1nxkj6ismz"
-    node_id: n13
-    system: independent
-    domain: encompasshealth.com
-
-  - id: encompass_rehab_round_rock
-    name: "Encompass Health Rehabilitation Hospital of Round Rock"
-    collector_name: encompass_rehab_round_rock
-    homepage: "https://www.encompasshealth.com/"
-    price_transparency_page: "https://www.encompasshealth.com/locations/round-rock-rehab/financial-information/price-transparency"
-    cms_hpt_url: "https://www.encompasshealth.com/cms-hpt.txt"
-    mrf_seed_url: "https://edge.sitecorecloud.io/encompasshee178-encompasshed9db-prodb258-07da/media/Project/EncompassHealth/encompasshealth/Files/1-price-transparency/208038733_Encompass-Health-Rehabilitation-Hospital-of-Round-Rock_standardcharges.csv"
-    format_hint: csv
-    collector_id: "c_mt1f04m711p1t2cwvo"
-    node_id: n14
-    system: independent
-    domain: encompasshealth.com
-
-  - id: shriners_childrens_texas
-    name: "Shriners Children's Texas"
-    collector_name: shriners_childrens_texas
-    homepage: "https://www.shrinerschildrens.org/"
-    price_transparency_page: "https://www.shrinerschildrens.org/en/price-transparency"
-    cms_hpt_url: "https://www.shrinerschildrens.org/cms-hpt.txt"
-    mrf_seed_url: "https://apim.services.craneware.com/api-pricing-transparency/api/public/8d02e645e89934e5d30914384f33aef9/charges/mrf"
-    format_hint: csv
-    collector_id: "c_mt1f4mxz1f4hm82eq2"
-    node_id: n15
-    system: independent
-    domain: shrinerschildrens.org
-
-  - id: christus_santa_rosa_san_marcos
-    name: "CHRISTUS Santa Rosa Hospital - San Marcos"
-    collector_name: christus_santa_rosa_san_marcos
-    homepage: "https://www.christushealth.org/"
-    price_transparency_page: "https://www.christushealth.org/plan-care/bill-pay/pricing-transparency"
-    cms_hpt_url: "https://www.christushealth.org/cms-hpt.txt"
-    mrf_seed_url: "https://www.christushealth.org/-/media/christus-health/plan-care/files/bill-pay/machine-readable-files/741109665_santarosahospitalsanmarcos_standardcharges.json"
-    format_hint: json
-    collector_id: "c_mt1f8idp21oygldch3"
-    node_id: n16
-    system: independent
-    domain: christushealth.org
-
-  - id: christus_santa_rosa_new_braunfels
-    name: "CHRISTUS Santa Rosa Hospital - New Braunfels"
-    collector_name: christus_santa_rosa_new_braunfels
-    homepage: "https://www.christushealth.org/"
-    price_transparency_page: "https://www.christushealth.org/plan-care/bill-pay/pricing-transparency"
-    cms_hpt_url: "https://www.christushealth.org/cms-hpt.txt"
-    mrf_seed_url: "https://www.christushealth.org/-/media/christus-health/plan-care/files/bill-pay/machine-readable-files/741109665_SantaRosaHospitalNewBraunfels_standardcharges.ashx"
-    format_hint: json
-    collector_id: "c_mt1fcfv5a8pn4aqla"
-    node_id: n17
-    system: independent
-    domain: christushealth.org
+- id: st_davids_medical_center_austin
+  name: St. David's Medical Center
+  collector_name: st_davids_medical_center_austin
+  homepage: https://www.stdavids.com/
+  price_transparency_page: https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges
+  mrf_seed_url: https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D
+  format_hint: json
+  collector_id: c_mt170e801we1fjgf8d
+  node_id: n1
+  system: hca
+  domain: stdavids.com
+- id: st_davids_south_austin
+  name: St. David's South Austin Medical Center
+  collector_name: st_davids_south_austin
+  homepage: https://www.stdavids.com/
+  price_transparency_page: https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges
+  mrf_seed_url: https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-SOUTH-AUSTIN-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D
+  format_hint: json
+  collector_id: c_mt170fwu1rd4bzevmb
+  node_id: n2
+  system: hca
+  domain: stdavids.com
+- id: st_davids_north_austin
+  name: St. David's North Austin Medical Center
+  collector_name: st_davids_north_austin
+  homepage: https://www.stdavids.com/
+  price_transparency_page: https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges
+  mrf_seed_url: https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-NORTH-AUSTIN-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D
+  format_hint: json
+  collector_id: c_mt170hsi1l3cw4lfje
+  node_id: n3
+  system: hca
+  domain: stdavids.com
+- id: st_davids_round_rock
+  name: St. David's Round Rock Medical Center
+  collector_name: st_davids_round_rock
+  homepage: https://www.stdavids.com/
+  price_transparency_page: https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges
+  mrf_seed_url: https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_ST.-DAVID%27S-ROUND-ROCK-MEDICAL-CENTER_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D
+  format_hint: json
+  collector_id: c_mt170e801we1fjgf8d
+  node_id: n4
+  system: hca
+  domain: stdavids.com
+- id: heart_hospital_austin
+  name: Heart Hospital of Austin
+  collector_name: heart_hospital_austin
+  homepage: https://www.stdavids.com/
+  price_transparency_page: https://www.stdavids.com/patient-resources/patient-financial-resources/pricing-transparency-cms-required-file-of-standard-charges
+  mrf_seed_url: https://stctrprodsnsvc00455826e6.blob.core.windows.net/pt-final-posting-files/74-2781812_HEART-HOSP-OF-AUSTIN_standardcharges.json?si=pt-json-access-policy&spr=https&sv=2024-11-04&sr=c&sig=o5IofreS%2F7ETlsnhPakPWCwHVVUZRobywQ5wUKGjVuQ%3D
+  format_hint: json
+  collector_id: c_mt170fwu1rd4bzevmb
+  node_id: n5
+  system: hca
+  domain: stdavids.com
+- id: bsw_medical_center_austin
+  name: Baylor Scott & White Medical Center - Austin
+  collector_name: bsw_austin
+  homepage: https://www.bswhealth.com/
+  price_transparency_page: https://www.bswhealth.com/patient-tools/registration-and-billing/estimate-your-cost-of-care
+  mrf_seed_url: https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/813040663_baylor-scott--white-medical-center--austin_standardcharges.csv
+  format_hint: csv
+  collector_id: c_mt170mssv9p1942lp
+  node_id: n6
+  system: bsw
+  domain: bswhealth.com
+- id: bsw_medical_center_round_rock
+  name: Baylor Scott & White Medical Center - Round Rock
+  collector_name: bsw_round_rock
+  homepage: https://www.bswhealth.com/
+  price_transparency_page: https://www.bswhealth.com/patient-tools/registration-and-billing/estimate-your-cost-of-care
+  mrf_seed_url: https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/203749695_baylor-scott--white-medical-center--round-rock_standardcharges.csv
+  format_hint: csv
+  collector_id: c_mt170mssv9p1942lp
+  node_id: n7
+  system: bsw
+  domain: bswhealth.com
+- id: dell_seton_medical_center
+  name: Dell Seton Medical Center at UT
+  collector_name: dell_seton_medical_center
+  homepage: https://healthcare.ascension.org/
+  price_transparency_page: https://healthcare.ascension.org/price-transparency
+  mrf_seed_url: https://healthcare.ascension.org/-/media/project/ascension/healthcare/price-transparency-files/tx-csv/741109643-1093810327_ascension-seton_standardcharges.csv
+  format_hint: csv
+  collector_id: c_mt170jgmk4v6gtqml
+  node_id: n8
+  system: ascension
+  domain: ascension.org
+- id: ascension_seton_northwest
+  name: Ascension Seton Northwest
+  collector_name: ascension_seton_northwest
+  homepage: https://healthcare.ascension.org/
+  price_transparency_page: https://healthcare.ascension.org/price-transparency
+  mrf_seed_url: https://healthcare.ascension.org/-/media/project/ascension/healthcare/price-transparency-files/tx-csv/741109643-1124137054_ascension-seton_standardcharges.csv
+  format_hint: csv
+  collector_id: c_mt170jgmk4v6gtqml
+  node_id: n9
+  system: ascension
+  domain: ascension.org
+- id: ascension_seton_medical_center_austin
+  name: Ascension Seton Medical Center Austin
+  collector_name: ascension_seton_austin
+  homepage: https://healthcare.ascension.org/
+  price_transparency_page: https://healthcare.ascension.org/price-transparency
+  mrf_seed_url: https://healthcare.ascension.org/-/media/project/ascension/healthcare/price-transparency-files/tx-csv/741109643-1164526786_ascension-seton_standardcharges.csv
+  format_hint: csv
+  collector_id: c_mt170jgmk4v6gtqml
+  node_id: n10
+  system: ascension
+  domain: ascension.org
+- id: westlake_medical_center
+  name: The Hospital at Westlake Medical Center
+  collector_name: westlake_medical_center
+  homepage: https://www.westlakemedical.com/
+  price_transparency_page: https://www.westlakemedical.com/
+  cms_hpt_url: https://www.westlakemedical.com/cms-hpt.txt
+  mrf_seed_url: https://www.westlakemedical.com/wp-content/uploads/2024/10/820578078_westlake-surgical_standardcharges.csv
+  format_hint: csv
+  collector_id: c_mt1ebgigryzknrqoy
+  node_id: n11
+  system: independent
+  domain: westlakemedical.com
+- id: austin_oaks_hospital
+  name: Austin Oaks Hospital
+  collector_name: austin_oaks_hospital
+  homepage: https://www.austinoakshospital.com/
+  price_transparency_page: https://www.austinoakshospital.com/
+  cms_hpt_url: https://www.austinoakshospital.com/cms-hpt.txt
+  mrf_seed_url: https://uhsfilecdn.eskycity.net/bh/841618661_austin-oaks_standardcharges.csv
+  format_hint: csv
+  collector_id: c_mt1g5fwiu5urga1sq
+  node_id: n12
+  system: independent
+  domain: austinoakshospital.com
+- id: encompass_rehab_austin
+  name: Encompass Health Rehabilitation Hospital of Austin
+  collector_name: encompass_rehab_austin
+  homepage: https://www.encompasshealth.com/
+  price_transparency_page: https://www.encompasshealth.com/locations/austin-rehab/financial-information/price-transparency
+  cms_hpt_url: https://www.encompasshealth.com/cms-hpt.txt
+  mrf_seed_url: https://edge.sitecorecloud.io/encompasshee178-encompasshed9db-prodb258-07da/media/Project/EncompassHealth/encompasshealth/Files/1-price-transparency/261408389_Encompass-Health-Rehabilitation-Hospital-of-Austin_standardcharges.csv
+  format_hint: csv
+  collector_id: c_mt1erfkc1nxkj6ismz
+  node_id: n13
+  system: independent
+  domain: encompasshealth.com
+- id: encompass_rehab_round_rock
+  name: Encompass Health Rehabilitation Hospital of Round Rock
+  collector_name: encompass_rehab_round_rock
+  homepage: https://www.encompasshealth.com/
+  price_transparency_page: https://www.encompasshealth.com/locations/round-rock-rehab/financial-information/price-transparency
+  cms_hpt_url: https://www.encompasshealth.com/cms-hpt.txt
+  mrf_seed_url: https://edge.sitecorecloud.io/encompasshee178-encompasshed9db-prodb258-07da/media/Project/EncompassHealth/encompasshealth/Files/1-price-transparency/208038733_Encompass-Health-Rehabilitation-Hospital-of-Round-Rock_standardcharges.csv
+  format_hint: csv
+  collector_id: c_mt1f04m711p1t2cwvo
+  node_id: n14
+  system: independent
+  domain: encompasshealth.com
+- id: shriners_childrens_texas
+  name: Shriners Children's Texas
+  collector_name: shriners_childrens_texas
+  homepage: https://www.shrinerschildrens.org/
+  price_transparency_page: https://www.shrinerschildrens.org/en/price-transparency
+  cms_hpt_url: https://www.shrinerschildrens.org/cms-hpt.txt
+  mrf_seed_url: https://apim.services.craneware.com/api-pricing-transparency/api/public/8d02e645e89934e5d30914384f33aef9/charges/mrf
+  format_hint: csv
+  collector_id: c_mt1f4mxz1f4hm82eq2
+  node_id: n15
+  system: independent
+  domain: shrinerschildrens.org
+- id: christus_santa_rosa_san_marcos
+  name: CHRISTUS Santa Rosa Hospital - San Marcos
+  collector_name: christus_santa_rosa_san_marcos
+  homepage: https://www.christushealth.org/
+  price_transparency_page: https://www.christushealth.org/plan-care/bill-pay/pricing-transparency
+  cms_hpt_url: https://www.christushealth.org/cms-hpt.txt
+  mrf_seed_url: https://www.christushealth.org/-/media/christus-health/plan-care/files/bill-pay/machine-readable-files/741109665_santarosahospitalsanmarcos_standardcharges.json
+  format_hint: json
+  collector_id: c_mt1f8idp21oygldch3
+  node_id: n16
+  system: independent
+  domain: christushealth.org
+- id: christus_santa_rosa_new_braunfels
+  name: CHRISTUS Santa Rosa Hospital - New Braunfels
+  collector_name: christus_santa_rosa_new_braunfels
+  homepage: https://www.christushealth.org/
+  price_transparency_page: https://www.christushealth.org/plan-care/bill-pay/pricing-transparency
+  cms_hpt_url: https://www.christushealth.org/cms-hpt.txt
+  mrf_seed_url: https://www.christushealth.org/-/media/christus-health/plan-care/files/bill-pay/machine-readable-files/741109665_SantaRosaHospitalNewBraunfels_standardcharges.ashx
+  format_hint: json
+  collector_id: c_mt1fcfv5a8pn4aqla
+  node_id: n17
+  system: independent
+  domain: christushealth.org
+- id: md_anderson_houston
+  name: MD Anderson Cancer Center
+  collector_name: md_anderson_houston
+  homepage: https://www.mdanderson.org/patients-family/becoming-our-patient/getting-started/price-transparency.html
+  price_transparency_page: https://www.mdanderson.org/patients-family/becoming-our-patient/getting-started/price-transparency.html
+  format_hint: json
+  collector_id: c_mt5gy41fox65bviaz
+  domain: mdanderson.org
+- id: harris_health_lbj
+  name: Harris Health Lyndon B. Johnson Hospital
+  collector_name: harris_health_lbj
+  homepage: https://www.harrishealth.org/patients-visitors/billing-insurance/Pages/price-transparency.aspx
+  price_transparency_page: https://www.harrishealth.org/patients-visitors/billing-insurance/Pages/price-transparency.aspx
+  format_hint: json
+  collector_id: c_mt5h68pvcm4r2pbv5
+  domain: harrishealth.org
+- id: parkland_dallas
+  name: Parkland Memorial Hospital
+  collector_name: parkland_dallas
+  homepage: https://www.parklandhealth.org/cms-hpt.txt
+  price_transparency_page: https://www.parklandhealth.org/cms-hpt.txt
+  format_hint: json
+  collector_id: c_mt5ho4zj21owytzg5g
+  domain: parklandhealth.org

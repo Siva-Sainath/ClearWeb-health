@@ -38,6 +38,9 @@ export interface ScrapeTimelineState {
   isCacheOnly: boolean;
   timelineComplete: boolean;
   isReplay: boolean;
+  /** Active heal event for cinematic overlay (replay + live). */
+  activeHealEvent: ScraperLog | null;
+  healDwellActive: boolean;
 }
 
 function mitigationForHeal(detail: string): string {
@@ -77,6 +80,14 @@ export interface UseScrapeTimelineOptions {
   /** Live job id (required for live mode). */
   jobId?: string | null;
   speedMultiplier?: number;
+  /** Slow replay at heal moments and show cinematic overlay. */
+  healCinematicEnabled?: boolean;
+  /** Extra dwell time (ms) inserted after each heal_triggered in replay. */
+  healDwellMs?: number;
+  /** Override graph nodes (e.g. single-hospital showcase). */
+  initialNodes?: SourceNode[];
+  /** Custom node resolver for showcase replays. */
+  resolveNodeId?: (log: ScraperLog) => string | null;
   onTimelineComplete?: () => void;
   onHealEvent?: (log: ScraperLog) => void;
 }
@@ -87,10 +98,15 @@ export function useScrapeTimeline({
   events = [],
   jobId = null,
   speedMultiplier = 8,
+  healCinematicEnabled = false,
+  healDwellMs = 16000,
+  initialNodes,
+  resolveNodeId,
   onTimelineComplete,
   onHealEvent,
 }: UseScrapeTimelineOptions): ScrapeTimelineState {
-  const [nodes, setNodes] = useState<SourceNode[]>(INITIAL_NODES);
+  const baseNodes = initialNodes ?? INITIAL_NODES;
+  const [nodes, setNodes] = useState<SourceNode[]>(baseNodes);
   const [logs, setLogs] = useState<ScraperLog[]>([]);
   const [activeNode, setActiveNode] = useState<string | null>(null);
   const [healingNode, setHealingNode] = useState<string | null>(null);
@@ -103,8 +119,11 @@ export function useScrapeTimeline({
   const [healCount, setHealCount] = useState(0);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [timelineComplete, setTimelineComplete] = useState(false);
+  const [activeHealEvent, setActiveHealEvent] = useState<ScraperLog | null>(null);
+  const [healDwellActive, setHealDwellActive] = useState(false);
 
   const completedRef = useRef(new Set<string>());
+  const healDwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mitigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedAtRef = useRef<number | null>(null);
@@ -132,9 +151,37 @@ export function useScrapeTimeline({
     mitigationTimerRef.current = setTimeout(() => setMitigationLabel(null), 2800);
   }, []);
 
+  const resolveLogNodeId = useCallback(
+    (log: ScraperLog) => {
+      if (resolveNodeId) {
+        const custom = resolveNodeId(log);
+        if (custom) return custom;
+      }
+      if (log.node_id && nodes.some((n) => n.id === log.node_id)) {
+        return log.node_id;
+      }
+      return resolveScrapeNodeId(log);
+    },
+    [resolveNodeId, nodes]
+  );
+
+  const beginHealDwell = useCallback(
+    (log: ScraperLog) => {
+      if (!healCinematicEnabled) return;
+      setActiveHealEvent(log);
+      setHealDwellActive(true);
+      if (healDwellTimerRef.current) clearTimeout(healDwellTimerRef.current);
+      healDwellTimerRef.current = setTimeout(() => {
+        setHealDwellActive(false);
+        setActiveHealEvent(null);
+      }, healDwellMs);
+    },
+    [healCinematicEnabled, healDwellMs]
+  );
+
   const applyLog = useCallback(
     (log: ScraperLog) => {
-      const nodeId = resolveScrapeNodeId(log);
+      const nodeId = resolveLogNodeId(log);
       if (!nodeId) return;
 
       setLogs((prev) => [log, ...prev].slice(0, 60));
@@ -172,6 +219,7 @@ export function useScrapeTimeline({
           setActiveNode(nodeId);
           updateStatus(nodeId, "healing");
           showMitigation(mitigationForHeal(log.detail || ""));
+          beginHealDwell(log);
           onHealRef.current?.(log);
           break;
         case "heal_resumed":
@@ -179,6 +227,7 @@ export function useScrapeTimeline({
           setActiveNode(nodeId);
           updateStatus(nodeId, "active");
           showMitigation("Healed — retrying extraction");
+          if (healCinematicEnabled) beginHealDwell(log);
           break;
         case "heal_failed":
           setHealingNode(null);
@@ -186,6 +235,7 @@ export function useScrapeTimeline({
           updateStatus(nodeId, "broken");
           setBrokenNodes((prev) => new Set(prev).add(nodeId));
           showMitigation("Self-heal exhausted");
+          if (healCinematicEnabled) beginHealDwell(log);
           onHealRef.current?.(log);
           break;
         case "price_extracted":
@@ -208,15 +258,15 @@ export function useScrapeTimeline({
           updateStatus(nodeId, "active");
       }
     },
-    [showMitigation, updateStatus]
+    [showMitigation, updateStatus, resolveLogNodeId, beginHealDwell, healCinematicEnabled]
   );
 
   const finishTimeline = useCallback(() => {
     setActiveNode(null);
     setHealingNode(null);
     setMitigationLabel(null);
-    completedRef.current = new Set(INITIAL_NODES.map((n) => n.id));
-    setCompletedCount(HOSPITAL_NODE_COUNT);
+    completedRef.current = new Set(baseNodes.map((n) => n.id));
+    setCompletedCount(baseNodes.length);
     setNodes((prev) =>
       prev.map((n) => ({
         ...n,
@@ -225,13 +275,14 @@ export function useScrapeTimeline({
     );
     setTimelineComplete(true);
     onCompleteRef.current?.();
-  }, []);
+  }, [baseNodes]);
 
   const resetTimeline = useCallback(() => {
     clearTimers();
+    if (healDwellTimerRef.current) clearTimeout(healDwellTimerRef.current);
     completedRef.current = new Set();
     startedAtRef.current = Date.now();
-    setNodes(INITIAL_NODES.map((n) => ({ ...n, status: "idle" as NodeStatus })));
+    setNodes(baseNodes.map((n) => ({ ...n, status: "idle" as NodeStatus })));
     setLogs([]);
     setActiveNode(null);
     setHealingNode(null);
@@ -244,7 +295,9 @@ export function useScrapeTimeline({
     setMitigationLabel(null);
     setElapsedSec(0);
     setTimelineComplete(false);
-  }, [clearTimers]);
+    setActiveHealEvent(null);
+    setHealDwellActive(false);
+  }, [clearTimers, baseNodes]);
 
   // Replay mode
   useEffect(() => {
@@ -267,16 +320,24 @@ export function useScrapeTimeline({
       }
     }, 1000);
 
+    let healDwellExtra = 0;
     sorted.forEach((log, i) => {
       const eventTime = new Date(log.ts).getTime();
-      const delayMs = Math.max(100, (eventTime - t0) / speedMultiplier + i * 35);
+      const baseDelay = Math.max(100, (eventTime - t0) / speedMultiplier + i * 35);
+      const delayMs = baseDelay + healDwellExtra;
       const timer = setTimeout(() => applyLog(log), delayMs);
       timersRef.current.push(timer);
+      if (healCinematicEnabled && log.event === "heal_triggered") {
+        healDwellExtra += healDwellMs;
+      }
     });
 
     const totalDelay =
       sorted.length > 0
-        ? Math.max(2000, (new Date(sorted[sorted.length - 1].ts).getTime() - t0) / speedMultiplier + 1200)
+        ? Math.max(
+            2000,
+            (new Date(sorted[sorted.length - 1].ts).getTime() - t0) / speedMultiplier + healDwellExtra + 1200
+          )
         : 2000;
 
     const doneTimer = setTimeout(() => finishTimeline(), totalDelay);
@@ -286,7 +347,18 @@ export function useScrapeTimeline({
       clearInterval(tick);
       clearTimers();
     };
-  }, [mode, active, events, speedMultiplier, applyLog, finishTimeline, resetTimeline, clearTimers]);
+  }, [
+    mode,
+    active,
+    events,
+    speedMultiplier,
+    healCinematicEnabled,
+    healDwellMs,
+    applyLog,
+    finishTimeline,
+    resetTimeline,
+    clearTimers,
+  ]);
 
   // Live SSE mode
   useEffect(() => {
@@ -342,7 +414,7 @@ export function useScrapeTimeline({
     brokenNodes,
     mitigationLabel,
     completedCount,
-    totalNodes: HOSPITAL_NODE_COUNT,
+    totalNodes: nodes.length,
     cacheHits,
     liveDownloads,
     failureCount,
@@ -352,5 +424,7 @@ export function useScrapeTimeline({
     isCacheOnly,
     timelineComplete,
     isReplay: mode === "replay",
+    activeHealEvent,
+    healDwellActive,
   };
 }

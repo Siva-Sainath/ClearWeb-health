@@ -20,6 +20,29 @@ const DEMO_SNAPSHOT_PATH = path.join(
   "../../frontend/src/data/austinDemoSnapshot.json"
 );
 
+const TEXAS_COLLECTOR_SNAPSHOT_PATH = path.join(
+  __dirname,
+  "../../frontend/src/data/texasCollectorSnapshot.json"
+);
+
+function loadTexasCollectorSnapshot() {
+  if (!fs.existsSync(TEXAS_COLLECTOR_SNAPSHOT_PATH)) return null;
+  try {
+    const raw = JSON.parse(fs.readFileSync(TEXAS_COLLECTOR_SNAPSHOT_PATH, "utf-8"));
+    return {
+      verified: raw.verified ?? 0,
+      pending: raw.pending ?? 0,
+      failed: raw.failed ?? 0,
+      asOf: raw.asOf || new Date().toISOString(),
+      recentFailures: (raw.recent || [])
+        .filter((j) => j.status === "failed")
+        .slice(0, 5),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function normalizeProfile(profile = {}) {
   return {
     condition: "",
@@ -111,13 +134,17 @@ async function buildBrainPayload({
         verified: collectorPipeline.verified,
         pending: collectorPipeline.pending,
         failed: collectorPipeline.failed,
+        asOf: new Date().toISOString(),
         recentFailures: (collectorPipeline.recent || [])
           .filter((j) => j.status === "failed")
           .slice(0, 5),
       };
     }
   } catch {
-    /* optional — scraper DB may be unavailable on deploy */
+    const snapshot = loadTexasCollectorSnapshot();
+    if (snapshot) {
+      scrapeContext.collectorPipeline = snapshot;
+    }
   }
 
   const executiveSummary = buildExecutiveSummary(profile, results, replay);

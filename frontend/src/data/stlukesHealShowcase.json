@@ -1,0 +1,119 @@
+{
+  "capturedAt": "2026-08-23T09:27:45.919157+00:00",
+  "collectorId": "c_mt5goll71eekdhe91q",
+  "facility": {
+    "name": "St. Luke's Health Baylor St. Luke's Medical Center",
+    "slug": "stlukes_baylor_houston",
+    "domain": "stlukeshealth.org",
+    "city": "Houston",
+    "region": "houston",
+    "targetUrl": "https://www.stlukeshealth.org/patients-visitors/billing-insurance/price-transparency"
+  },
+  "replayEvents": [
+    {
+      "id": "stlukes-evt-01",
+      "ts": "2026-08-23T09:23:12+00:00",
+      "collector_id": "c_mt5goll71eekdhe91q",
+      "brightdata_collector_id": "c_mt5goll71eekdhe91q",
+      "collector_name": "stlukes_baylor_houston",
+      "event": "collector_started",
+      "facility_name": "St. Luke's Health Baylor St. Luke's Medical Center",
+      "domain": "stlukeshealth.org",
+      "detail": "Running Bright Data Scraper Studio on stlukeshealth.org (Texas collector pipeline)…",
+      "hospital_id": "stlukes_baylor_houston",
+      "node_id": "web_stlukes"
+    },
+    {
+      "id": "stlukes-evt-02",
+      "ts": "2026-08-23T09:24:05+00:00",
+      "collector_id": "c_mt5goll71eekdhe91q",
+      "event": "page_loaded",
+      "facility_name": "St. Luke's Health Baylor St. Luke's Medical Center",
+      "detail": "Collector preview returned product_page_url (CommonSpirit redirect chain)",
+      "discovery_source": "collector",
+      "hospital_id": "stlukes_baylor_houston",
+      "node_id": "web_stlukes"
+    },
+    {
+      "id": "stlukes-evt-03",
+      "ts": "2026-08-23T09:24:42+00:00",
+      "collector_id": "c_mt5goll71eekdhe91q",
+      "event": "extraction_failed",
+      "facility_name": "St. Luke's Health Baylor St. Luke's Medical Center",
+      "detail": "preview missing expected specific CSV/file URL fields",
+      "hospital_id": "stlukes_baylor_houston",
+      "node_id": "web_stlukes"
+    },
+    {
+      "id": "stlukes-evt-04",
+      "ts": "2026-08-23T09:24:48+00:00",
+      "collector_id": "c_mt5goll71eekdhe91q",
+      "event": "heal_triggered",
+      "facility_name": "St. Luke's Health Baylor St. Luke's Medical Center",
+      "detail": "Bright Data refactor_template — self-healing collector c_mt5goll71eekdhe91q (tier 1)",
+      "hospital_id": "stlukes_baylor_houston",
+      "node_id": "web_stlukes"
+    },
+    {
+      "id": "stlukes-evt-05",
+      "ts": "2026-08-23T09:26:02+00:00",
+      "collector_id": "c_mt5goll71eekdhe91q",
+      "event": "heal_resumed",
+      "facility_name": "St. Luke's Health Baylor St. Luke's Medical Center",
+      "detail": "Refactor applied — preview output changed (see heal log before/after samples)",
+      "hospital_id": "stlukes_baylor_houston",
+      "node_id": "web_stlukes"
+    },
+    {
+      "id": "stlukes-evt-06",
+      "ts": "2026-08-23T09:27:30+00:00",
+      "collector_id": "c_mt5goll71eekdhe91q",
+      "event": "extraction_failed",
+      "facility_name": "St. Luke's Health Baylor St. Luke's Medical Center",
+      "detail": "Still failed after heal: preview missing expected specific CSV/file URL fields",
+      "hospital_id": "stlukes_baylor_houston",
+      "node_id": "web_stlukes"
+    },
+    {
+      "id": "stlukes-evt-07",
+      "ts": "2026-08-23T09:27:45+00:00",
+      "collector_id": "c_mt5goll71eekdhe91q",
+      "event": "heal_failed",
+      "facility_name": "St. Luke's Health Baylor St. Luke's Medical Center",
+      "detail": "Self-heal exhausted — preview gate rejected output (logged to heal_log.jsonl)",
+      "hospital_id": "stlukes_baylor_houston",
+      "node_id": "web_stlukes"
+    }
+  ],
+  "healEvents": [
+    {
+      "timestamp": "2026-08-23T09:27:45.919157+00:00",
+      "collector_id": "c_mt5goll71eekdhe91q",
+      "reason": "preview missing expected specific CSV/file URL fields",
+      "success": false
+    }
+  ],
+  "healLog": [
+    {
+      "ts": "2026-08-23T09:24:42+00:00",
+      "step": "validate_preview",
+      "message": "FAILED: preview missing expected specific CSV/file URL fields"
+    },
+    {
+      "ts": "2026-08-23T09:24:48+00:00",
+      "step": "refactor_template",
+      "message": "POST /dca/trigger → Bright Data AI planner + code_fixer engaged"
+    },
+    {
+      "ts": "2026-08-23T09:26:02+00:00",
+      "step": "refactor_complete",
+      "message": "Preview re-run — product_page_url updated after refactor"
+    },
+    {
+      "ts": "2026-08-23T09:27:45+00:00",
+      "step": "heal_logged",
+      "message": "before: CTXWH_the-woodlands-hospital_2025.07.01_CDM.xlsx → after: CTXLH_lakeside-hospital-the-woodlands_2025.07.01_CDM.xlsx",
+      "success": false
+    }
+  ]
+}

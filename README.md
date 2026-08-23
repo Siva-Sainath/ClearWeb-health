@@ -26,7 +26,7 @@ Full walkthrough: voice onboarding, scrape replay, ranked prices, and Aria expla
 
 The Austin demo uses pre-collected data for 8 hospital sites (ER visit CPT 99284, Aetna, ZIP 78704). On load it can skip onboarding and go straight into the scrape replay, then results.
 
-Full recording script: see local `docs/DEMO_GUIDE.md` (not in repo).
+Full recording script: see [JUDGE.md](JUDGE.md) for the honest judge path and `/showcase/heal` for St. Luke's self-heal proof.
 
 
 ## Project layout

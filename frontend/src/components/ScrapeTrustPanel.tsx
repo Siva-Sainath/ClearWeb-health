@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, Copy, Check, Database, Shield } from "lucide-react";
+import { AlertTriangle, Copy, Check, Database, Shield, Wrench } from "lucide-react";
+import Link from "next/link";
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { ScraperLog } from "@/lib/types";
 import { tokens } from "@/lib/design-tokens";
@@ -136,6 +137,13 @@ export default function ScrapeTrustPanel({
               </span>
             </div>
           ))}
+          <Link
+            href="/showcase/heal"
+            className="inline-flex items-center gap-1.5 text-xs text-sky-300 hover:text-sky-200 mt-1"
+          >
+            <Wrench size={12} />
+            Watch recorded St. Luke&apos;s self-heal replay
+          </Link>
         </div>
       )}
 

@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Film, Radio, Sparkles } from "lucide-react";
+import { Film, Radio, Sparkles, Wrench } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useScrapeJob } from "@/hooks/useScrapeJob";
 import { tokens } from "@/lib/design-tokens";
@@ -54,13 +55,19 @@ export default function ScrapeDemoActions() {
           variant="ghost"
           size="sm"
           disabled={busy}
-          className="h-9 text-xs border border-[var(--color-accent)]/30"
-          style={{ color: tokens.accentAlt }}
+          className="h-9 text-xs border border-white/10"
           onClick={() => void startLiveScrape()}
         >
           <Radio size={14} className="mr-1.5" />
           Run live scrape now
         </Button>
+        <Link
+          href="/showcase/heal"
+          className="inline-flex items-center h-9 px-3 text-xs rounded-md border border-sky-500/30 text-sky-200 hover:bg-sky-950/40 transition-colors"
+        >
+          <Wrench size={14} className="mr-1.5" />
+          Watch St. Luke&apos;s self-heal
+        </Link>
       </div>
 
       {patientProfile.city && patientProfile.zipCode && (
