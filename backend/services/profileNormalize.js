@@ -50,6 +50,18 @@ function normalizeZipCode(raw) {
 function normalizeSttText(text) {
   let t = String(text || "").trim();
   if (!t) return t;
+  t = t.replace(/\s*[\[(]?(?:music|applause|laughter|silence)[^\])]*[\])]?\s*/gi, " ");
+  t = t.replace(/\s*\(music under\)\s*/gi, " ");
+  t = t.replace(/\s{2,}/g, " ").trim();
+
+  // Light S1-mini-style cleanup (rule-based; no extra model load).
+  t = t.replace(/\b(um+|uh+|er+|ah+|like,?\s+|you know,?\s+)/gi, " ");
+  t = t.replace(/\s+([,.!?])/g, "$1");
+  t = t.replace(/\s{2,}/g, " ").trim();
+  if (t.length > 0) {
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+  }
+
   t = t.replace(/\batna\b/gi, "Aetna");
   t = t.replace(/\betna\b/gi, "Aetna");
   t = t.replace(/\baettn\b/gi, "Aetna");

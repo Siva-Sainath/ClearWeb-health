@@ -33,7 +33,9 @@ export function useUserLocation(enabled = true) {
   }, []);
 
   useEffect(() => {
-    if (enabled) request();
+    if (!enabled) return;
+    const t = setTimeout(() => request(), 0);
+    return () => clearTimeout(t);
   }, [enabled, request]);
 
   return { location: state, requestLocation: request };

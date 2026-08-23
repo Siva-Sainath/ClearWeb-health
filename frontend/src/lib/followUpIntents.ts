@@ -3,7 +3,7 @@
  * Used before LLM for reliable demo behavior with cached results.
  */
 
-import type { UIAction, LayoutMode } from "@/lib/uiActions";
+import type { UIAction } from "@/lib/uiActions";
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { FacilityResult } from "@/lib/types";
 
@@ -129,7 +129,7 @@ const RULES: Array<{
   },
   {
     test: (t) => /accredited|certified hospital|accredited only|accredited hospitals/.test(t),
-    resolve: (ctx) => ({
+    resolve: () => ({
       speech: "Filtering to accredited hospitals only — sorted by price so you see the best deals first.",
       actions: [
         { type: "filter", payload: "accredited" },
@@ -183,7 +183,7 @@ const RULES: Array<{
   },
   {
     test: (t) => /under \$?\d+|cheap filter|under 500|budget|lower cost/.test(t),
-    resolve: (ctx) => ({
+    resolve: () => ({
       speech: "Filtering to the lower-cost options — check the chart for who's under your range.",
       actions: [
         { type: "filter", payload: "cheap" },

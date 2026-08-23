@@ -7,6 +7,7 @@ Bulk creates Bright Data scrapers asynchronously.
 import logging
 import re
 import subprocess
+import sys
 import time
 from typing import TypedDict
 import json
@@ -38,9 +39,10 @@ def create_collector(hospital: HospitalCandidate) -> tuple[str | None, subproces
     
     logger.info(f"[{slug}] Firing create_collector for {url}")
 
+    npx = "npx.cmd" if sys.platform == "win32" else "npx"
     # Using the correct syntax: bdata scraper create <url> <description> --name <slug> --json
     cmd = [
-        "npx.cmd", "-y", "-p", "@brightdata/cli",
+        npx, "-y", "-p", "@brightdata/cli",
         "bdata", "scraper", "create",
         url,
         "Extract the price transparency machine-readable file URLs from this page. Do NOT navigate to or download the CSV/JSON files themselves — only return their URLs as data using collect({product_page_url: url}) for each one found. The output should be a list of links, not file contents.",

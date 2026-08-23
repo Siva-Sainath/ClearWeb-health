@@ -33,6 +33,8 @@ scraper/data/
 # IDE / Cursor
 .cursor/debug*.log
 .cursor/mcp.json
+.agy-logs/
+scripts/logs/
 
 # Misc
 *.pem

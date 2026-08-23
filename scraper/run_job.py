@@ -45,11 +45,18 @@ logger = logging.getLogger("run_job")
 SAMPLE_MB = int(os.environ.get("MRF_SAMPLE_MB", "0")) or None
 DEFAULT_CPT = "72148"
 PARALLEL = os.environ.get("SCRAPE_PARALLEL", "1") not in ("0", "false", "False")
+_emit_lock = __import__("threading").Lock()
 _ascension_download_lock = __import__("threading").Lock()
 
 
 def emit(obj: dict) -> None:
-    print(json.dumps(obj), flush=True)
+    with _emit_lock:
+        print(json.dumps(obj), flush=True)
+
+
+def track_emit(events: list[dict], evt: dict) -> None:
+    events.append(evt)
+    emit(evt)
 
 
 def profile_cpt_codes(profile: dict) -> frozenset[str]:
@@ -199,16 +206,16 @@ def _unlocker_rediscovery_retry(
         "Retrying MRF discovery via Bright Data Web Unlocker (cms-hpt + seed)",
         profile,
     )
-    events.append(evt)
-    emit(evt)
+    track_emit(events, evt)
     mrf_url, discovery_source, _ = discover_mrf(hospital, healed=True)
-    emit(
+    track_emit(
+        events,
         make_event(
             hospital,
             "heal_resumed",
             "Unlocker re-discovery succeeded — retrying download",
             profile,
-        )
+        ),
     )
     rows, ok, reason, mrf_meta = _try_extract(
         hospital, profile, mrf_url, discovery_source, tag=tag, force_unlocker=True
@@ -272,8 +279,7 @@ def _heal_and_retry(
                     f"Creating fresh Scraper Studio collector for {hospital['name']}",
                     profile,
                 )
-                events.append(evt)
-                emit(evt)
+                track_emit(events, evt)
                 created = create_collector(
                     seed,
                     f"Navigate price transparency portal for {hospital['name']}. Return direct MRF URL.",
@@ -305,8 +311,7 @@ def _heal_and_retry(
             f"Self-healing collector {collector_id} (tier {tier})",
             profile,
         )
-        events.append(evt)
-        emit(evt)
+        track_emit(events, evt)
 
         try:
             heal_collector(
@@ -317,17 +322,21 @@ def _heal_and_retry(
                 tier=tier,
             )
             clear_collector_cache_entry(collector_id)
-            emit(make_event(hospital, "heal_resumed", "Collector healed — retrying discovery and download", profile))
+            track_emit(
+                events,
+                make_event(hospital, "heal_resumed", "Collector healed — retrying discovery and download", profile),
+            )
 
             mrf_url, discovery_source, _ = discover_mrf(hospital, healed=True)
-            emit(
+            track_emit(
+                events,
                 make_event(
                     hospital,
                     "page_loaded",
                     f"Healed collector found price file for {hospital['name']}",
                     profile,
                     discovery_source=discovery_source,
-                )
+                ),
             )
             rows, ok, reason, mrf_meta = _try_extract(
                 hospital, profile, mrf_url, discovery_source, tag=f"healed_t{tier}", force_unlocker=True
@@ -343,6 +352,13 @@ def _heal_and_retry(
                 _emit_rate_limited(hospital, profile, reason)
                 time.sleep(min(8, 2 ** tier))
 
+    fail_evt = make_event(
+        hospital,
+        "heal_failed",
+        f"Self-heal exhausted for {collector_id}: {(reason or 'unknown')[:200]}",
+        profile,
+    )
+    track_emit(events, fail_evt)
     return None, rows if isinstance(rows, list) else [], reason, mrf_meta if isinstance(mrf_meta, dict) else {}
 
 

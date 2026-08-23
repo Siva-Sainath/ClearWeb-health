@@ -44,9 +44,12 @@ export type NavigateCommand =
   | { type: "navigate"; kind: "scroll"; payload: string }
   | { type: "navigate"; kind: "url"; payload: string };
 
-const ACTION_RE = /\[action:([^\]]+)\]/g;
-const PROFILE_RE = /\[profile:([^:]+):([^\]]+)\]/g;
-const NAVIGATE_RE = /\[navigate:([^\]]+)\]/g;
+const ACTION_RE = /\[action:([^\]]*)\]/g;
+const PROFILE_RE = /\[profile:([^:\]]+):([^\]]*)\]/g;
+const NAVIGATE_RE = /\[navigate:([^\]]*)\]/g;
+/** Any leftover machine tag, including empty or half-streamed ones. */
+const ANY_TAG_RE = /\[[a-z][a-z0-9_-]*(?::[^\]]*)?\]/gi;
+const TRAILING_OPEN_TAG_RE = /\[[^\]]*$/;
 
 function parseActionRaw(raw: string): UIAction | null {
   const parts = raw.split(":");
@@ -124,6 +127,7 @@ export function parseProfileTags(text: string): Partial<PatientProfile> {
   text.replace(PROFILE_RE, (_, field: string, value: string) => {
     const f = field.trim();
     const v = value.trim();
+    if (!v) return "";
     if (f === "radiusMi") updates.radiusMi = parseInt(v, 10) || 25;
     else if (f === "priority") {
       updates.priorities = [v as PatientPriority];
@@ -142,6 +146,7 @@ const EMPTY_PROFILE_KEYS = {
   procedure: true,
   cptCode: true,
   insurance: true,
+  city: true,
   zipCode: true,
 };
 
@@ -172,7 +177,10 @@ export function stripTags(text: string): string {
     .replace(ACTION_RE, "")
     .replace(PROFILE_RE, "")
     .replace(NAVIGATE_RE, "")
-    .replace(/\[show_card:[^\]]+\]/g, "")
+    .replace(/\[show_card:[^\]]*\]/g, "")
+    .replace(ANY_TAG_RE, "")
+    .replace(TRAILING_OPEN_TAG_RE, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 }
 

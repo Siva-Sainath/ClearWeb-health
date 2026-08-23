@@ -67,7 +67,7 @@ export default function PriceWaterfallChart({ facilities }: Props) {
       borderColor: "#2A4434",
       borderWidth: 1,
       textStyle: { color: "#F2F9F5", fontFamily: "monospace", fontSize: 11 },
-      formatter: (params: any[]) => {
+      formatter: (params: { dataIndex?: number }[]) => {
         const idx = params[0]?.dataIndex;
         if (idx === undefined) return "";
         const [, f] = sorted[idx];
@@ -109,7 +109,7 @@ export default function PriceWaterfallChart({ facilities }: Props) {
         label: {
           show: true,
           position: "right" as const,
-          formatter: (p: any) => `$${p.value}`,
+          formatter: (p: { value?: number }) => `$${p.value ?? 0}`,
           color: "#8BABA0",
           fontFamily: "monospace",
           fontSize: 10,

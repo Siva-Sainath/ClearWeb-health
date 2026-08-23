@@ -24,7 +24,8 @@ export default function ScrapeDemoActions() {
         <Sparkles size={18} className="shrink-0 mt-0.5" style={{ color: tokens.accent }} />
         <div className="space-y-1 min-w-0">
           <p className="text-sm font-medium text-[var(--color-text-primary)]">
-            {scrapePresentationMode === "instant"
+            {scrapePresentationMode === "instant" ||
+            scrapePresentationMode === "proof-reel"
               ? "Prices from a recent hospital scrape"
               : "Hospital search tools"}
           </p>

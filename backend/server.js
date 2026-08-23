@@ -8,11 +8,12 @@ const express = require("express");
 const cors = require("cors");
 const { env, validateEnv } = require("./config/env");
 const { BRAND } = require("./lib/brand");
-const { checkOllamaHealth } = require("./services/ollamaProvider");
-const { checkTtsHealth, synthesizeSpeech } = require("./services/ttsService");
+const { checkLlmHealth } = require("./services/llmProvider");
+const { checkTtsHealth, synthesizeSpeech, warmupTts } = require("./services/ttsService");
 const { checkSttHealth, transcribeAudio } = require("./services/sttService");
 const { handleAgentChatStream, extractProfile, analyseResults } = require("./services/ariaAgent");
 const scrapeService = require("./services/scrapeService");
+const { queryCachedPrices } = require("./services/priceQueryService");
 const multer = require("multer");
 
 const upload = multer({
@@ -27,18 +28,20 @@ app.use(express.json({ limit: "2mb" }));
 
 validateEnv().forEach((w) => console.warn(`[env] ${w}`));
 
+app.get("/", (_req, res) => {
+  res.redirect(302, env.FRONTEND_URL);
+});
+
 // ─── Health ─────────────────────────────────────────────────────────────────
 
 app.get("/api/health", async (_req, res) => {
-  const ollama = await checkOllamaHealth();
+  const llm = await checkLlmHealth();
   const tts = await checkTtsHealth();
   const stt = await checkSttHealth();
-  const status = ollama.connected ? "ok" : "degraded";
+  const status = llm.connected ? "ok" : "degraded";
   res.status(status === "ok" ? 200 : 503).json({
     status,
-    ollama: ollama.connected ? "connected" : "unreachable",
-    model: env.OLLAMA_MODEL,
-    available: ollama.models,
+    llm,
     tts,
     stt,
     webcmd: env.WEBCMD_ENABLED,
@@ -58,16 +61,17 @@ app.post("/api/tts/speak", async (req, res) => {
   const { text, voice, rate, pitch } = req.body;
   if (!text?.trim()) return res.status(400).json({ error: "text required" });
   try {
-    const audio = await synthesizeSpeech(text, { voice, rate, pitch });
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.send(audio);
+    const { buffer, mime, provider } = await synthesizeSpeech(text, { voice, rate, pitch });
+    res.setHeader("Content-Type", mime);
+    res.setHeader("X-TTS-Provider", provider);
+    res.send(buffer);
   } catch (err) {
     console.error("[tts]", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── STT (local Whisper via Ollama) ─────────────────────────────────────────
+// ─── STT (local Whisper via Transformers.js) ────────────────────────────────
 
 app.post("/api/stt/transcribe", upload.single("audio"), async (req, res) => {
   if (!req.file?.buffer?.length) {
@@ -109,6 +113,21 @@ app.post("/api/analyse", async (req, res) => {
 });
 
 // ─── Scrape jobs ────────────────────────────────────────────────────────────
+
+app.get("/api/prices/query", async (req, res) => {
+  try {
+    const data = await queryCachedPrices({
+      zip: req.query.zip,
+      procedure: req.query.procedure,
+      insurance: req.query.insurance,
+      cpt: req.query.cpt,
+    });
+    res.json(data);
+  } catch (err) {
+    console.error("[prices/query]", err.message);
+    res.status(503).json({ error: err.message });
+  }
+});
 
 app.post("/api/scrape/start", (req, res) => {
   const profile = req.body.profile || req.body;
@@ -172,14 +191,20 @@ app.get("/api/scrape/:jobId/events", (req, res) => {
 app.listen(env.PORT, () => {
   console.log(`\n🕸️  ${BRAND.name} API  →  http://localhost:${env.PORT}`);
   console.log(`   Model: ${env.OLLAMA_MODEL}  |  Ollama: ${env.OLLAMA_BASE}`);
-  console.log(`   TTS: ${env.TTS_VOICE} (${env.TTS_RATE})`);
-  console.log(`   STT: Xenova/whisper-tiny.en (local, first request loads model)`);
+  console.log(
+    `   TTS: ${env.TTS_PROVIDER === "groq" || env.GROQ_API_KEY ? env.GROQ_TTS_MODEL : env.TTS_VOICE} (${env.GROQ_API_KEY ? "groq" : "edge"})`
+  );
   console.log(`   Frontend: ${env.FRONTEND_URL}\n`);
+
+  warmupTts([`Hi, I'm ${BRAND.agentName}. What do you need priced today?`]).catch((err) =>
+    console.warn("[tts] warmup failed:", err.message)
+  );
 
   const { checkSttHealth } = require("./services/sttService");
   checkSttHealth()
     .then((stt) => {
-      if (stt.available) console.log("[stt] Whisper model ready");
+      console.log(`   STT: ${stt.model} (${stt.preset || "custom"}, first request caches weights)`);
+      if (stt.available) console.log("[stt] model ready");
       else console.warn("[stt]", stt.reason);
     })
     .catch((err) => console.warn("[stt] preload skipped:", err.message));

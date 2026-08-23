@@ -16,7 +16,58 @@ import type { PatientProfile, ScraperLog } from "@/lib/types";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 const USE_LLM_EXPLANATION = process.env.NEXT_PUBLIC_USE_LLM_EXPLANATION === "true";
-const USE_INSTANT_DEMO = process.env.NEXT_PUBLIC_DEMO_INSTANT_RESULTS !== "false";
+const HACKATHON_DEMO_MODE = process.env.NEXT_PUBLIC_HACKATHON_DEMO_MODE === "true";
+const SKIP_SCRAPE_ANIMATION = process.env.NEXT_PUBLIC_SKIP_SCRAPE_ANIMATION === "true";
+
+type HealEventSummary = {
+  collector_id?: string;
+  reason?: string;
+  success?: boolean;
+  timestamp?: string;
+};
+
+function healEventsFromLogs(events: ScraperLog[]): HealEventSummary[] {
+  const succeeded = new Set(
+    events
+      .filter((e) => e.event === "price_extracted" && e.hospital_id)
+      .map((e) => e.hospital_id as string)
+  );
+  const out: HealEventSummary[] = [];
+  for (const e of events) {
+    if (e.event === "heal_triggered") {
+      out.push({
+        collector_id: e.collector_id,
+        reason: e.detail,
+        success: e.hospital_id ? succeeded.has(e.hospital_id) : false,
+        timestamp: e.ts,
+      });
+    } else if (e.event === "heal_resumed") {
+      out.push({
+        collector_id: e.collector_id,
+        reason: e.detail,
+        success: true,
+        timestamp: e.ts,
+      });
+    } else if (e.event === "heal_failed") {
+      out.push({
+        collector_id: e.collector_id,
+        reason: e.detail,
+        success: false,
+        timestamp: e.ts,
+      });
+    }
+  }
+  return out.slice(-10);
+}
+
+function lastUpdatedFromResults(
+  results: Record<string, import("@/lib/types").FacilityResult>
+): string {
+  const times = Object.values(results)
+    .map((f) => f.scraped_at)
+    .filter((t): t is string => !!t);
+  return times.length ? times.sort().pop()! : new Date().toISOString();
+}
 
 export function useScrapeJob() {
   const {
@@ -26,6 +77,8 @@ export function useScrapeJob() {
     setJourneyPhase,
     setFacilities,
     setScrapeEvents,
+    setScrapeLastUpdated,
+    setScrapeHealEvents,
     setExecutiveSummary,
     setLlmExplanation,
     setScrapePresentationMode,
@@ -82,6 +135,39 @@ export function useScrapeJob() {
     [setLlmExplanation]
   );
 
+  const fetchCachedQuery = useCallback(
+    async (profile: PatientProfile): Promise<{
+      results: Record<string, import("@/lib/types").FacilityResult>;
+      events: ScraperLog[];
+      replayEvents: ScraperLog[];
+      lastUpdated?: string;
+      healEvents?: Array<{ collector_id?: string; reason?: string; success?: boolean; timestamp?: string }>;
+    } | null> => {
+      try {
+        const params = new URLSearchParams({
+          zip: profile.zipCode || "",
+          procedure: profile.procedure || profile.condition || "",
+          insurance: profile.insurance || "",
+        });
+        if (profile.cptCode) params.set("cpt", profile.cptCode);
+        const res = await fetch(`${BACKEND}/api/prices/query?${params}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data.results || Object.keys(data.results).length === 0) return null;
+        return {
+          results: data.results,
+          events: data.events?.length ? data.events : data.replayEvents ?? [],
+          replayEvents: data.replayEvents?.length ? data.replayEvents : data.events ?? [],
+          lastUpdated: data.lastUpdated,
+          healEvents: data.healEvents ?? [],
+        };
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
+
   const pollUntilComplete = useCallback(
     async (jobId: string) => {
       const poll = async () => {
@@ -96,10 +182,10 @@ export function useScrapeJob() {
             const profileForSummary = data.profile ?? patientProfile;
             setScrapeStatus("complete");
             applyResults(results, events, profileForSummary);
+            if (events.length) setReplayEvents(events);
+            setScrapeHealEvents(healEventsFromLogs(events));
+            setScrapeLastUpdated(lastUpdatedFromResults(results));
             void fetchLlmExplanation(results, profileForSummary);
-            pollingRef.current = setTimeout(() => {
-              setJourneyPhase("results");
-            }, 1400);
             return;
           }
 
@@ -116,19 +202,12 @@ export function useScrapeJob() {
       };
       poll();
     },
-    [
-      patientProfile,
-      setScrapeStatus,
-      setJourneyPhase,
-      applyResults,
-      fetchLlmExplanation,
-      setScrapeEvents,
-    ]
+    [patientProfile, setScrapeStatus, applyResults, fetchLlmExplanation, setScrapeEvents, setReplayEvents, setScrapeHealEvents, setScrapeLastUpdated]
   );
 
-  /** Demo flow: replay scrape animation + Aria narration, then results. */
-  const startDemoScrapeFlow = useCallback(
-    (profileOverride?: PatientProfile) => {
+  /** Proof-reel: real events animation + results loaded in parallel */
+  const startProofReelFlow = useCallback(
+    async (profileOverride?: PatientProfile) => {
       if (pollingRef.current) clearTimeout(pollingRef.current);
 
       stopAllVoice();
@@ -140,15 +219,33 @@ export function useScrapeJob() {
         radiusMi: profile.radiusMi > 0 ? profile.radiusMi : 25,
       };
 
-      const results = applyProfileToDemoResults(profileForDemo, AUSTIN_DEMO_SNAPSHOT.results);
-      const events = applyProfileToDemoEvents(profileForDemo, AUSTIN_DEMO_SNAPSHOT.events);
-      const replay = getDemoReplayEvents(profileForDemo);
+      let replay: ScraperLog[] = [];
+      let results: Record<string, import("@/lib/types").FacilityResult>;
+      let events: ScraperLog[];
 
-      applyResults(results, events, profileForDemo);
+      const cached = await fetchCachedQuery(profileForDemo);
+      if (cached) {
+        results = cached.results;
+        events = cached.events;
+        replay = cached.replayEvents;
+        setScrapeLastUpdated(cached.lastUpdated ?? lastUpdatedFromResults(results));
+        setScrapeHealEvents(
+          cached.healEvents?.length
+            ? cached.healEvents
+            : healEventsFromLogs(replay.length ? replay : events)
+        );
+      } else {
+        results = applyProfileToDemoResults(profileForDemo, AUSTIN_DEMO_SNAPSHOT.results);
+        events = applyProfileToDemoEvents(profileForDemo, AUSTIN_DEMO_SNAPSHOT.events);
+        replay = getDemoReplayEvents(profileForDemo);
+        setScrapeLastUpdated(lastUpdatedFromResults(results));
+        setScrapeHealEvents(healEventsFromLogs(replay.length ? replay : events));
+      }
 
-      setScrapeJobId(null);
-      setScrapePresentationMode("replay");
       setReplayEvents(replay);
+      applyResults(results, events, profileForDemo);
+      setScrapeJobId(null);
+      setScrapePresentationMode("proof-reel");
       setScrapeStatus("running");
       setJourneyPhase("scraping");
     },
@@ -160,10 +257,19 @@ export function useScrapeJob() {
       setScrapeStatus,
       applyResults,
       setJourneyPhase,
+      fetchCachedQuery,
+      setScrapeLastUpdated,
+      setScrapeHealEvents,
     ]
   );
 
-  /** Load pre-collected Austin hospital prices — skip scraping phase (dev shortcut). */
+  const startDemoScrapeFlow = useCallback(
+    (profileOverride?: PatientProfile) => {
+      void startProofReelFlow(profileOverride);
+    },
+    [startProofReelFlow]
+  );
+
   const loadInstantDemo = useCallback(
     (profileOverride?: PatientProfile) => {
       if (pollingRef.current) clearTimeout(pollingRef.current);
@@ -182,6 +288,8 @@ export function useScrapeJob() {
       setScrapePresentationMode("instant");
       setReplayEvents(replay);
       setScrapeStatus("complete");
+      setScrapeLastUpdated(lastUpdatedFromResults(results));
+      setScrapeHealEvents(healEventsFromLogs(replay.length ? replay : events));
       applyResults(results, events, profileForDemo);
       setJourneyPhase("results");
     },
@@ -193,16 +301,17 @@ export function useScrapeJob() {
       setScrapeStatus,
       applyResults,
       setJourneyPhase,
+      setScrapeLastUpdated,
+      setScrapeHealEvents,
     ]
   );
 
-  /** Fast-forward replay of how hospital sites were crawled (summary animation). */
   const startReplayScrape = useCallback(() => {
     if (!replayEvents.length) {
       const replay = getDemoReplayEvents(patientProfile);
       if (replay.length) setReplayEvents(replay);
     }
-    setScrapePresentationMode("replay");
+    setScrapePresentationMode("proof-reel");
     setScrapeStatus("running");
     setScrapeJobId(null);
     setJourneyPhase("scraping");
@@ -216,7 +325,6 @@ export function useScrapeJob() {
     setJourneyPhase,
   ]);
 
-  /** Full Bright Data + Python scrape loop (live). */
   const startLiveScrape = useCallback(
     async (profileOverride?: PatientProfile) => {
       if (pollingRef.current) clearTimeout(pollingRef.current);
@@ -226,6 +334,9 @@ export function useScrapeJob() {
         ...profile,
         radiusMi: profile.radiusMi > 0 ? profile.radiusMi : 25,
       };
+
+      stopAllVoice();
+      resetVoiceQueue();
 
       setScrapePresentationMode("live");
       setScrapeStatus("running");
@@ -265,13 +376,17 @@ export function useScrapeJob() {
 
   const startScrape = useCallback(
     async (profileOverride?: PatientProfile) => {
-      if (USE_INSTANT_DEMO) {
-        startDemoScrapeFlow(profileOverride);
+      if (SKIP_SCRAPE_ANIMATION) {
+        loadInstantDemo(profileOverride);
         return;
       }
-      await startLiveScrape(profileOverride);
+      if (HACKATHON_DEMO_MODE) {
+        await startLiveScrape(profileOverride);
+        return;
+      }
+      await startProofReelFlow(profileOverride);
     },
-    [startDemoScrapeFlow, startLiveScrape]
+    [loadInstantDemo, startLiveScrape, startProofReelFlow]
   );
 
   const cancelScrape = useCallback(async () => {
@@ -292,6 +407,7 @@ export function useScrapeJob() {
     startScrape,
     loadInstantDemo,
     startDemoScrapeFlow,
+    startProofReelFlow,
     startReplayScrape,
     startLiveScrape,
     cancelScrape,

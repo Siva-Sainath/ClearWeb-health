@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { buildScrapeNarrationLines } from "@/lib/scrapeNarration";
+import { buildScrapeNarrationLines, healNarrationLine } from "@/lib/scrapeNarration";
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
-import type { PatientProfile } from "@/lib/types";
+import type { PatientProfile, ScraperLog } from "@/lib/types";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
 import { speakTtsQueued, prefetchTtsLines } from "@/lib/ttsSpeak";
 
 const LINE_TIMEOUT_MS = 12000;
-const REPLAY_WAIT_MAX_MS = 60000;
 
 function waitMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -25,41 +24,51 @@ export interface UseScrapeNarrationOptions {
   active: boolean;
   profile: PatientProfile;
   summary: ScrapeExecutiveSummary | null;
-  replayComplete: boolean;
+  /** Replay: wait for animation. Live: wait for job complete. */
+  scrapeComplete: boolean;
   onCaption?: (line: string) => void;
   onSpeakingChange?: (speaking: boolean) => void;
   onFinished: () => void;
+  /** Heal events from timeline (live or replay). */
+  pendingHealLine?: string | null;
+  onHealLineSpoken?: () => void;
 }
 
 export function useScrapeNarration({
   active,
   profile,
   summary,
-  replayComplete,
+  scrapeComplete,
   onCaption,
   onSpeakingChange,
   onFinished,
+  pendingHealLine,
+  onHealLineSpoken,
 }: UseScrapeNarrationOptions) {
-  const startedRef = useRef(false);
-  const replayCompleteRef = useRef(replayComplete);
+  const runIdRef = useRef(0);
   const onFinishedRef = useRef(onFinished);
   const onCaptionRef = useRef(onCaption);
   const onSpeakingRef = useRef(onSpeakingChange);
   const profileRef = useRef(profile);
   const summaryRef = useRef(summary);
-
-  replayCompleteRef.current = replayComplete;
-  onFinishedRef.current = onFinished;
-  onCaptionRef.current = onCaption;
-  onSpeakingRef.current = onSpeakingChange;
-  profileRef.current = profile;
-  summaryRef.current = summary;
+  const scrapeCompleteRef = useRef(scrapeComplete);
+  const onHealSpokenRef = useRef(onHealLineSpoken);
 
   useEffect(() => {
-    if (!active) return;
-    if (startedRef.current) return;
-    startedRef.current = true;
+    scrapeCompleteRef.current = scrapeComplete;
+    onFinishedRef.current = onFinished;
+    onCaptionRef.current = onCaption;
+    onSpeakingRef.current = onSpeakingChange;
+    profileRef.current = profile;
+    summaryRef.current = summary;
+    onHealSpokenRef.current = onHealLineSpoken;
+  }, [scrapeComplete, onFinished, onCaption, onSpeakingChange, profile, summary, onHealLineSpoken]);
 
+  // Main narration sequence
+  useEffect(() => {
+    if (!active) return;
+
+    const runId = ++runIdRef.current;
     const signal = { cancelled: false };
     const { intro, afterReplay } = buildScrapeNarrationLines(
       profileRef.current,
@@ -68,7 +77,7 @@ export function useScrapeNarration({
     prefetchTtsLines([...intro, ...afterReplay]);
 
     const finish = () => {
-      if (!signal.cancelled) onFinishedRef.current();
+      if (!signal.cancelled && runId === runIdRef.current) onFinishedRef.current();
     };
 
     const run = async () => {
@@ -77,22 +86,21 @@ export function useScrapeNarration({
 
       try {
         for (const line of intro) {
-          if (signal.cancelled) break;
+          if (signal.cancelled || runId !== runIdRef.current) break;
           onCaptionRef.current?.(line);
           await speakLineWithTimeout(line);
         }
 
-        const waitStart = Date.now();
         while (
           !signal.cancelled &&
-          !replayCompleteRef.current &&
-          Date.now() - waitStart < REPLAY_WAIT_MAX_MS
+          runId === runIdRef.current &&
+          !scrapeCompleteRef.current
         ) {
           await waitMs(250);
         }
 
         for (const line of afterReplay) {
-          if (signal.cancelled) break;
+          if (signal.cancelled || runId !== runIdRef.current) break;
           onCaptionRef.current?.(line);
           await speakLineWithTimeout(line);
         }
@@ -109,4 +117,22 @@ export function useScrapeNarration({
       signal.cancelled = true;
     };
   }, [active]);
+
+  // Event-driven heal narration (interrupt queue with one line)
+  useEffect(() => {
+    if (!active || !pendingHealLine) return;
+    const line = pendingHealLine;
+    void (async () => {
+      onCaptionRef.current?.(line);
+      onSpeakingRef.current?.(true);
+      await speakLineWithTimeout(line);
+      onSpeakingRef.current?.(false);
+      onHealSpokenRef.current?.();
+    })();
+  }, [active, pendingHealLine]);
+}
+
+/** Build heal caption from scrape log */
+export function healLineFromLog(log: ScraperLog): string {
+  return healNarrationLine(log.collector_id, log.detail, log.event);
 }

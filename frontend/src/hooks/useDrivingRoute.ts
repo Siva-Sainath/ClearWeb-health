@@ -20,13 +20,15 @@ export function useDrivingRoute(
 
   useEffect(() => {
     if (!enabled || !from || !to) {
-      setRoute(null);
-      return;
+      const t = setTimeout(() => setRoute(null), 0);
+      return () => clearTimeout(t);
     }
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    const t = setTimeout(() => {
+      setLoading(true);
+      setError(null);
+    }, 0);
 
     const url = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`;
 
@@ -61,8 +63,9 @@ export function useDrivingRoute(
 
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
-  }, [from?.lat, from?.lng, to?.lat, to?.lng, enabled]);
+  }, [from, to, enabled]);
 
   return { route, loading, error };
 }

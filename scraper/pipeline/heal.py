@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 
 from pipeline.validate import EXPECTED_PROCEDURES, validate_output
 from studio.prompts import enrich_heal_prompt
-from db.store import insert_heal_job
+from db.store import insert_heal_event, insert_heal_job
 
 load_dotenv(Path(__file__).parent.parent / '.env')
 
@@ -59,14 +59,20 @@ def process_heal_approval(collector_id: str, preview_result: list[dict] | None, 
     if ok:
         logger.info(f'[heal_approval] Preview passed for {collector_id}. Approving.')
         cmd = [npx, '-p', '@brightdata/cli', 'bdata', 'scraper', 'approve', collector_id, '--auto-save', '--json']
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
-        
+        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+        if result.returncode != 0:
+            logger.warning(f'[heal_approval] approve CLI failed (exit {result.returncode}) for {collector_id}')
+            insert_heal_job(None, collector_id, hospital_id, 'needs_human', f'approval CLI exit {result.returncode}')
+            return False
+
         insert_heal_job(None, collector_id, hospital_id, 'approved', 'preview validation passed')
         return True
     else:
         logger.warning(f'[heal_approval] Preview failed for {collector_id}: {reason}. Rejecting.')
         cmd = [npx, '-p', '@brightdata/cli', 'bdata', 'scraper', 'approve', collector_id, '--reject', '--json']
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+        if result.returncode != 0:
+            logger.warning(f'[heal_approval] reject CLI failed (exit {result.returncode}) for {collector_id}')
         
         insert_heal_job(None, collector_id, hospital_id, 'needs_human', reason)
         return False
@@ -78,6 +84,8 @@ def heal_collector(
     *,
     hospital: dict | None = None,
     tier: int = 0,
+    auto_approve: bool = True,
+    **_kwargs,
 ) -> dict:
     env = os.environ.copy()
     api_key = env.get('BRIGHTDATA_API_KEY', '')
@@ -135,11 +143,67 @@ def heal_collector(
         logger.info(f'[heal] CLI returned status: {status}')
         
         if status == 'awaiting_approval':
-            preview = data.get('preview_result', [])
-            hospital_id = hospital['id'] if hospital else None
-            approved = process_heal_approval(collector_id, preview, hospital_id)
-            data['approved'] = approved
+            if auto_approve:
+                preview = data.get('preview_result', [])
+                hospital_id = hospital['id'] if hospital else None
+                approved = process_heal_approval(collector_id, preview, hospital_id)
+                data['approved'] = approved
+            else:
+                hospital_id = hospital['id'] if hospital else None
+                insert_heal_job(None, collector_id, hospital_id, 'needs_human', 'awaiting manual approval')
+                data['approved'] = False
             
         return data
         
     raise RuntimeError(f'brightdata scraper heal failed (exit {p.returncode})')
+
+
+def reverify(
+    collector_id: str,
+    rows: list[dict],
+    validation_spec: dict[str, dict] | None = None,
+) -> bool:
+    """Return True if normalized rows pass validation after a heal attempt."""
+    spec = validation_spec if validation_spec is not None else EXPECTED_PROCEDURES
+    ok, reason = validate_output(rows, spec)
+    if ok:
+        logger.info(f'[reverify] {collector_id}: PASSED')
+    else:
+        logger.warning(f'[reverify] {collector_id}: FAILED — {reason[:200]}')
+    return ok
+
+
+def log_heal_event(
+    collector_id: str,
+    before_sample: list[dict],
+    after_sample: list[dict],
+    reason: str,
+    success: bool,
+) -> None:
+    """Append heal event to heal_log.jsonl and heal_events table."""
+    timestamp = datetime.now(timezone.utc).isoformat()
+    record = {
+        'timestamp': timestamp,
+        'collector_id': collector_id,
+        'reason': reason,
+        'success': success,
+        'before_count': len(before_sample),
+        'after_count': len(after_sample),
+        'before_sample': before_sample[:5],
+        'after_sample': after_sample[:5],
+    }
+    HEAL_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(HEAL_LOG_PATH, 'a', encoding='utf-8') as fh:
+        fh.write(json.dumps(record) + '\n')
+    insert_heal_event(
+        timestamp=timestamp,
+        collector_id=collector_id,
+        reason=reason,
+        success=success,
+        before_sample=before_sample,
+        after_sample=after_sample,
+    )
+    logger.info(
+        f'[heal_log] {collector_id} success={success} '
+        f'before={len(before_sample)} after={len(after_sample)}'
+    )

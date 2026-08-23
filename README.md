@@ -146,6 +146,7 @@ Built for **Scrapeverse** using **Bright Data Scraper Studio** and **Web Unlocke
 ## Docs
 
 - [DEMO_GUIDE.md](docs/DEMO_GUIDE.md) end-to-end demo script
+- [HACKATHON_DEMO.md](docs/HACKATHON_DEMO.md) Scrape-Verse 3-act BD + self-healing demo script
 - [CURSOR_PROJECT_BRIEF.md](docs/CURSOR_PROJECT_BRIEF.md) architecture and Bright Data integration
 - [webcmd-integration.md](docs/webcmd-integration.md) voice agent bridge notes
 

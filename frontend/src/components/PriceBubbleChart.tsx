@@ -108,7 +108,7 @@ export default function PriceBubbleChart({ facilities }: Props) {
       borderColor: "#2A4434",
       borderWidth: 1,
       textStyle: { color: "#F2F9F5", fontFamily: "monospace", fontSize: 11 },
-      formatter: (params: any) => {
+      formatter: (params: { data: (string | number)[] }) => {
         const id = params.data[3] as string;
         const f = visible[id];
         if (!f) return "";

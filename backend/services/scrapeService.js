@@ -1,6 +1,7 @@
 "use strict";
 
 const crypto = require("crypto");
+const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 const { env } = require("../config/env");
@@ -29,7 +30,7 @@ const AUSTIN_NODES = [
 ];
 
 const MAX_HOSPITALS = AUSTIN_NODES.length;
-const STUCK_JOB_MS = parseInt(process.env.SCRAPE_STUCK_TIMEOUT_MS || "480000", 10); // 8 min
+const STUCK_JOB_MS = parseInt(process.env.SCRAPE_STUCK_TIMEOUT_MS || "900000", 10); // 15 min (heal can be slow)
 const WATCHDOG_INTERVAL_MS = 15000;
 
 function getPythonPath() {
@@ -95,9 +96,33 @@ function cancelJob(jobId, reason = "Cancelled by user") {
   job.status = "cancelled";
   job.error = reason;
   job.completedAt = Date.now();
+  persistIfEvents(job);
   return { jobId, status: "cancelled" };
 }
 
+function persistLastScrapeEvents(events, replayEvents) {
+  try {
+    const outPath = path.join(__dirname, "../../scraper/data/last_scrape_events.json");
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(
+      outPath,
+      JSON.stringify({
+        savedAt: new Date().toISOString(),
+        events: events || [],
+        replayEvents: replayEvents || events || [],
+      }),
+      "utf-8"
+    );
+  } catch (err) {
+    console.warn("[scrape] failed to persist last_scrape_events:", err.message);
+  }
+}
+
+function persistIfEvents(job) {
+  if (job?.events?.length) {
+    persistLastScrapeEvents(job.events, job.events);
+  }
+}
 function startScrape(profile) {
   try {
     return startScrapeReal(profile);
@@ -151,6 +176,7 @@ function runRealScrape(jobId) {
         BRIGHTDATA_USE_UNLOCKER_ALL: "1",
         MRF_SAMPLE_MB: "40",
         PYTHONUNBUFFERED: "1",
+        SCRAPE_PARALLEL: process.env.SCRAPE_PARALLEL || "0",
       },
     }
   );
@@ -178,7 +204,17 @@ function runRealScrape(jobId) {
           job.results = msg.results || {};
           job.failedHospitals = msg.failed_hospitals || [];
           job.completedAt = Date.now();
+          if (Array.isArray(msg.events) && msg.events.length) {
+            const seen = new Set(job.events.map((e) => e.id));
+            for (const evt of msg.events) {
+              if (evt.id && !seen.has(evt.id)) {
+                job.events.push(evt);
+                seen.add(evt.id);
+              }
+            }
+          }
           job.stats = summarizeEvents(job.events);
+          persistLastScrapeEvents(job.events, job.events);
           if (msg.failed_count > 0) {
             job.partial = true;
           }
@@ -186,6 +222,7 @@ function runRealScrape(jobId) {
         } else if (msg.type === "error") {
           job.status = "failed";
           job.error = msg.message;
+          persistIfEvents(job);
           clearWatchdog(job);
         }
       } catch {
@@ -214,6 +251,9 @@ function runRealScrape(jobId) {
       }
       current.completedAt = Date.now();
       current.stats = summarizeEvents(current.events);
+      if (current.status === "failed" || current.status === "cancelled") {
+        persistIfEvents(current);
+      }
     }
     current.child = null;
   });

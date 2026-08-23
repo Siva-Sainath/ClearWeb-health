@@ -72,7 +72,7 @@ export default function ResultsLayoutShell({
           </motion.div>
         )}
 
-        {layoutMode === "trustGaps" && trust && (
+        {trust && (layoutMode === "explore" || layoutMode === "trustGaps") && (
           <motion.div
             key="trust"
             layout

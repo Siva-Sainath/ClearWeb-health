@@ -42,6 +42,8 @@ export default function ResultsView() {
     patientProfile,
     facilities,
     scrapeEvents,
+    scrapeLastUpdated,
+    scrapeHealEvents,
     executiveSummary,
     llmExplanation,
     setIsListening,
@@ -130,7 +132,9 @@ export default function ResultsView() {
   }, [llmExplanation, facilities, patientProfile, summary]);
 
   useEffect(() => {
-    if (walkthroughDone) setChatOpen(true);
+    if (!walkthroughDone) return;
+    const t = setTimeout(() => setChatOpen(true), 0);
+    return () => clearTimeout(t);
   }, [walkthroughDone]);
 
   useEffect(() => {
@@ -179,7 +183,7 @@ export default function ResultsView() {
 
   const walkthroughExplanation = useMemo(() => {
     if (!llmExplanation) return null;
-    if (scrapePresentationMode === "replay") {
+    if (scrapePresentationMode === "replay" || scrapePresentationMode === "proof-reel") {
       return {
         ...llmExplanation,
         sections: llmExplanation.sections.filter(
@@ -225,13 +229,18 @@ export default function ResultsView() {
   });
 
   useEffect(() => {
-    if (agent.error) setShowTypeMode(true);
+    if (!agent.error) return;
+    const t = setTimeout(() => setShowTypeMode(true), 0);
+    return () => clearTimeout(t);
   }, [agent.error]);
 
   useEffect(() => {
-    setIsListening(agent.isListening);
-    setIsSpeaking(agent.isSpeaking);
-    if (agent.caption) setLastAgentMessage(agent.caption);
+    const t = setTimeout(() => {
+      setIsListening(agent.isListening);
+      setIsSpeaking(agent.isSpeaking);
+      if (agent.caption) setLastAgentMessage(agent.caption);
+    }, 0);
+    return () => clearTimeout(t);
   }, [agent.isListening, agent.isSpeaking, agent.caption, setIsListening, setIsSpeaking, setLastAgentMessage]);
 
   useEffect(() => {
@@ -304,7 +313,6 @@ export default function ResultsView() {
   const {
     messages,
     isSpeaking,
-    isListening,
     audioLevel,
     error,
     sendTextFallback,
@@ -426,6 +434,9 @@ export default function ResultsView() {
             summary={summary}
             cacheHits={cacheHits}
             liveDownloads={liveDownloads}
+            lastUpdated={scrapeLastUpdated}
+            healEvents={scrapeHealEvents}
+            scrapeEvents={scrapeEvents}
           />
         }
         compare={
@@ -592,7 +603,6 @@ export default function ResultsView() {
         error={error}
         isActive={agent.isActive}
         isSpeaking={isSpeaking}
-        isListening={isListening}
         audioLevel={audioLevel}
         textFallbackOpen={showTypeMode}
         textValue={textInput}

@@ -1,10 +1,10 @@
 "use strict";
 
 const { buildSystemPrompt } = require("./promptBuilder");
-const { streamChat, generateJSON } = require("./ollamaProvider");
+const { streamChat, generateJSON } = require("./llmProvider");
 const { parseAllTags } = require("./tagParser");
 const { normalizeProfileUpdates } = require("./profileNormalize");
-const { filterProfileByUserMessages } = require("./onboardingProfileGate");
+const { filterProfileByUserMessages, mergeHeuristicProfile } = require("./onboardingProfileGate");
 
 async function handleAgentChatStream(req, res, body) {
   const { phase = "results", messages, profile, facilities, uiContext } = body;
@@ -27,7 +27,7 @@ async function handleAgentChatStream(req, res, body) {
       systemPrompt,
       messages,
       temperature,
-      numPredict: phase === "onboarding" ? 200 : 450,
+      numPredict: phase === "onboarding" ? 400 : 450,
       onToken: (token) => {
         fullText += token;
         res.write(`data: ${JSON.stringify({ token })}\n\n`);
@@ -37,10 +37,22 @@ async function handleAgentChatStream(req, res, body) {
     const parsed = parseAllTags(fullText);
 
     if (phase === "onboarding") {
-      parsed.profileUpdates = normalizeProfileUpdates(
-        filterProfileByUserMessages(messages, parsed.profileUpdates, profile || {}),
-        profile || {}
-      );
+      let updates = mergeHeuristicProfile(messages, parsed.profileUpdates, profile || {});
+
+      if (!updates.procedure && !updates.condition) {
+        try {
+          const extracted = await extractProfile(messages);
+          updates = mergeHeuristicProfile(
+            messages,
+            { ...parsed.profileUpdates, ...extracted },
+            profile || {}
+          );
+        } catch (err) {
+          console.warn("[ariaAgent] extractProfile fallback:", err.message);
+        }
+      }
+
+      parsed.profileUpdates = normalizeProfileUpdates(updates, profile || {});
     }
 
     // UI actions are applied client-side from stream tags (instant feedback).

@@ -7,7 +7,7 @@ import type { LlmExplanation, ExplanationSection } from "@/lib/llmExplanation";
 import type { FacilityResult } from "@/lib/types";
 import { tokens } from "@/lib/design-tokens";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { speakTts, prefetchTts, ensureTtsReady, stopTtsPlayback, speakTtsQueued } from "@/lib/ttsSpeak";
+import { prefetchTts, ensureTtsReady, stopTtsPlayback, speakTtsQueued } from "@/lib/ttsSpeak";
 
 function waitForLayout(): Promise<void> {
   return new Promise((resolve) => {
@@ -86,7 +86,7 @@ export default function ExplanationStage({
 
     const script = explanation.spokenScript?.trim() ?? "";
     if (script) prefetchTts(script);
-    explanation.sections.forEach((section, i) => {
+    explanation.sections.forEach((section) => {
       const line =
         section.type === "insight"
           ? insightSpeechLine(section)

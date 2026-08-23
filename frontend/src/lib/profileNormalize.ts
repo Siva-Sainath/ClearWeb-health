@@ -61,10 +61,14 @@ export function normalizeZipCode(raw: string): string {
   return raw.trim();
 }
 
-/** Fix common Whisper mishears before sending user text to the agent. */
+/** Fix common Whisper mishears and strip STT junk before sending to the agent. */
 export function normalizeUserTranscript(text: string): string {
   let t = text.trim();
   if (!t) return t;
+
+  t = t.replace(/\s*[\[(]?(?:music|applause|laughter|silence)[^\])]*[\])]?\s*/gi, " ");
+  t = t.replace(/\s*\(music under\)\s*/gi, " ");
+  t = t.replace(/\s{2,}/g, " ").trim();
 
   t = t.replace(/\batna\b/gi, "Aetna");
   t = t.replace(/\betna\b/gi, "Aetna");

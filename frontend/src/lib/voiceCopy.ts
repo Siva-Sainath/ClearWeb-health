@@ -3,14 +3,16 @@ import { BRAND } from "@/lib/brand";
 
 /** Single source for voice UI strings — calm, plain, said once. */
 export const VOICE_COPY = {
-  standby: "Tap the mic when you're ready.",
-  ready: "Press the mic, say your question, press again to send.",
+  standby: "Tap anywhere to hear Aria, then tap the mic and speak.",
+  ready: "I'm listening — just speak.",
   listening: "Listening…",
   listeningSeconds: (sec: number) => `Listening, ${sec}s…`,
-  transcribing: "Got it — transcribing.",
+  transcribing: "Transcribing…",
   thinking: "One moment…",
   speaking: "Aria is speaking",
   micDenied: "Microphone blocked. Allow access in your browser, or type below.",
+  speechNetwork:
+    "Live transcription is offline — you can still type below, or we'll record and transcribe your voice.",
   recordingFailed: "Recording failed. Try again or use the keyboard.",
   tooShort: "Hold the mic a little longer — at least two seconds.",
   noAudio: "No audio captured — check your mic and try again.",
@@ -19,15 +21,22 @@ export const VOICE_COPY = {
   trustLine: "AI guide — not medical advice",
 } as const;
 
+/** One spoken welcome — avoids double "Hi" from multi-chunk playback. */
+export function getOnboardingWelcomeSpoken(): string {
+  return `Hi, I'm ${BRAND.agentName}. What do you need priced today?`;
+}
+
+/** Shown on screen after greeting (same text). */
+export function getOnboardingWelcomeCaption(): string {
+  return getOnboardingWelcomeSpoken();
+}
+
 export function getOnboardingWelcomeChunks(): string[] {
-  return [
-    `Hi, I'm ${BRAND.agentName}.`,
-    `What are you trying to get priced — an ER visit, MRI, or colonoscopy?`,
-  ];
+  return [getOnboardingWelcomeSpoken()];
 }
 
 export function getOnboardingWelcomeMessage(): string {
-  return getOnboardingWelcomeChunks().join(" ");
+  return getOnboardingWelcomeSpoken();
 }
 
 export const PHASE_LABEL: Record<JourneyPhase, string> = {

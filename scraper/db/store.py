@@ -289,3 +289,26 @@ def collector_job_exists(slug: str) -> bool:
     finally:
         conn.close()
 
+
+def get_heal_events(limit: int = 20) -> list[dict]:
+    """Return recent heal events for API / trust panel."""
+    conn = _connect()
+    try:
+        cursor = conn.execute(
+            """
+            SELECT timestamp, collector_id, reason, success, before_sample, after_sample
+            FROM heal_events
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+        out = []
+        for row in cursor.fetchall():
+            d = dict(row)
+            d["success"] = bool(d.get("success"))
+            out.append(d)
+        return out
+    finally:
+        conn.close()
+

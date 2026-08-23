@@ -30,6 +30,6 @@ export function stopAllVoice(): void {
   activeStop?.();
   activeStop = null;
   if (typeof window !== "undefined") {
-    window.speechSynthesis?.cancel();
+    // Do not call speechSynthesis.cancel() — Chrome emits a click even when unused.
   }
 }

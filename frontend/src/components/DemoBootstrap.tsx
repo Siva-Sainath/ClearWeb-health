@@ -7,7 +7,7 @@ import { AUSTIN_DEMO_SNAPSHOT } from "@/lib/demoSnapshot";
 
 const SKIP_ONBOARDING =
   typeof process !== "undefined" &&
-  process.env.NEXT_PUBLIC_SKIP_ONBOARDING !== "false";
+  process.env.NEXT_PUBLIC_SKIP_ONBOARDING === "true";
 
 /**
  * Demo entry: skip voice onboarding and jump straight into scrape → results flow.

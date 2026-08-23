@@ -13,17 +13,17 @@ import {
   Info,
   Film,
 } from "lucide-react";
-import { useScrapeStream } from "@/hooks/useScrapeStream";
-import { useScrapeReplay } from "@/hooks/useScrapeReplay";
+import { useScrapeTimeline, CX, CY } from "@/hooks/useScrapeTimeline";
+import { useScrapeOrchestrator } from "@/hooks/useScrapeOrchestrator";
 import { useScrapeJob } from "@/hooks/useScrapeJob";
-import { useScrapeNarration } from "@/hooks/useScrapeNarration";
+import { healLineFromLog, useScrapeNarration } from "@/hooks/useScrapeNarration";
 import { useAppContext } from "@/context/AppContext";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
 import { resetVoiceQueue } from "@/lib/ttsSpeak";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { tokens } from "@/lib/design-tokens";
-import { CX, CY, nodeDisplayLabel } from "@/lib/austinNodes";
 import type { ScraperLog } from "@/lib/types";
+import { nodeDisplayLabel } from "@/lib/austinNodes";
 import { Button } from "@/components/ui/button";
 
 const NODE_STROKE: Record<string, string> = {
@@ -109,6 +109,8 @@ function eventLabel(log: ScraperLog): string {
       return log.detail || "Self-healing scraper engaged";
     case "heal_resumed":
       return log.detail || "Heal complete — retrying";
+    case "heal_failed":
+      return log.detail || "Self-heal exhausted";
     default:
       return log.detail || log.event;
   }
@@ -117,7 +119,7 @@ function eventLabel(log: ScraperLog): string {
 function TimelineRow({ log }: { log: ScraperLog }) {
   const isPrice = log.event === "price_extracted";
   const isFail = log.event === "extraction_failed" || log.event === "rate_limited";
-  const isHeal = log.event === "heal_triggered" || log.event === "heal_resumed";
+  const isHeal = log.event === "heal_triggered" || log.event === "heal_resumed" || log.event === "heal_failed";
   const isCache = log.event === "mrf_downloaded" && log.cache_hit;
   const isLive = log.event === "mrf_downloaded" && !log.cache_hit;
   const time = log.ts.split("T")[1]?.substring(0, 8) ?? "";
@@ -156,6 +158,11 @@ function TimelineRow({ log }: { log: ScraperLog }) {
           )}
           {src && (
             <span className="inline-block mt-1 text-[10px] badge badge-neutral">{src}</span>
+          )}
+          {log.collector_id && (
+            <span className="inline-block mt-1 ml-1 text-[10px] font-mono badge badge-neutral">
+              {log.collector_id}
+            </span>
           )}
           {isPrice && log.insurance_rate != null && (
             <div className="glass-accent mt-2 rounded-lg px-3 py-2 flex items-center justify-between">
@@ -290,56 +297,78 @@ export default function ScrapeCanvas() {
   } = useAppContext();
   const { cancelScrape } = useScrapeJob();
 
-  const isReplay = scrapePresentationMode === "replay";
+  const isProofReel =
+    scrapePresentationMode === "proof-reel" || scrapePresentationMode === "replay";
   const isLive = scrapePresentationMode === "live";
+  const isAnimating = scrapeStatus === "running" && (isProofReel || isLive);
 
-  const [replayComplete, setReplayComplete] = useState(false);
+  const [narrationComplete, setNarrationComplete] = useState(false);
   const [narrationCaption, setNarrationCaption] = useState("");
+  const [pendingHealLine, setPendingHealLine] = useState<string | null>(null);
 
-  const handleReplayComplete = useCallback(() => {
-    setReplayComplete(true);
-  }, []);
+  useEffect(() => {
+    if (isAnimating) {
+      setNarrationComplete(false);
+      setPendingHealLine(null);
+    }
+  }, [isAnimating, scrapePresentationMode, scrapeJobId]);
 
   const goToResults = useCallback(() => {
+    setScrapeStatus("complete");
     setJourneyPhase("results");
-  }, [setJourneyPhase]);
+  }, [setJourneyPhase, setScrapeStatus]);
+
+  const handleHealEvent = useCallback((log: ScraperLog) => {
+    setPendingHealLine(healLineFromLog(log));
+  }, []);
+
+  const timelineActive =
+    isAnimating && (isLive || replayEvents.length > 0);
+
+  const timeline = useScrapeTimeline({
+    mode: isLive ? "live" : "replay",
+    active: timelineActive,
+    events: replayEvents,
+    jobId: scrapeJobId,
+    speedMultiplier: 8,
+    onHealEvent: handleHealEvent,
+  });
+
+  const scrapeComplete = isLive
+    ? scrapeStatus === "complete" && timeline.timelineComplete
+    : timeline.timelineComplete && replayEvents.length > 0;
 
   useScrapeNarration({
-    active: isReplay && scrapeStatus === "running",
+    active: isAnimating,
     profile: patientProfile,
     summary: executiveSummary,
-    replayComplete,
+    scrapeComplete,
+    pendingHealLine,
+    onHealLineSpoken: () => setPendingHealLine(null),
     onCaption: (line) => {
       setNarrationCaption(line);
       setLastAgentMessage(line);
     },
     onSpeakingChange: setIsSpeaking,
-    onFinished: goToResults,
+    onFinished: () => setNarrationComplete(true),
   });
 
-  /** Safety net if narration fails to finish */
-  useEffect(() => {
-    if (!isReplay || !replayComplete) return;
-    const t = setTimeout(() => setJourneyPhase("results"), 18000);
-    return () => clearTimeout(t);
-  }, [isReplay, replayComplete, setJourneyPhase]);
+  const { forceAdvance } = useScrapeOrchestrator({
+    active: isAnimating,
+    jobDataReady: isLive ? scrapeStatus === "complete" : true,
+    timelineComplete: timeline.timelineComplete,
+    narrationComplete,
+    scrapeStatus,
+    minDurationMs: isProofReel ? 8000 : 0,
+    onAdvanceToResults: goToResults,
+  });
 
   const skipToResults = useCallback(() => {
     stopAllVoice();
     resetVoiceQueue();
-    setScrapeStatus("cancelled");
-    setJourneyPhase("results");
-  }, [setScrapeStatus, setJourneyPhase]);
-
-  const liveStream = useScrapeStream(isLive ? scrapeJobId : null);
-  const replayStream = useScrapeReplay({
-    events: replayEvents,
-    speedMultiplier: 8,
-    active: isReplay && scrapeStatus === "running",
-    onComplete: handleReplayComplete,
-  });
-
-  const stream = isReplay ? replayStream : liveStream;
+    setScrapeStatus("complete");
+    forceAdvance();
+  }, [setScrapeStatus, forceAdvance]);
 
   const {
     nodes,
@@ -353,11 +382,12 @@ export default function ScrapeCanvas() {
     elapsedSec,
     isLiveScraping,
     isCacheOnly,
-  } = stream;
+    failureCount,
+    healCount,
+    mitigationLabel,
+  } = timeline;
 
-  const failureCount = isReplay ? replayStream.failureCount : 0;
-  const healCount = isReplay ? replayStream.healCount : 0;
-  const mitigationLabel = isReplay ? replayStream.mitigationLabel : null;
+  const isReplay = isProofReel;
   const reducedMotion = useReducedMotion();
 
   const target = activeNode ? nodes.find((n) => n.id === activeNode) : null;
@@ -390,14 +420,14 @@ export default function ScrapeCanvas() {
                     size="sm"
                     className="h-8 text-xs border-red-500/30 text-red-300 hover:bg-red-950/40"
                     onClick={() => {
-                      if (isReplay) {
+                      if (isProofReel) {
                         skipToResults();
                       } else {
                         void cancelScrape();
                       }
                     }}
                   >
-                    {isReplay ? "Skip replay" : "Stop job"}
+                    {isProofReel ? "Skip replay" : "Stop job"}
                   </Button>
                 </>
               )}
@@ -418,7 +448,7 @@ export default function ScrapeCanvas() {
           )}
         </div>
 
-        {narrationCaption && isReplay && (
+        {narrationCaption && isAnimating && (
           <div className="shrink-0 px-4 pb-2 z-10">
             <p
               className="text-sm text-center text-[var(--color-text-secondary)] leading-relaxed px-4 py-3 glass rounded-xl border border-white/[0.06]"

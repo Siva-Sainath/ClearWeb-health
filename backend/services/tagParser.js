@@ -1,8 +1,10 @@
 "use strict";
 
-const ACTION_RE = /\[action:([^\]]+)\]/g;
-const PROFILE_RE = /\[profile:([^:]+):([^\]]+)\]/g;
-const NAVIGATE_RE = /\[navigate:([^\]]+)\]/g;
+const ACTION_RE = /\[action:([^\]]*)\]/g;
+const PROFILE_RE = /\[profile:([^:\]]+):([^\]]*)\]/g;
+const NAVIGATE_RE = /\[navigate:([^\]]*)\]/g;
+const ANY_TAG_RE = /\[[a-z][a-z0-9_-]*(?::[^\]]*)?\]/gi;
+const TRAILING_OPEN_TAG_RE = /\[[^\]]*$/;
 
 function parseActionTag(raw) {
   const parts = raw.split(":");
@@ -68,7 +70,8 @@ function parseAllTags(text) {
   });
 
   text.replace(PROFILE_RE, (_, field, value) => {
-    profileUpdates[field.trim()] = value.trim();
+    const v = String(value || "").trim();
+    if (v) profileUpdates[field.trim()] = v;
     return "";
   });
 
@@ -82,7 +85,10 @@ function parseAllTags(text) {
     .replace(ACTION_RE, "")
     .replace(PROFILE_RE, "")
     .replace(NAVIGATE_RE, "")
-    .replace(/\[show_card:[^\]]+\]/g, "")
+    .replace(/\[show_card:[^\]]*\]/g, "")
+    .replace(ANY_TAG_RE, "")
+    .replace(TRAILING_OPEN_TAG_RE, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 
   return { clean, actions, profileUpdates, navigations };
@@ -93,7 +99,10 @@ function stripTags(text) {
     .replace(ACTION_RE, "")
     .replace(PROFILE_RE, "")
     .replace(NAVIGATE_RE, "")
-    .replace(/\[show_card:[^\]]+\]/g, "")
+    .replace(/\[show_card:[^\]]*\]/g, "")
+    .replace(ANY_TAG_RE, "")
+    .replace(TRAILING_OPEN_TAG_RE, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 }
 

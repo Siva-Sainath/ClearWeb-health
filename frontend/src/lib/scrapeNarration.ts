@@ -22,7 +22,7 @@ export function buildScrapeNarrationLines(
     afterReplay.push(
       `Matched your procedure code to negotiated rates in each file.`,
       `${summary.pricesFound} hospitals returned prices — about $${summary.priceRange.min} to $${summary.priceRange.max}.`,
-      "Next I'll walk through your best options — cards appear as I explain each one.",
+      "Opening your ranked options now.",
     );
   } else {
     afterReplay.push("Search complete — opening your ranked options.");
@@ -30,3 +30,19 @@ export function buildScrapeNarrationLines(
 
   return { intro, afterReplay };
 }
+
+export function healNarrationLine(
+  collectorId: string,
+  detail?: string,
+  event?: string
+): string {
+  const id = collectorId ? `collector ${collectorId}` : "the scraper";
+  if (event === "heal_failed" || (detail && /exhaust|fail/i.test(detail))) {
+    return `Self-healing was exhausted for ${id} — continuing search across remaining Austin hospitals.`;
+  }
+  if (detail && /unlocker/i.test(detail)) {
+    return `Bright Data Web Unlocker is retrying the download for ${id}.`;
+  }
+  return `Self-healing is engaged on ${id} — Bright Data is repairing the scraper while you watch.`;
+}
+

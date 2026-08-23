@@ -4,14 +4,13 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import type { PatientProfile } from "@/lib/types";
+import { isPlaceholderProfileValue } from "@/lib/onboardingProfileGate";
+import { ONBOARDING_STEPS } from "@/lib/onboardingProgress";
 
 type FieldKey = "condition" | "insurance" | "city" | "zipCode" | "radiusMi";
 
-/** Corner anchors — spread around edges so center caption stays clear */
-const FIELD_LAYOUT: Record<
-  FieldKey,
-  { rest: { left?: string; right?: string; top?: string; bottom?: string } }
-> = {
+/** Cloud anchors — spread around the edges so the centre caption stays clear. */
+const FIELD_LAYOUT: Record<FieldKey, { rest: { left?: string; right?: string; top?: string; bottom?: string } }> = {
   condition: { rest: { left: "0%", top: "2%" } },
   insurance: { rest: { right: "0%", top: "4%" } },
   city: { rest: { left: "0%", top: "36%" } },
@@ -19,16 +18,13 @@ const FIELD_LAYOUT: Record<
   radiusMi: { rest: { right: "1%", bottom: "8%" } },
 };
 
-/** Per-bubble float personality */
-const FLOAT_STYLE: Record<
-  FieldKey,
-  { duration: number; driftY: number; driftX: number; tilt: number; delay: number }
-> = {
-  condition: { duration: 5.4, driftY: 11, driftX: 7, tilt: 2.2, delay: 0 },
-  insurance: { duration: 4.8, driftY: 9, driftX: -6, tilt: -1.8, delay: 0.35 },
-  city: { duration: 5.2, driftY: 10, driftX: 6, tilt: 1.6, delay: 0.55 },
-  zipCode: { duration: 5.8, driftY: 10, driftX: 5, tilt: 1.5, delay: 0.7 },
-  radiusMi: { duration: 4.4, driftY: 8, driftX: -8, tilt: -2.4, delay: 1.05 },
+/** Per-cloud float personality */
+const FLOAT_STYLE: Record<FieldKey, { duration: number; driftY: number; driftX: number; delay: number }> = {
+  condition: { duration: 5.4, driftY: 11, driftX: 7, delay: 0 },
+  insurance: { duration: 4.8, driftY: 9, driftX: -6, delay: 0.35 },
+  city: { duration: 5.2, driftY: 10, driftX: 6, delay: 0.55 },
+  zipCode: { duration: 5.8, driftY: 10, driftX: 5, delay: 0.7 },
+  radiusMi: { duration: 4.4, driftY: 8, driftX: -8, delay: 1.05 },
 };
 
 const FIELD_META: {
@@ -40,26 +36,33 @@ const FIELD_META: {
   {
     key: "condition",
     label: "Procedure",
-    value: (p) => p.procedure || p.condition || null,
-    check: (p) => !!(p.condition.trim() || p.procedure?.trim()),
+    value: (p) => {
+      const v = p.procedure || p.condition;
+      if (!v?.trim() || isPlaceholderProfileValue(v)) return null;
+      return v;
+    },
+    check: (p) => {
+      const v = p.procedure?.trim() || p.condition?.trim();
+      return !!v && !isPlaceholderProfileValue(v);
+    },
   },
   {
     key: "insurance",
     label: "Insurance",
-    value: (p) => p.insurance || null,
-    check: (p) => !!p.insurance?.trim(),
+    value: (p) => (p.insurance && !isPlaceholderProfileValue(p.insurance) ? p.insurance : null),
+    check: (p) => !!p.insurance?.trim() && !isPlaceholderProfileValue(p.insurance),
   },
   {
     key: "city",
     label: "City",
-    value: (p) => p.city || null,
-    check: (p) => !!p.city?.trim(),
+    value: (p) => (p.city && !isPlaceholderProfileValue(p.city) ? p.city : null),
+    check: (p) => !!p.city?.trim() && !isPlaceholderProfileValue(p.city),
   },
   {
     key: "zipCode",
     label: "ZIP code",
-    value: (p) => p.zipCode || null,
-    check: (p) => !!p.zipCode.trim(),
+    value: (p) => (p.zipCode && !isPlaceholderProfileValue(p.zipCode) ? p.zipCode : null),
+    check: (p) => !!p.zipCode?.trim() && !isPlaceholderProfileValue(p.zipCode),
   },
   {
     key: "radiusMi",
@@ -69,7 +72,7 @@ const FIELD_META: {
   },
 ];
 
-function FloatingGlassBubble({
+function CloudBubble({
   fieldKey,
   label,
   value,
@@ -93,9 +96,8 @@ function FloatingGlassBubble({
           ? {
               y: [0, -cfg.driftY, 0, cfg.driftY * 0.55, 0],
               x: [0, cfg.driftX, 0, -cfg.driftX * 0.65, 0],
-              rotate: [0, cfg.tilt, 0, -cfg.tilt * 0.8, 0],
             }
-          : { y: 0, x: 0, rotate: 0 }
+          : { y: 0, x: 0 }
       }
       transition={
         float
@@ -108,19 +110,10 @@ function FloatingGlassBubble({
           : { duration: 0.3 }
       }
     >
-      {/* Ambient glow halo */}
-      <div
-        className="glass-bubble-glow absolute -inset-2 rounded-3xl opacity-40"
-        style={{
-          background: "radial-gradient(circle, rgba(52,211,153,0.22) 0%, transparent 70%)",
-          animation: reducedMotion ? undefined : "glass-bubble-glow 4s ease-in-out infinite",
-          animationDelay: `${cfg.delay}s`,
-        }}
-      />
-
-      <div className="glass-bubble relative rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 min-w-[140px]">
+      {/* no decorative halo — that rendered as extra circles behind the pill */}
+      <div className="cloud-bubble relative px-4 py-2.5 sm:px-5 sm:py-3 min-w-[140px]">
         <div className="relative z-[1]">
-          <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="flex items-center gap-1.5 mb-1">
             <span
               className="w-1.5 h-1.5 rounded-full flex-shrink-0"
               style={{
@@ -132,7 +125,7 @@ function FloatingGlassBubble({
               {label}
             </p>
           </div>
-          <p className="text-sm sm:text-base font-medium text-[var(--color-text-primary)] leading-snug break-words">
+          <p className="text-sm sm:text-[15px] font-semibold text-[var(--color-text-primary)] leading-snug break-words line-clamp-3">
             {value}
           </p>
         </div>
@@ -156,21 +149,31 @@ export default function ProfileFieldBubbles({
   const filled = FIELD_META.filter((f) => f.check(profile));
   const allRequired = filled.length >= FIELD_META.length;
   const [flying, setFlying] = React.useState(false);
+  const flyDoneRef = React.useRef(false);
+  const shouldFly = merge && allRequired;
 
   React.useEffect(() => {
-    if (merge && allRequired) {
-      setFlying(true);
-      const delay = reducedMotion ? 80 : 680;
-      const t = setTimeout(() => {
-        setFlying(false);
-        onFlyComplete?.();
-      }, delay);
+    if (!shouldFly) {
+      flyDoneRef.current = false;
+      const t = setTimeout(() => setFlying(false), 0);
       return () => clearTimeout(t);
     }
-    setFlying(false);
-  }, [merge, allRequired, reducedMotion, onFlyComplete]);
+    if (flyDoneRef.current || flying) return;
 
-  const flyToCenter = merge && allRequired && flying;
+    const t1 = setTimeout(() => setFlying(true), 0);
+    const delay = reducedMotion ? 80 : 900;
+    const t2 = setTimeout(() => {
+      flyDoneRef.current = true;
+      setFlying(false);
+      onFlyComplete?.();
+    }, delay);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [shouldFly, flying, reducedMotion, onFlyComplete]);
+
+  const flyToCenter = shouldFly && flying;
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-visible z-0" aria-hidden="true">
@@ -192,7 +195,7 @@ export default function ProfileFieldBubbles({
                 flyToCenter
                   ? {
                       opacity: 0,
-                      scale: 0.25,
+                      scale: 0.2,
                       filter: "blur(4px)",
                       left: "50%",
                       top: "38%",
@@ -217,7 +220,7 @@ export default function ProfileFieldBubbles({
               exit={{ opacity: 0, scale: 0.4, filter: "blur(6px)" }}
               transition={
                 flyToCenter
-                  ? { duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: i * 0.05 }
+                  ? { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: i * 0.06 }
                   : {
                       type: "spring",
                       stiffness: 340,
@@ -227,7 +230,7 @@ export default function ProfileFieldBubbles({
               }
               className="absolute max-w-[168px] sm:max-w-[184px]"
             >
-              <FloatingGlassBubble
+              <CloudBubble
                 fieldKey={field.key}
                 label={field.label}
                 value={val}
@@ -243,5 +246,5 @@ export default function ProfileFieldBubbles({
 }
 
 export function isProfileReady(profile: PatientProfile): boolean {
-  return FIELD_META.every((f) => f.check(profile));
+  return ONBOARDING_STEPS.every((s) => s.filled(profile));
 }

@@ -18,7 +18,6 @@ interface VoiceShellProps {
   activityLabel?: string | null;
   isActive: boolean;
   isSpeaking: boolean;
-  isListening: boolean;
   audioLevel: number;
   error?: string | null;
   micEnabled?: boolean;
@@ -35,11 +34,21 @@ interface VoiceShellProps {
   compact?: boolean;
 }
 
+function formatVoiceError(error: string): string {
+  const lower = error.toLowerCase();
+  if (lower === "network") return "Voice service offline — type below";
+  if (lower.includes("microphone") || lower.includes("mic")) return "Allow mic access";
+  if (lower.includes("connection")) return error;
+  return error.length > 48 ? `${error.slice(0, 48)}…` : error;
+}
+
 function micAriaLabel(state: VoiceState, micEnabled: boolean): string {
   if (!micEnabled) return "Microphone unavailable";
-  if (state === "listening") return "Stop recording";
+  if (state === "listening") return "Aria is listening";
+  if (state === "speaking") return "Aria is speaking";
+  if (state === "thinking" || state === "transcribing") return "Aria is working";
   if (state === "error") return "Retry voice input";
-  return "Start recording";
+  return "Tap to talk to Aria";
 }
 
 function micRingClass(state: VoiceState): string {
@@ -63,7 +72,6 @@ export default function VoiceShell({
   activityLabel,
   isActive,
   isSpeaking,
-  isListening,
   audioLevel,
   error,
   micEnabled = true,
@@ -95,8 +103,8 @@ export default function VoiceShell({
         )}
       >
         {error && (
-          <span className="text-xs text-[var(--color-warn)] max-w-[120px] truncate" role="alert">
-            Mic blocked
+          <span className="text-xs text-[var(--color-warn)] max-w-[160px] truncate" role="alert">
+            {formatVoiceError(error)}
           </span>
         )}
         {textFallbackOpen && (

@@ -1,0 +1,29 @@
+---
+description: OpenRouter stealth/ox-alpha via Cursor Settings (not backend .env)
+globs:
+alwaysApply: true
+---
+
+# OpenRouter OX Alpha (Cursor Settings)
+
+The user configured **OpenRouter as their OpenAI API key in Cursor Settings** and added **stealth/ox-alpha** to the model list. That powers Cursor's agent/composer — not the Node backend unless `LLM_PROVIDER=openrouter` is set separately.
+
+## For the agent
+
+- Use **parallel Task subagents** (`explore`, `generalPurpose`) for broad audits and exploration when speed matters.
+- User has OX alpha available in Cursor's model picker for main-thread work when they select it.
+- Do **not** ask the user to duplicate the key into `backend/.env` unless they want Aria backend chat or `scripts/ox-subagent.mjs` from the terminal.
+
+## Optional: backend + CLI (only if user wants Aria on OX)
+
+`backend/.env` is only needed for:
+- `LLM_PROVIDER=openrouter` (Aria voice agent API)
+- `node scripts/ox-subagent.mjs` shell parallel tasks
+
+Cursor Settings alone is sufficient for IDE agent/subagent usage.
+
+## When to fan out work
+
+- Multi-area exploration before edits → parallel explore subagents
+- Scraper + frontend + docs in one turn → launch concurrently
+- Keep main thread for implementation and integration

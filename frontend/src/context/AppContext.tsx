@@ -32,6 +32,10 @@ interface AppContextType {
   setFacilities: (f: Record<string, FacilityResult>) => void;
   scrapeEvents: ScraperLog[];
   setScrapeEvents: (events: ScraperLog[]) => void;
+  scrapeLastUpdated: string | null;
+  setScrapeLastUpdated: (v: string | null) => void;
+  scrapeHealEvents: Array<{ collector_id?: string; reason?: string; success?: boolean; timestamp?: string }>;
+  setScrapeHealEvents: (events: Array<{ collector_id?: string; reason?: string; success?: boolean; timestamp?: string }>) => void;
   executiveSummary: ScrapeExecutiveSummary | null;
   setExecutiveSummary: (summary: ScrapeExecutiveSummary | null) => void;
   llmExplanation: LlmExplanation | null;
@@ -56,6 +60,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [replayEvents, setReplayEvents] = useState<ScraperLog[]>([]);
   const [facilities, setFacilities] = useState<Record<string, FacilityResult>>({});
   const [scrapeEvents, setScrapeEvents] = useState<ScraperLog[]>([]);
+  const [scrapeLastUpdated, setScrapeLastUpdated] = useState<string | null>(null);
+  const [scrapeHealEvents, setScrapeHealEvents] = useState<
+    Array<{ collector_id?: string; reason?: string; success?: boolean; timestamp?: string }>
+  >([]);
   const [executiveSummary, setExecutiveSummary] = useState<ScrapeExecutiveSummary | null>(null);
   const [llmExplanation, setLlmExplanation] = useState<LlmExplanation | null>(null);
   const [isListening, setIsListening] = useState(false);
@@ -85,6 +93,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setFacilities,
       scrapeEvents,
       setScrapeEvents,
+      scrapeLastUpdated,
+      setScrapeLastUpdated,
+      scrapeHealEvents,
+      setScrapeHealEvents,
       executiveSummary,
       setExecutiveSummary,
       llmExplanation,
@@ -106,6 +118,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       replayEvents,
       facilities,
       scrapeEvents,
+      scrapeLastUpdated,
+      scrapeHealEvents,
       executiveSummary,
       llmExplanation,
       isListening,

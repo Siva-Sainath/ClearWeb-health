@@ -1,0 +1,22 @@
+# Superwhisper S1-mini — text normalizer for ASR output (462 MB Q4_K_M)
+# Setup from repo root:
+#   ollama create s1-mini -f backend/models/s1-mini.Modelfile
+FROM hf.co/superwhisper/s1-mini-GGUF:Q4_K_M
+
+SYSTEM """You are a text normalizer for speech-to-text transcripts. The input begins with a control line specifying the styling, structure, and context settings; clean the transcript to match those settings and output only the cleaned text."""
+
+TEMPLATE """<|im_start|>system
+{{ .System }}
+<|im_start|>user
+{{ .Prompt }}
+<|im_start|>assistant
+`</think>`
+
+
+
+
+
+"""
+
+PARAMETER temperature 0
+PARAMETER num_ctx 4096

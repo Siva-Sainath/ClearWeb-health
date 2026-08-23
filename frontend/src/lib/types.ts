@@ -5,8 +5,13 @@ export type VoicePhase = "onboarding" | "scraping" | "results";
 
 export type { VoiceState } from "@/lib/voiceState";
 export type ScrapeStatus = "idle" | "running" | "complete" | "failed" | "cancelled";
-/** How scrape visuals were produced: instant = pre-loaded snapshot, replay = fast-forward animation, live = BD backend */
-export type ScrapePresentationMode = "instant" | "replay" | "live" | null;
+/** How scrape visuals were produced */
+export type ScrapePresentationMode =
+  | "instant"
+  | "proof-reel"
+  | "replay"
+  | "live"
+  | null;
 export type PatientPriority = "cost" | "distance" | "accreditation" | "wait";
 
 export interface PatientProfile {
@@ -57,7 +62,8 @@ export interface ScraperLog {
     | "extraction_failed"
     | "rate_limited"
     | "heal_triggered"
-    | "heal_resumed";
+    | "heal_resumed"
+    | "heal_failed";
   facility_name: string;
   cpt_code: string;
   cash_price?: number;
