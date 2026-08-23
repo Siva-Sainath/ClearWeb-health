@@ -39,4 +39,4 @@ jobs:
         working-directory: scraper
         env:
           BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
-        run: python check_and_approve_heal.py || true
+        run: python check_and_approve_heal.py --scan-targets || true

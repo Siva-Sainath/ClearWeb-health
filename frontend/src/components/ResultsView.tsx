@@ -181,18 +181,7 @@ export default function ResultsView() {
     [dispatch]
   );
 
-  const walkthroughExplanation = useMemo(() => {
-    if (!llmExplanation) return null;
-    if (scrapePresentationMode === "replay" || scrapePresentationMode === "proof-reel") {
-      return {
-        ...llmExplanation,
-        sections: llmExplanation.sections.filter(
-          (s) => s.type !== "insight" || s.title !== "How we collected prices"
-        ),
-      };
-    }
-    return llmExplanation;
-  }, [llmExplanation, scrapePresentationMode]);
+  const walkthroughExplanation = useMemo(() => llmExplanation, [llmExplanation]);
 
   const suggestedChips = llmExplanation?.suggestedFollowUps ?? [
     "Show me the cheapest on a chart",

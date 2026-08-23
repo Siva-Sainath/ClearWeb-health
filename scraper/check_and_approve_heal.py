@@ -61,8 +61,46 @@ def check_and_approve(collector_id: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("collector_id", help="The collector ID to check")
+    parser.add_argument(
+        "collector_id",
+        nargs="?",
+        help="Collector ID to check (omit with --scan-targets)",
+    )
+    parser.add_argument(
+        "--scan-targets",
+        action="store_true",
+        help="Check all unique collector_id values in targets.yaml",
+    )
     args = parser.parse_args()
-    
+
+    if args.scan_targets:
+        sys.path.insert(0, os.path.dirname(__file__))
+        from match_engine import load_targets
+
+        ids = sorted(
+            {
+                h.get("collector_id")
+                for h in load_targets()
+                if h.get("collector_id")
+            }
+        )
+        if not ids:
+            print("No collector IDs in targets.yaml")
+            sys.exit(0)
+        failed = 0
+        for cid in ids:
+            try:
+                check_and_approve(cid)
+            except SystemExit as exc:
+                if exc.code:
+                    failed += 1
+            except Exception as exc:
+                print(f"ERROR checking {cid}: {exc}")
+                failed += 1
+        sys.exit(1 if failed else 0)
+
+    if not args.collector_id:
+        parser.error("collector_id required unless --scan-targets is set")
+
     check_and_approve(args.collector_id)
 
