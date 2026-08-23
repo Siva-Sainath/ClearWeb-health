@@ -100,6 +100,15 @@ async function resolveMode(profile, mode) {
   return check.cached ? "cached" : "live";
 }
 
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    }),
+  ]);
+}
+
 /**
  * Build the full brain payload from scrape results + events.
  */
@@ -124,7 +133,7 @@ async function buildBrainPayload({
 
   let collectorPipeline = null;
   try {
-    collectorPipeline = await runCollectorStatus();
+    collectorPipeline = await withTimeout(runCollectorStatus(), 2500, "collector status");
     if (collectorPipeline?.byStatus) {
       scrapeContext.collectorPipeline = {
         verified: collectorPipeline.verified,
@@ -151,15 +160,23 @@ async function buildBrainPayload({
 
   let presentation = null;
   if (agentic && executiveSummary && Object.keys(results).length > 0) {
-    presentation = await conductResults({
-      profile,
-      facilities: results,
-      presentationMode,
-      healEvents: heals,
-      executiveSummary,
-      scrapeContext,
-      queueWebcmd: false,
-    });
+    try {
+      presentation = await withTimeout(
+        conductResults({
+          profile,
+          facilities: results,
+          presentationMode,
+          healEvents: heals,
+          executiveSummary,
+          scrapeContext,
+          queueWebcmd: false,
+        }),
+        8000,
+        "results conductor"
+      );
+    } catch (err) {
+      console.warn("[brain] deferring results walkthrough to the client:", err.message);
+    }
   }
 
   return {

@@ -4,7 +4,12 @@ import { useCallback, useRef } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
 import { resetVoiceQueue } from "@/lib/ttsSpeak";
-import { getDemoReplayEvents } from "@/lib/demoSnapshot";
+import {
+  AUSTIN_DEMO_SNAPSHOT,
+  applyProfileToDemoResults,
+  getDemoReplayEvents,
+} from "@/lib/demoSnapshot";
+import { buildScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { PatientProfile } from "@/lib/types";
 import { checkZipCache } from "@/lib/zipCacheCheck";
 import type { BrainSessionResponse } from "@/lib/scrapeSession";
@@ -100,6 +105,11 @@ export function useScrapeJob() {
 
       const seed = getDemoReplayEvents(profile);
       if (seed.length) setReplayEvents(seed);
+      const demoFacilities = applyProfileToDemoResults(profile, AUSTIN_DEMO_SNAPSHOT.results);
+      if (Object.keys(demoFacilities).length) {
+        setFacilities(demoFacilities);
+        setExecutiveSummary(buildScrapeExecutiveSummary(profile, demoFacilities, seed));
+      }
 
       beginScrapeUi(opts.instant ? "instant" : "proof-reel");
 
@@ -124,6 +134,8 @@ export function useScrapeJob() {
     },
     [
       setReplayEvents,
+      setFacilities,
+      setExecutiveSummary,
       setScrapeJobId,
       applyBrainSession,
       beginScrapeUi,
