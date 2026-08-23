@@ -38,11 +38,12 @@ In the Render Dashboard for `clearweb-health-api`, under **Environment**, config
 
 | Variable | Value / Description | Required |
 |---|---|---|
-| `GROQ_API_KEY` | Your Groq API key (for fast TTS and STT Whisper) | Yes |
-| `OPENROUTER_API_KEY` | Your OpenRouter API key | Yes |
-| `LLM_PROVIDER` | `openrouter` (Default) | Yes |
-| `OPENROUTER_MODEL` | `stealth/ox-alpha` (or your preferred model) | Optional |
+| `GROQ_API_KEY` | Your Groq API key (TTS Orpheus + STT Whisper) | Yes |
 | `TTS_PROVIDER` | `groq` | Yes |
+| `STT_PROVIDER` | `groq` or `auto` | Yes |
+| `LLM_PROVIDER` | `openai` for hosted Aria (Ollama is local-dev only) | Yes |
+| `OPENAI_API_KEY` | OpenAI API key when `LLM_PROVIDER=openai` | If using OpenAI |
+| `OPENAI_MODEL` | e.g. `gpt-4o-mini` | Optional |
 | `BRIGHT_DATA_API_TOKEN` | Your Bright Data API token (or `BRIGHTDATA_API_KEY`) | Yes |
 | `BRIGHTDATA_UNLOCKER_ZONE` | Your Bright Data Web Unlocker zone name | Yes |
 | `FRONTEND_URL` | `https://<your-vercel-app>.vercel.app` (update after deploying Vercel) | Yes |
@@ -113,7 +114,7 @@ Because scraper tasks (browser automation, DOM extraction, and LLM parsing) are 
 ## 6. Verification Checklist
 
 - [ ] Backend health check responds: `GET https://<render-service>.onrender.com/api/health`
-- [ ] Backend environment contains all required API keys (`GROQ_API_KEY`, `OPENROUTER_API_KEY`, `BRIGHT_DATA_API_TOKEN`, `BRIGHTDATA_UNLOCKER_ZONE`, `WEBCMD_BRIDGE_SECRET`).
+- [ ] Backend environment contains all required API keys (`GROQ_API_KEY`, `OPENAI_API_KEY` or local Ollama for dev, `BRIGHT_DATA_API_TOKEN`, `BRIGHTDATA_UNLOCKER_ZONE`, `WEBCMD_BRIDGE_SECRET`).
 - [ ] Vercel root directory is set to `frontend`.
 - [ ] Vercel has `NEXT_PUBLIC_BACKEND_URL` pointing to Render API URL.
 - [ ] `WEBCMD_BRIDGE_SECRET` matches across Render and Vercel.

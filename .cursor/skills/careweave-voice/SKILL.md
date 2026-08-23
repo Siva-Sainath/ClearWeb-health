@@ -7,24 +7,24 @@ description: Clearweb Health voice agent, webcmd bridge, and Aria tag vocabulary
 
 ## Stack
 - **STT:** Browser Web Speech API (live mic) → `POST /api/stt/transcribe` on the backend. Default cloud path is **Groq Whisper** (`whisper-large-v3-turbo`) when `STT_PROVIDER=groq` or `GROQ_API_KEY` is set (`STT_PROVIDER=auto`). Local Xenova Whisper is the offline fallback.
-- **LLM:** `POST /api/agent/chat` via `backend/services/llmProvider.js`. **Production default:** `LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY` (e.g. `stealth/ox-alpha`). **Local dev fallback:** `LLM_PROVIDER=ollama` + local Ollama.
+- **LLM (Aria backend):** `POST /api/agent/chat` via `backend/services/llmProvider.js`. **Default:** `LLM_PROVIDER=ollama` + local Ollama (`OLLAMA_MODEL=llama3.1:8b`). Optional: `openai` (`OPENAI_API_KEY`). `openrouter` exists in code but is **not** the working production path for Aria — OpenRouter/ox-alpha is for **Cursor IDE** agents (Cursor Settings), not the Node backend unless you explicitly wire and test it.
 - **TTS:** **Groq Orpheus** (`canopylabs/orpheus-v1-english`, voice `hannah`) via `POST /api/tts/speak` when `TTS_PROVIDER=groq` and `GROQ_API_KEY` is set. Microsoft Edge TTS (`en-US-AriaNeural`) is the fallback only when Groq is unavailable.
 - **UI:** `[action:...]` tags → DashboardContext; `[navigate:...]` → phase/panel/scroll/url
 
 ## Hosting (production)
-Deployed demo does **not** need Ollama or local Whisper on the server:
-- **TTS + STT:** Set `GROQ_API_KEY`, `TTS_PROVIDER=groq`, and `STT_PROVIDER=groq` (or `auto`) — Groq handles Orpheus TTS and Whisper STT from any host.
-- **LLM:** Set `LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY` (+ optional `OPENROUTER_MODEL`, e.g. `stealth/ox-alpha`). Do not assume `OPENAI_API_KEY` unless you explicitly switch providers.
-- **STT in browser:** Web Speech API still handles live mic when available; recorded/fallback audio goes to Groq Whisper on the backend.
-- **Vapi** (`@vapi-ai/web` in package.json): optional future swap for a single vendor STT+LLM+TTS stack — not the current default.
+**Groq powers voice, not the LLM:**
+- **TTS + STT:** `GROQ_API_KEY`, `TTS_PROVIDER=groq`, `STT_PROVIDER=groq` (or `auto`)
+- **LLM (Aria):** For a hosted demo you still need a backend LLM. Today that means **Ollama on a machine you control** (local/laptop demo) or **`LLM_PROVIDER=openai`** with a real `OPENAI_API_KEY`. Do **not** assume OpenRouter works for `/api/agent/chat` — it is not what we run in `backend/.env` today.
+- **Cursor vs backend:** OpenRouter + `stealth/ox-alpha` in Cursor Settings is for the IDE agent only (see `.cursor/rules/openrouter-ox.mdc`). It does not automatically configure Aria.
 
-### Minimal production env (see `backend/.env.example`)
+### Typical local dev env (matches `backend/.env`)
 ```
 GROQ_API_KEY=...
 TTS_PROVIDER=groq
 STT_PROVIDER=groq
-LLM_PROVIDER=openrouter
-OPENROUTER_API_KEY=...
+OLLAMA_BASE=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b
+# LLM_PROVIDER unset → ollama
 WEBCMD_BRIDGE_SECRET=...
 ```
 

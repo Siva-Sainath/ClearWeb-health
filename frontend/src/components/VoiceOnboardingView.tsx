@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppContext } from "@/context/AppContext";
 import { useDashboard } from "@/context/DashboardContext";
@@ -12,7 +12,8 @@ import InteractionStage from "@/components/InteractionStage";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import VoiceShell from "@/components/VoiceShell";
 import { isProfileReady } from "@/components/ProfileFieldBubbles";
-import { nextMissingField } from "@/lib/onboardingProgress";
+import { isProfileCoreReady, nextMissingField } from "@/lib/onboardingProgress";
+import type { PatientProfile } from "@/lib/types";
 
 export default function VoiceOnboardingView() {
   const {
@@ -30,6 +31,7 @@ export default function VoiceOnboardingView() {
   const [flashZoom, setFlashZoom] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [scrapeConfirmed, setScrapeConfirmed] = useState(false);
+  const transitioningRef = useRef(false);
 
   const agentDashState = useMemo(
     () => ({
@@ -56,6 +58,8 @@ export default function VoiceOnboardingView() {
     ]
   );
 
+  const beginPriceSearchRef = useRef<(profile?: PatientProfile) => void>(() => {});
+
   React.useEffect(() => {
     prefetchTtsLines(getOnboardingWelcomeChunks());
   }, []);
@@ -66,11 +70,40 @@ export default function VoiceOnboardingView() {
     autoStart: true,
     onProfileUpdate: updateProfile,
     onPhaseNavigate: (p) => setJourneyPhase(p),
-    onScrapeConfirm: () => setScrapeConfirmed(true),
+    onScrapeConfirm: () => beginPriceSearchRef.current(),
     onUIActions: applyActions,
     onThinkingChange: (thinking) => dispatch({ type: "SET_THINKING", payload: thinking }),
     dashState: agentDashState,
   });
+
+  const beginPriceSearch = useCallback(
+    (profileOverride?: PatientProfile) => {
+      if (transitioningRef.current) return;
+
+      let profile = profileOverride ?? patientProfile;
+      if (profile.radiusMi <= 0) {
+        profile = { ...profile, radiusMi: 25 };
+        updateProfile({ radiusMi: 25 });
+      }
+
+      if (!isProfileCoreReady(profile)) return;
+
+      transitioningRef.current = true;
+      agent.stopVoiceSession();
+      setScrapeConfirmed(true);
+      setTransitioning(true);
+      setFlashZoom(true);
+      setIsListening(false);
+      setIsSpeaking(false);
+
+      window.setTimeout(() => {
+        void startScrape(profile);
+      }, 480);
+    },
+    [patientProfile, updateProfile, agent, startScrape, setIsListening, setIsSpeaking]
+  );
+
+  beginPriceSearchRef.current = beginPriceSearch;
 
   React.useEffect(() => {
     setIsListening(agent.isListening);
@@ -80,42 +113,37 @@ export default function VoiceOnboardingView() {
 
   const showText = textInputOpen || !!agent.error;
   const profileReady = isProfileReady(patientProfile);
-  const mergeBubbles = scrapeConfirmed && profileReady;
+  const canPullPrices = isProfileCoreReady(patientProfile);
+  const mergeBubbles = scrapeConfirmed && canPullPrices;
   const missing = nextMissingField(patientProfile);
 
   const handleConfirmScrape = useCallback(() => {
-    if (!profileReady) return;
-    setScrapeConfirmed(true);
-  }, [profileReady]);
-
-  const handleFlyComplete = useCallback(() => {
-    if (transitioning) return;
-    setTransitioning(true);
-    setFlashZoom(true);
-    const t = setTimeout(() => {
-      void startScrape();
-    }, 950);
-    return () => clearTimeout(t);
-  }, [startScrape, transitioning]);
+    beginPriceSearch();
+  }, [beginPriceSearch]);
 
   return (
     <div className="pb-24">
       <div className="px-6 pt-6 max-w-lg mx-auto">
         <OnboardingProgress profile={patientProfile} />
-        {profileReady && !scrapeConfirmed && (
+        {canPullPrices && !transitioning && (
           <motion.button
             type="button"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 w-full py-3.5 rounded-2xl font-medium text-sm bg-[var(--color-accent)] text-black hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(52,211,153,0.25)]"
+            className="mt-4 w-full py-3.5 rounded-2xl font-medium text-sm bg-[var(--color-accent)] text-black hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(52,211,153,0.25)] disabled:opacity-50"
             onClick={handleConfirmScrape}
           >
             Pull hospital prices near you
           </motion.button>
         )}
-        {!profileReady && missing && agent.voiceState === "standby" && (
+        {!canPullPrices && missing && agent.voiceState === "standby" && (
           <p className="mt-3 text-center text-xs text-[var(--color-text-tertiary)]">
             Still need: {missing}
+          </p>
+        )}
+        {canPullPrices && !profileReady && !transitioning && (
+          <p className="mt-2 text-center text-xs text-[var(--color-text-tertiary)]">
+            Radius defaults to 25 miles if you skip it
           </p>
         )}
       </div>
@@ -143,7 +171,6 @@ export default function VoiceOnboardingView() {
         messages={agent.messages}
         profile={patientProfile}
         mergeBubbles={mergeBubbles}
-        onFlyComplete={handleFlyComplete}
       />
 
       <VoiceShell

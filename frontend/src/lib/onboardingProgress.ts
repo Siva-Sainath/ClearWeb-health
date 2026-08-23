@@ -47,3 +47,15 @@ export function nextMissingField(p: PatientProfile): string | null {
   const step = ONBOARDING_STEPS.find((s) => !s.filled(p));
   return step?.label ?? null;
 }
+
+/** Minimum fields to start a price search (radius defaults on confirm). */
+export function isProfileCoreReady(p: PatientProfile): boolean {
+  const proc = p.procedure?.trim() || p.condition?.trim();
+  if (!proc || isPlaceholderProfileValue(proc)) return false;
+  if (!p.insurance?.trim() || isPlaceholderProfileValue(p.insurance)) return false;
+  const zip = p.zipCode?.trim();
+  const city = p.city?.trim();
+  const hasZip = !!zip && !isPlaceholderProfileValue(zip);
+  const hasCity = !!city && !isPlaceholderProfileValue(city);
+  return hasZip || hasCity;
+}
