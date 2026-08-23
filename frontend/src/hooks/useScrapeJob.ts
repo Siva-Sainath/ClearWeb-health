@@ -2,7 +2,8 @@
 
 import { useCallback, useRef } from "react";
 import { useAppContext } from "@/context/AppContext";
-import { resetVoiceQueue } from "@/lib/ttsSpeak";
+import { resetVoiceQueue, waitForTtsIdle } from "@/lib/ttsSpeak";
+import { stopAllVoice } from "@/lib/ariaVoiceController";
 import {
   AUSTIN_DEMO_SNAPSHOT,
   applyProfileToDemoResults,
@@ -100,7 +101,9 @@ export function useScrapeJob() {
   const runSession = useCallback(
     async (profile: PatientProfile, opts: { mode?: string; instant?: boolean } = {}) => {
       if (pollingRef.current) clearTimeout(pollingRef.current);
+      stopAllVoice();
       resetVoiceQueue();
+      await waitForTtsIdle(4000);
 
       const seed = getDemoReplayEvents(profile);
       if (seed.length) setReplayEvents(seed);
@@ -112,8 +115,6 @@ export function useScrapeJob() {
         }
       }
 
-      beginScrapeUi(opts.instant ? "instant" : "proof-reel");
-
       try {
         const session = await createBrainSession(profile, opts);
 
@@ -124,12 +125,13 @@ export function useScrapeJob() {
           return session;
         }
 
-        applyBrainSession(session);
+        applyBrainSession(session, { preserveReplay: true });
         beginScrapeUi(session.presentationMode === "instant" ? "instant" : "proof-reel");
         setScrapeJobId(null);
         return session;
       } catch (err) {
         console.warn("[scrape] session failed — continuing seeded Austin replay", err);
+        beginScrapeUi(opts.instant ? "instant" : "proof-reel");
         return null;
       }
     },
@@ -175,7 +177,11 @@ export function useScrapeJob() {
     [patientProfile, runSession]
   );
 
-  const startReplayScrape = useCallback(() => {
+  const startReplayScrape = useCallback(async () => {
+    stopAllVoice();
+    resetVoiceQueue();
+    await waitForTtsIdle(4000);
+
     if (!replayEvents.length) {
       const replay = getDemoReplayEvents(patientProfile);
       if (replay.length) setReplayEvents(replay);
@@ -216,7 +222,6 @@ export function useScrapeJob() {
 
       const seed = getDemoReplayEvents(profileNorm);
       if (seed.length) setReplayEvents(seed);
-      beginScrapeUi("proof-reel");
 
       if (SKIP_SCRAPE_ANIMATION) {
         await loadInstantDemo(profileNorm);

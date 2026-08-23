@@ -1,6 +1,8 @@
 "use client";
 
 import { useAppContext } from "@/context/AppContext";
+import { stopAllVoice } from "@/lib/ariaVoiceController";
+import { resetVoiceQueue } from "@/lib/ttsSpeak";
 import { BRAND } from "@/lib/brand";
 
 const PHASE_LABEL = {
@@ -30,6 +32,8 @@ export default function Header() {
   const facilityCount = Object.keys(facilities).length;
 
   const resetDemo = () => {
+    stopAllVoice();
+    resetVoiceQueue();
     setJourneyPhase("onboarding");
     setScrapeStatus("idle");
     setScrapePresentationMode(null);

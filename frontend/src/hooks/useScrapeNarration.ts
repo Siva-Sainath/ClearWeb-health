@@ -10,9 +10,9 @@ import {
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { PatientProfile, ScraperLog } from "@/lib/types";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
-import { speakScriptedQueued, prefetchTtsLines } from "@/lib/ttsSpeak";
+import { speakScriptedQueued, prefetchTtsLines, waitForTtsIdle } from "@/lib/ttsSpeak";
 
-const LINE_TIMEOUT_MS = 25000;
+const LINE_TIMEOUT_MS = 35000;
 
 function waitMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -20,13 +20,15 @@ function waitMs(ms: number): Promise<void> {
 
 async function speakLineWithTimeout(line: string): Promise<void> {
   await Promise.race([
-    speakScriptedQueued(line),
+    speakScriptedQueued(line).then(() => waitForTtsIdle(LINE_TIMEOUT_MS)),
     waitMs(LINE_TIMEOUT_MS).then(() => undefined),
   ]);
 }
 
 export interface UseScrapeNarrationOptions {
   active: boolean;
+  /** Bumps when replay restarts so narration resets cleanly. */
+  narrationKey?: string;
   profile: PatientProfile;
   summary: ScrapeExecutiveSummary | null;
   /** Replay: wait for animation. Live: wait for job complete. */
@@ -50,6 +52,7 @@ interface QueuedLine {
 
 export function useScrapeNarration({
   active,
+  narrationKey = "default",
   profile,
   summary,
   scrapeComplete,
@@ -178,7 +181,7 @@ export function useScrapeNarration({
     return () => {
       signal.cancelled = true;
     };
-  }, [active]);
+  }, [active, narrationKey]);
 
   // Heal is the money moment — queue it first, only once.
   useEffect(() => {

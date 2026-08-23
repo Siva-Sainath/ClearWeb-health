@@ -46,7 +46,7 @@ interface AppContextType {
   setScrapeContext: (ctx: ScrapeContextPayload | null) => void;
   sessionPresentation: ConductResultsResponse | null;
   setSessionPresentation: (p: ConductResultsResponse | null) => void;
-  applyBrainSession: (session: BrainSessionResponse) => void;
+  applyBrainSession: (session: BrainSessionResponse, opts?: { preserveReplay?: boolean }) => void;
   isListening: boolean;
   setIsListening: (v: boolean) => void;
   isSpeaking: boolean;
@@ -83,19 +83,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPatientProfile((prev) => ({ ...prev, ...normalizeProfilePartial(partial, prev) }));
   }, []);
 
-  const applyBrainSession = useCallback((session: BrainSessionResponse) => {
-    if (session.results) setFacilities(session.results);
-    if (session.events) setScrapeEvents(session.events);
-    if (session.replayEvents?.length) setReplayEvents(session.replayEvents);
-    if (session.healEvents) setScrapeHealEvents(session.healEvents);
-    if (session.lastUpdated) setScrapeLastUpdated(session.lastUpdated);
-    if (session.executiveSummary !== undefined) setExecutiveSummary(session.executiveSummary);
-    if (session.explanation !== undefined) setLlmExplanation(session.explanation);
-    if (session.scrapeContext !== undefined) setScrapeContext(session.scrapeContext ?? null);
-    if (session.presentation !== undefined) setSessionPresentation(session.presentation ?? null);
-    if (session.presentationMode) setScrapePresentationMode(session.presentationMode);
-    if (session.jobId) setScrapeJobId(session.jobId);
-  }, []);
+  const applyBrainSession = useCallback(
+    (session: BrainSessionResponse, opts?: { preserveReplay?: boolean }) => {
+      if (session.results) setFacilities(session.results);
+      if (session.events) setScrapeEvents(session.events);
+      if (session.replayEvents?.length && !opts?.preserveReplay) {
+        setReplayEvents(session.replayEvents);
+      }
+      if (session.healEvents) setScrapeHealEvents(session.healEvents);
+      if (session.lastUpdated) setScrapeLastUpdated(session.lastUpdated);
+      if (session.executiveSummary !== undefined) setExecutiveSummary(session.executiveSummary);
+      if (session.explanation !== undefined) setLlmExplanation(session.explanation);
+      if (session.scrapeContext !== undefined) setScrapeContext(session.scrapeContext ?? null);
+      if (session.presentation !== undefined) setSessionPresentation(session.presentation ?? null);
+      if (session.presentationMode) setScrapePresentationMode(session.presentationMode);
+      if (session.jobId) setScrapeJobId(session.jobId);
+    },
+    []
+  );
 
   const value = useMemo(
     () => ({

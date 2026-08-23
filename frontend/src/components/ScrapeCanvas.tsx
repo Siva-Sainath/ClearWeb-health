@@ -354,8 +354,8 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
   }, [isAnimating, scrapePresentationMode, scrapeJobId]);
 
   const goToResults = useCallback(() => {
-    setScrapeStatus("complete");
     setJourneyPhase("results");
+    setScrapeStatus("complete");
   }, [setJourneyPhase, setScrapeStatus]);
 
   const spokenProcedure =
@@ -383,8 +383,7 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
     [isLive, spokenProcedure]
   );
 
-  const timelineActive =
-    isAnimating && (isLive || effectiveReplayEvents.length > 0);
+  const timelineActive = isAnimating && (isLive || isProofReel);
 
   const timeline = useScrapeTimeline({
     mode: isLive ? "live" : "replay",
@@ -405,10 +404,13 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
     ? timeline.timelineComplete
     : isLive
       ? scrapeStatus === "complete" && timeline.timelineComplete
-      : timeline.timelineComplete && effectiveReplayEvents.length > 0;
+      : timeline.timelineComplete;
+
+  const narrationKey = `${scrapePresentationMode ?? "none"}:${scrapeJobId ?? "none"}`;
 
   useScrapeNarration({
     active: isAnimating && !showcaseMode,
+    narrationKey,
     profile: patientProfile,
     summary: executiveSummary,
     scrapeComplete,

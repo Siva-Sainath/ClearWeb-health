@@ -409,7 +409,10 @@ export function useScrapeTimeline({
       }
     };
 
-    es.onerror = () => es.close();
+    es.onerror = () => {
+      es.close();
+      finishTimeline();
+    };
 
     return () => {
       clearInterval(tick);
