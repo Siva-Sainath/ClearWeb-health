@@ -1,12 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCallback, useEffect, useRef } from "react";
 import { parseActionStrings, type UIAction } from "@/lib/uiActions";
 import type { LlmExplanation, ExplanationSection } from "@/lib/llmExplanation";
 import type { FacilityResult } from "@/lib/types";
-import { tokens } from "@/lib/design-tokens";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { prefetchTts, stopTtsPlayback, speakScriptedQueued } from "@/lib/ttsSpeak";
 
 function waitForLayout(): Promise<void> {
@@ -24,50 +21,31 @@ interface ExplanationStageProps {
   onCaptionChange?: (caption: string) => void;
   onComplete?: () => void;
   autoPlay?: boolean;
+  /** Voice + UI only — no duplicate insight cards on screen */
+  compact?: boolean;
 }
 
-const TITLE_ONLY_SPOKEN = new Set([
-  "Your price range",
-  "How we collected prices",
-  "Explore from here",
-]);
-
-function insightSpeechLine(section: ExplanationSection): string {
-  if (section.type !== "insight") return "";
-  if (TITLE_ONLY_SPOKEN.has(section.title)) return section.body;
-  return `${section.title}. ${section.body}`;
-}
-
-function facilitySpeechLine(section: ExplanationSection): string {
-  if (section.type !== "facility_reveal") return "";
-  return section.reasons.join(" ");
+function speechLine(section: ExplanationSection): string {
+  if (section.type === "insight") return section.body;
+  return section.reasons[0] ?? section.reasons.join(" ");
 }
 
 export default function ExplanationStage({
   explanation,
-  facilities = {},
   onSectionReveal,
   onUiActions,
   onSpeakingChange,
   onCaptionChange,
   onComplete,
   autoPlay = true,
+  compact = false,
 }: ExplanationStageProps) {
-  const reducedMotion = useReducedMotion();
-  const [revealedCount, setRevealedCount] = useState(0);
-  const [liveAnnouncement, setLiveAnnouncement] = useState("");
   const playedRef = useRef(false);
 
   const revealSection = useCallback(
     (section: ExplanationSection, index: number) => {
-      setRevealedCount((c) => Math.max(c, index + 1));
       onSectionReveal?.(section, index);
-      if (section.type === "insight") {
-        setLiveAnnouncement(`${section.title}: ${section.body}`);
-      } else {
-        const name =
-          facilities[section.facilityId]?.hospital_name ?? section.facilityId;
-        setLiveAnnouncement(`Showing ${name}`);
+      if (!compact && section.type === "facility_reveal") {
         requestAnimationFrame(() => {
           document
             .getElementById(`facility-${section.facilityId}`)
@@ -75,15 +53,8 @@ export default function ExplanationStage({
         });
       }
     },
-    [onSectionReveal, facilities]
+    [onSectionReveal, compact]
   );
-
-  useEffect(() => {
-    if (autoPlay || playedRef.current) return;
-    playedRef.current = true;
-    explanation.sections.forEach((section, i) => revealSection(section, i));
-    onComplete?.();
-  }, [autoPlay, explanation, revealSection, onComplete]);
 
   useEffect(() => {
     if (!autoPlay || playedRef.current) return;
@@ -92,10 +63,7 @@ export default function ExplanationStage({
     const script = explanation.spokenScript?.trim() ?? "";
     if (script) prefetchTts(script);
     explanation.sections.forEach((section) => {
-      const line =
-        section.type === "insight"
-          ? insightSpeechLine(section)
-          : facilitySpeechLine(section);
+      const line = speechLine(section);
       if (line.trim()) prefetchTts(line);
     });
 
@@ -103,17 +71,6 @@ export default function ExplanationStage({
       stopTtsPlayback();
       onSpeakingChange?.(true);
       try {
-        const layoutMode = explanation.defaultLayout ?? explanation.layout;
-        if (layoutMode && layoutMode !== "cards_then_map") {
-          onUiActions?.(parseActionStrings([`layout:${layoutMode}`]));
-          await waitForLayout();
-        }
-
-        if (explanation.uiActions.length) {
-          onUiActions?.(parseActionStrings(explanation.uiActions));
-          await waitForLayout();
-        }
-
         if (script) {
           onCaptionChange?.(script);
           await speakScriptedQueued(script);
@@ -127,10 +84,7 @@ export default function ExplanationStage({
           }
           revealSection(section, i);
 
-          const line =
-            section.type === "insight"
-              ? insightSpeechLine(section)
-              : facilitySpeechLine(section);
+          const line = speechLine(section);
           if (line.trim()) {
             onCaptionChange?.(line);
             await speakScriptedQueued(line);
@@ -154,7 +108,7 @@ export default function ExplanationStage({
     revealSection,
   ]);
 
-  const visibleSections = explanation.sections.slice(0, revealedCount);
+  if (compact) return null;
 
   return (
     <section className="space-y-5" aria-labelledby="explanation-heading">
@@ -164,51 +118,6 @@ export default function ExplanationStage({
       >
         Aria&apos;s walkthrough
       </h2>
-
-      <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {liveAnnouncement}
-      </div>
-
-      <AnimatePresence initial={false}>
-        {visibleSections.map((section, i) => (
-          <motion.div
-            key={
-              section.type === "insight"
-                ? `insight-${section.title}-${i}`
-                : `facility-${section.facilityId}-${i}`
-            }
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reducedMotion ? 0 : 0.35, ease: "easeOut" }}
-            className="glass rounded-xl p-5 border border-white/[0.06] space-y-2"
-          >
-            {section.type === "insight" ? (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-tertiary)]">
-                  {section.title}
-                </p>
-                <p className="text-sm text-[var(--color-text-secondary)] mt-1.5 leading-relaxed">
-                  {section.body}
-                </p>
-              </div>
-            ) : (
-              <div>
-                <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                  {facilities[section.facilityId]?.hospital_name ?? "Hospital option"}
-                </p>
-                <ul className="mt-2 space-y-1 text-sm text-[var(--color-text-secondary)]">
-                  {section.reasons.map((r) => (
-                    <li key={r} className="flex gap-2">
-                      <span style={{ color: tokens.accent }}>•</span>
-                      <span>{r}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </motion.div>
-        ))}
-      </AnimatePresence>
     </section>
   );
 }

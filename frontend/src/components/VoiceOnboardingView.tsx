@@ -7,7 +7,7 @@ import { useDashboard } from "@/context/DashboardContext";
 import { useAriaAgent } from "@/hooks/useAriaAgent";
 import { useScrapeJob } from "@/hooks/useScrapeJob";
 import { useZipCacheProbe } from "@/hooks/useZipCacheProbe";
-import { prefetchTtsLines } from "@/lib/ttsSpeak";
+import { prefetchTtsLines, waitForTtsIdle } from "@/lib/ttsSpeak";
 import { getOnboardingWelcomeChunks } from "@/lib/voiceCopy";
 import CoverageDrawer from "@/components/CoverageDrawer";
 import InteractionStage from "@/components/InteractionStage";
@@ -139,7 +139,7 @@ export default function VoiceOnboardingView() {
   });
 
   const beginPriceSearch = useCallback(
-    (profileOverride?: PatientProfile) => {
+    async (profileOverride?: PatientProfile) => {
       if (transitioningRef.current) return;
 
       let profile = profileOverride ?? patientProfile;
@@ -165,6 +165,7 @@ export default function VoiceOnboardingView() {
       }
       setCoverageOpen(false);
       setCoverageHintReady(false);
+      await waitForTtsIdle();
       agent.stopVoiceSession();
       setScrapeConfirmed(true);
       setTransitioning(true);

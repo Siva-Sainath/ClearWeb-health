@@ -13,6 +13,8 @@ import {
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 const FADE_SEC = 0.025;
+/** Edge TTS can take ~20s on a cold socket — wait before falling back to browser. */
+const HOSTED_WAIT_MS = 22000;
 
 let audioCtx: AudioContext | null = null;
 let currentSource: AudioBufferSourceNode | null = null;
@@ -178,6 +180,8 @@ export interface SpeakTtsOptions {
    * worth waiting this long for the hosted clip instead of using the browser voice.
    */
   hostedWaitMs?: number;
+  /** Skip hosted wait and use browser speech (onboarding welcome only if Edge is warm). */
+  instant?: boolean;
 }
 
 function playBuffer(
@@ -287,11 +291,17 @@ function speakBrowser(text: string, gen: number, options?: SpeakTtsOptions): Pro
       if (heldUtterance === utter) heldUtterance = null;
       resolve();
     };
-    utter.onend = finish;
-    utter.onerror = finish;
+    const safety = window.setTimeout(finish, Math.min(120000, 15000 + text.length * 120));
+    utter.onend = () => {
+      window.clearTimeout(safety);
+      finish();
+    };
+    utter.onerror = () => {
+      window.clearTimeout(safety);
+      finish();
+    };
     options?.onPlaying?.();
     window.speechSynthesis.speak(utter);
-    window.setTimeout(finish, Math.min(25000, 800 + text.length * 90));
   });
 }
 
@@ -319,14 +329,22 @@ export async function speakTts(text: string, options?: SpeakTtsOptions): Promise
 
   try {
     let hosted = blobCache.get(cacheKey(clean));
+    const waitMs = options?.instant ? 0 : (options?.hostedWaitMs ?? HOSTED_WAIT_MS);
 
-    if (!hosted && options?.hostedWaitMs) {
+    if (!hosted && waitMs > 0) {
       hosted = await Promise.race([
         getTtsBlob(clean).catch(() => undefined),
-        new Promise<undefined>((resolve) =>
-          window.setTimeout(() => resolve(undefined), options.hostedWaitMs)
-        ),
+        new Promise<undefined>((resolve) => window.setTimeout(() => resolve(undefined), waitMs)),
       ]);
+      if (gen !== currentVoiceGeneration()) return;
+    }
+
+    if (!hosted && !options?.instant) {
+      try {
+        hosted = await getTtsBlob(clean);
+      } catch {
+        /* fall through to browser */
+      }
       if (gen !== currentVoiceGeneration()) return;
     }
 
@@ -338,8 +356,12 @@ export async function speakTts(text: string, options?: SpeakTtsOptions): Promise
       return;
     }
 
-    // Unique LLM lines must speak now — Edge often takes >10s or 429s. Cache the clip in the background.
-    void getTtsBlob(clean).catch(() => {});
+    if (options?.instant) {
+      await speakBrowser(clean, gen, options);
+      return;
+    }
+
+    console.warn("[tts] hosted clip unavailable, using browser voice");
     await speakBrowser(clean, gen, options);
   } catch (err) {
     console.warn("[tts] playback failed:", err);
@@ -386,7 +408,14 @@ export function speakScriptedQueued(
   text: string,
   options?: SpeakTtsOptions
 ): Promise<void> {
-  return speakTtsQueued(text, { hostedWaitMs: 4000, ...options });
+  return speakTtsQueued(text, { hostedWaitMs: HOSTED_WAIT_MS, ...options });
+}
+
+export async function waitForTtsIdle(maxMs = 60000): Promise<void> {
+  const start = Date.now();
+  while (isTtsPlaying() && Date.now() - start < maxMs) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
 }
 
 export function resetVoiceQueue(): void {

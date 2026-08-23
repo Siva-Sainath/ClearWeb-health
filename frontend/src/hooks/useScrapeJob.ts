@@ -2,7 +2,6 @@
 
 import { useCallback, useRef } from "react";
 import { useAppContext } from "@/context/AppContext";
-import { stopAllVoice } from "@/lib/ariaVoiceController";
 import { resetVoiceQueue } from "@/lib/ttsSpeak";
 import {
   AUSTIN_DEMO_SNAPSHOT,
@@ -101,7 +100,6 @@ export function useScrapeJob() {
   const runSession = useCallback(
     async (profile: PatientProfile, opts: { mode?: string; instant?: boolean } = {}) => {
       if (pollingRef.current) clearTimeout(pollingRef.current);
-      stopAllVoice();
       resetVoiceQueue();
 
       const seed = getDemoReplayEvents(profile);

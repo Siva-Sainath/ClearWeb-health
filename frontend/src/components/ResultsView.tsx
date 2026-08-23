@@ -34,7 +34,6 @@ import ScrapeDemoActions from "./ScrapeDemoActions";
 import { useResultsConductor } from "@/hooks/useResultsConductor";
 import { buildScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import { buildFacilityFlashcards } from "@/lib/facilityInsights";
-import { insightSectionsFromExplanation } from "@/lib/llmExplanation";
 import type { FacilityInsight } from "@/lib/facilityInsights";
 import { tokens } from "@/lib/design-tokens";
 import { BRAND } from "@/lib/brand";
@@ -150,21 +149,15 @@ export default function ResultsView() {
     [scrapeEvents]
   );
 
-  const flashcardInsights = useMemo((): FacilityInsight[] => {
-    if (llmExplanation) {
-      const topId = summary?.recommendation?.id ?? Object.keys(facilities)[0] ?? "";
-      return insightSectionsFromExplanation(llmExplanation).map((s, i) => ({
-        id: `llm-insight-${i}`,
-        title: s.title,
-        subtitle: s.emphasis ?? "summary",
-        highlight: s.body,
-        facilityId: topId,
-        metric: s.emphasis ?? "insight",
-        accent: s.emphasis ?? "summary",
-      }));
-    }
-    return buildFacilityFlashcards(facilities, patientProfile);
-  }, [llmExplanation, facilities, patientProfile, summary]);
+  const flashcardInsights = useMemo(
+    (): FacilityInsight[] => buildFacilityFlashcards(facilities, patientProfile),
+    [facilities, patientProfile]
+  );
+
+  useEffect(() => {
+    if (!conductorFailed) return;
+    setWalkthroughDone(false);
+  }, [conductorFailed]);
 
   useEffect(() => {
     if (!walkthroughDone) return;
@@ -442,12 +435,12 @@ export default function ResultsView() {
         </p>
       )}
 
-      {walkthroughExplanation && (
+      {localWalkthrough && walkthroughExplanation && !walkthroughDone && (
         <ExplanationStage
-          key={localWalkthrough ? "walkthrough-local" : "walkthrough-conducted"}
           explanation={walkthroughExplanation}
           facilities={facilities}
-          autoPlay={localWalkthrough && !walkthroughDone}
+          compact
+          autoPlay
           onSectionReveal={handleExplanationReveal}
           onUiActions={applyActions}
           onSpeakingChange={setExplanationSpeaking}
@@ -639,6 +632,7 @@ export default function ResultsView() {
         </AnimatePresence>
       </section>
 
+      {walkthroughDone && (
       <VoiceShell
         phase="results"
         compact
@@ -662,6 +656,7 @@ export default function ResultsView() {
         onMicToggle={() => void agent.toggleVoiceInput()}
         onTypeFallback={() => setShowTypeMode((p) => !p)}
       />
+      )}
     </div>
   );
 }

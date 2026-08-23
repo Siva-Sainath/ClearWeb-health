@@ -18,7 +18,7 @@ import {
   executeFacilityCall,
 } from "@/lib/facilityContact";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
-import { speakTts, prefetchTts, unlockAudioPlayback, getSharedAudioContext, isTtsPlaying } from "@/lib/ttsSpeak";
+import { speakTts, prefetchTts, unlockAudioPlayback, getSharedAudioContext, isTtsPlaying, waitForTtsIdle } from "@/lib/ttsSpeak";
 import { normalizeProfileUpdates, normalizeUserTranscript } from "@/lib/profileNormalize";
 import { gateOnboardingProfileUpdates } from "@/lib/onboardingProfileGate";
 import { EMPTY_PROFILE } from "@/lib/types";
@@ -484,6 +484,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       try {
         await speakTts(clean, {
           audioRef: ttsAudioRef,
+          hostedWaitMs: 22000,
           onPlaying: () => {
             startSpeakLevelSim();
           },
@@ -744,6 +745,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
 
       prefetchTts(display);
       await speakWithEdgeTTS(display);
+      await waitForTtsIdle();
 
       const gatedUpdates = gateOnboardingProfileUpdates(
         normalizeProfileUpdates(

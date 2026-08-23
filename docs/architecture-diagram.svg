@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" font-family="system-ui, -apple-system, Segoe UI, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#fb923c"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#4ade80"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+
+  <text x="800" y="42" text-anchor="middle" fill="#f8fafc" font-size="28" font-weight="700">Clearweb Health - Backend Architecture</text>
+  <text x="800" y="68" text-anchor="middle" fill="#94a3b8" font-size="14">Single brain entry: POST /api/scrape/session | Express :3001 | Next.js :3000</text>
+
+  <g transform="translate(40, 90)">
+    <rect x="0" y="0" width="320" height="88" rx="8" fill="#1e293b" stroke="#334155"/>
+    <text x="12" y="22" fill="#e2e8f0" font-size="12" font-weight="600">Legend</text>
+    <line x1="12" y1="38" x2="42" y2="38" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrowBlue)"/>
+    <text x="50" y="42" fill="#cbd5e1" font-size="11">Patient journey (voice + brain)</text>
+    <line x1="12" y1="58" x2="42" y2="58" stroke="#4ade80" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
+    <text x="50" y="62" fill="#cbd5e1" font-size="11">Cached SQLite path</text>
+    <line x1="12" y1="78" x2="42" y2="78" stroke="#fb923c" stroke-width="2.5" marker-end="url(#arrowOrange)"/>
+    <text x="50" y="82" fill="#cbd5e1" font-size="11">Live scrape / Bright Data</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="40" y="200" width="280" height="340" rx="12" fill="#172554" stroke="#3b82f6" stroke-width="2"/>
+    <text x="180" y="228" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="700">Next.js Frontend</text>
+    <text x="180" y="248" text-anchor="middle" fill="#64748b" font-size="11">localhost:3000</text>
+    <rect x="60" y="262" width="240" height="28" rx="6" fill="#1e3a8a"/>
+    <text x="72" y="281" fill="#e2e8f0" font-size="11">useAriaAgent - voice onboarding</text>
+    <rect x="60" y="298" width="240" height="28" rx="6" fill="#1e3a8a"/>
+    <text x="72" y="317" fill="#e2e8f0" font-size="11">useScrapeJob - brain session</text>
+    <rect x="60" y="334" width="240" height="28" rx="6" fill="#1e3a8a"/>
+    <text x="72" y="353" fill="#e2e8f0" font-size="11">useScrapeTimeline - replay / SSE</text>
+    <rect x="60" y="370" width="240" height="28" rx="6" fill="#1e3a8a"/>
+    <text x="72" y="389" fill="#e2e8f0" font-size="11">usePresentationOrchestrator</text>
+    <rect x="60" y="406" width="240" height="28" rx="6" fill="#1e3a8a"/>
+    <text x="72" y="425" fill="#e2e8f0" font-size="11">ttsSpeak - Edge / browser TTS</text>
+    <rect x="60" y="442" width="240" height="28" rx="6" fill="#1e3a8a"/>
+    <text x="72" y="461" fill="#e2e8f0" font-size="11">Dashboard UI actions [action:...]</text>
+    <text x="180" y="510" text-anchor="middle" fill="#64748b" font-size="10">Phases: onboarding - scrape - results</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="380" y="200" width="300" height="400" rx="12" fill="#1e1b4b" stroke="#818cf8" stroke-width="2"/>
+    <text x="530" y="228" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="700">Express API - server.js</text>
+    <text x="530" y="248" text-anchor="middle" fill="#64748b" font-size="11">localhost:3001</text>
+    <text x="400" y="272" fill="#a5b4fc" font-size="10" font-weight="600">Voice and Agent</text>
+    <text x="400" y="288" fill="#cbd5e1" font-size="10">POST /api/agent/chat (SSE)</text>
+    <text x="400" y="304" fill="#cbd5e1" font-size="10">POST /api/tts/speak, /api/stt/transcribe</text>
+    <text x="400" y="320" fill="#cbd5e1" font-size="10">POST /api/agent/conduct-results</text>
+    <text x="400" y="348" fill="#fbbf24" font-size="10" font-weight="600">Brain (primary)</text>
+    <rect x="395" y="354" width="270" height="36" rx="6" fill="#422006" stroke="#f59e0b"/>
+    <text x="405" y="376" fill="#fde68a" font-size="11" font-weight="600">POST /api/scrape/session</text>
+    <text x="400" y="408" fill="#a5b4fc" font-size="10" font-weight="600">Live scrape</text>
+    <text x="400" y="424" fill="#cbd5e1" font-size="10">POST /api/scrape/start</text>
+    <text x="400" y="440" fill="#cbd5e1" font-size="10">GET /api/scrape/:id/events (SSE)</text>
+    <text x="400" y="468" fill="#a5b4fc" font-size="10" font-weight="600">Prices and collectors</text>
+    <text x="400" y="484" fill="#cbd5e1" font-size="10">GET /api/prices/query, cache-check</text>
+    <text x="400" y="500" fill="#cbd5e1" font-size="10">GET /api/collectors/status</text>
+    <text x="400" y="516" fill="#cbd5e1" font-size="10">POST /api/collectors/heal</text>
+    <text x="400" y="548" fill="#cbd5e1" font-size="10">GET /api/health</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="740" y="160" width="360" height="480" rx="12" fill="#134e4a" stroke="#2dd4bf" stroke-width="2"/>
+    <text x="920" y="188" text-anchor="middle" fill="#5eead4" font-size="13" font-weight="700">Node Services</text>
+    <rect x="770" y="205" width="300" height="72" rx="10" fill="#042f2e" stroke="#f59e0b" stroke-width="2"/>
+    <text x="920" y="232" text-anchor="middle" fill="#fde68a" font-size="13" font-weight="700">brainService.js</text>
+    <text x="920" y="252" text-anchor="middle" fill="#99f6e4" font-size="10">createSession, buildBrainPayload</text>
+    <text x="920" y="268" text-anchor="middle" fill="#64748b" font-size="9">results + replay + heal + summary + explanation</text>
+    <rect x="760" y="295" width="145" height="50" rx="6" fill="#0f766e"/>
+    <text x="832" y="316" text-anchor="middle" fill="#ecfdf5" font-size="10">ariaAgent.js</text>
+    <text x="832" y="332" text-anchor="middle" fill="#99f6e4" font-size="9">promptBuilder</text>
+    <rect x="915" y="295" width="175" height="50" rx="6" fill="#0f766e"/>
+    <text x="1002" y="316" text-anchor="middle" fill="#ecfdf5" font-size="10">llmProvider.js</text>
+    <text x="1002" y="332" text-anchor="middle" fill="#99f6e4" font-size="9">Groq, Ollama, OpenAI</text>
+    <rect x="760" y="355" width="145" height="50" rx="6" fill="#0f766e"/>
+    <text x="832" y="376" text-anchor="middle" fill="#ecfdf5" font-size="10">priceQueryService</text>
+    <text x="832" y="392" text-anchor="middle" fill="#99f6e4" font-size="9">spawn query_prices.py</text>
+    <rect x="915" y="355" width="175" height="50" rx="6" fill="#0f766e"/>
+    <text x="1002" y="376" text-anchor="middle" fill="#ecfdf5" font-size="10">scrapeService.js</text>
+    <text x="1002" y="392" text-anchor="middle" fill="#99f6e4" font-size="9">jobs Map, SSE, watchdog</text>
+    <rect x="760" y="415" width="145" height="50" rx="6" fill="#0f766e"/>
+    <text x="832" y="436" text-anchor="middle" fill="#ecfdf5" font-size="10">executiveSummary</text>
+    <text x="832" y="452" text-anchor="middle" fill="#99f6e4" font-size="9">deterministicExplanation</text>
+    <rect x="915" y="415" width="175" height="50" rx="6" fill="#0f766e"/>
+    <text x="1002" y="436" text-anchor="middle" fill="#ecfdf5" font-size="10">resultsConductor</text>
+    <text x="1002" y="452" text-anchor="middle" fill="#99f6e4" font-size="9">Groq tools to steps[]</text>
+    <rect x="760" y="475" width="145" height="50" rx="6" fill="#0f766e"/>
+    <text x="832" y="496" text-anchor="middle" fill="#ecfdf5" font-size="10">scrapeContext</text>
+    <text x="832" y="512" text-anchor="middle" fill="#99f6e4" font-size="9">heal events, stats</text>
+    <rect x="915" y="475" width="175" height="50" rx="6" fill="#0f766e"/>
+    <text x="1002" y="496" text-anchor="middle" fill="#ecfdf5" font-size="10">ttsService, sttService</text>
+    <text x="1002" y="512" text-anchor="middle" fill="#99f6e4" font-size="9">Edge TTS, Groq Whisper</text>
+    <rect x="760" y="535" width="330" height="40" rx="6" fill="#0f766e"/>
+    <text x="925" y="560" text-anchor="middle" fill="#ecfdf5" font-size="10">collectorStatusService, collectorHealService</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1160" y="200" width="400" height="320" rx="12" fill="#431407" stroke="#fb923c" stroke-width="2"/>
+    <text x="1360" y="228" text-anchor="middle" fill="#fdba74" font-size="13" font-weight="700">Python Scraper (scraper/)</text>
+    <rect x="1180" y="248" width="170" height="56" rx="6" fill="#7c2d12"/>
+    <text x="1265" y="272" text-anchor="middle" fill="#ffedd5" font-size="10">query_prices.py</text>
+    <text x="1265" y="290" text-anchor="middle" fill="#fdba74" font-size="9">SQLite lookup</text>
+    <rect x="1370" y="248" width="170" height="56" rx="6" fill="#7c2d12"/>
+    <text x="1455" y="272" text-anchor="middle" fill="#ffedd5" font-size="10">run_job.py</text>
+    <text x="1455" y="290" text-anchor="middle" fill="#fdba74" font-size="9">live orchestrator</text>
+    <rect x="1180" y="318" width="170" height="56" rx="6" fill="#7c2d12"/>
+    <text x="1265" y="342" text-anchor="middle" fill="#ffedd5" font-size="10">collector_status.py</text>
+    <text x="1265" y="360" text-anchor="middle" fill="#fdba74" font-size="9">pipeline DB stats</text>
+    <rect x="1370" y="318" width="170" height="56" rx="6" fill="#7c2d12"/>
+    <text x="1455" y="342" text-anchor="middle" fill="#ffedd5" font-size="10">heal_collector_api.py</text>
+    <text x="1455" y="360" text-anchor="middle" fill="#fdba74" font-size="9">pipeline/heal.py</text>
+    <rect x="1180" y="390" width="360" height="110" rx="8" fill="#292524" stroke="#fb923c"/>
+    <text x="1360" y="416" text-anchor="middle" fill="#fdba74" font-size="11" font-weight="600">Bright Data Platform</text>
+    <text x="1360" y="438" text-anchor="middle" fill="#e7e5e4" font-size="10">Scraper Studio collectors (c_* IDs)</text>
+    <text x="1360" y="456" text-anchor="middle" fill="#e7e5e4" font-size="10">Web Unlocker - MRF download</text>
+    <text x="1360" y="474" text-anchor="middle" fill="#e7e5e4" font-size="10">Self-healing - refactor_template / DCA</text>
+    <text x="1360" y="492" text-anchor="middle" fill="#a8a29e" font-size="9">St Luke Houston: c_mt5goll71eekdhe91q</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="740" y="680" width="820" height="160" rx="12" fill="#14532d" stroke="#4ade80" stroke-width="2"/>
+    <text x="1150" y="710" text-anchor="middle" fill="#86efac" font-size="13" font-weight="700">Data and Static Assets</text>
+    <rect x="760" y="728" width="180" height="90" rx="6" fill="#166534"/>
+    <text x="850" y="752" text-anchor="middle" fill="#dcfce7" font-size="11" font-weight="600">chargemaster.db</text>
+    <text x="850" y="772" text-anchor="middle" fill="#bbf7d0" font-size="9">SQLite Austin MRF prices</text>
+    <text x="850" y="788" text-anchor="middle" fill="#bbf7d0" font-size="9">12 hospitals, CPT rows</text>
+    <rect x="960" y="728" width="180" height="90" rx="6" fill="#166534"/>
+    <text x="1050" y="752" text-anchor="middle" fill="#dcfce7" font-size="11" font-weight="600">Collector jobs DB</text>
+    <text x="1050" y="772" text-anchor="middle" fill="#bbf7d0" font-size="9">Texas pipeline status</text>
+    <text x="1050" y="788" text-anchor="middle" fill="#bbf7d0" font-size="9">verified / pending / failed</text>
+    <rect x="1160" y="728" width="180" height="90" rx="6" fill="#166534"/>
+    <text x="1250" y="752" text-anchor="middle" fill="#dcfce7" font-size="11" font-weight="600">austinDemoSnapshot.json</text>
+    <text x="1250" y="772" text-anchor="middle" fill="#bbf7d0" font-size="9">Deploy fallback replay</text>
+    <text x="1250" y="788" text-anchor="middle" fill="#bbf7d0" font-size="9">plus cached prices</text>
+    <rect x="1360" y="728" width="180" height="90" rx="6" fill="#166534"/>
+    <text x="1450" y="752" text-anchor="middle" fill="#dcfce7" font-size="11" font-weight="600">stlukesHealShowcase.json</text>
+    <text x="1450" y="772" text-anchor="middle" fill="#bbf7d0" font-size="9">Houston heal recording</text>
+    <text x="1450" y="788" text-anchor="middle" fill="#bbf7d0" font-size="9">separate from Austin prices</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1160" y="540" width="400" height="120" rx="12" fill="#312e81" stroke="#a78bfa" stroke-width="2"/>
+    <text x="1360" y="568" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="700">External APIs</text>
+    <text x="1360" y="592" text-anchor="middle" fill="#e2e8f0" font-size="10">Groq - LLM, Whisper STT, Orpheus TTS</text>
+    <text x="1360" y="612" text-anchor="middle" fill="#e2e8f0" font-size="10">Microsoft Edge TTS - en-US-AriaNeural</text>
+    <text x="1360" y="632" text-anchor="middle" fill="#e2e8f0" font-size="10">Bright Data API - collectors, unlocker, self-heal</text>
+  </g>
+
+  <path d="M 320 280 L 378 280" stroke="#38bdf8" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+  <text x="330" y="272" fill="#38bdf8" font-size="9">chat SSE</text>
+  <path d="M 320 330 L 378 370" stroke="#38bdf8" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+  <text x="300" y="355" fill="#38bdf8" font-size="9">session</text>
+  <path d="M 320 420 L 378 430" stroke="#38bdf8" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+  <text x="300" y="425" fill="#38bdf8" font-size="9">TTS/STT</text>
+  <path d="M 680 372 L 768 241" stroke="#fbbf24" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <text x="700" y="300" fill="#fbbf24" font-size="10" font-weight="600">brain</text>
+  <path d="M 680 280 L 758 320" stroke="#38bdf8" stroke-width="2" fill="none" marker-end="url(#arrowBlue)"/>
+  <path d="M 850 277 L 832 353" stroke="#4ade80" stroke-width="2" fill="none" marker-end="url(#arrowGreen)"/>
+  <text x="800" y="320" fill="#4ade80" font-size="9">cached</text>
+  <path d="M 990 277 L 1002 353" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#arrowOrange)"/>
+  <text x="1005" y="320" fill="#fb923c" font-size="9">live</text>
+  <path d="M 905 380 L 1178 276" stroke="#4ade80" stroke-width="2" fill="none" marker-end="url(#arrowGreen)"/>
+  <path d="M 1090 405 L 1370 276" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#arrowOrange)"/>
+  <path d="M 1360 374 L 1360 388" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#arrowOrange)"/>
+  <path d="M 1265 304 L 850 726" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowGreen)"/>
+  <path d="M 920 277 L 1250 726" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="5,4" fill="none"/>
+  <path d="M 1090 320 L 1158 580" stroke="#a78bfa" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 1455 500 L 1455 538" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#arrowOrange)"/>
+
+  <rect x="40" y="880" width="1520" height="180" rx="12" fill="#1e293b" stroke="#334155"/>
+  <text x="60" y="908" fill="#f8fafc" font-size="13" font-weight="600">Key flows</text>
+  <text x="60" y="932" fill="#38bdf8" font-size="11">1 Voice: mic - STT - POST /api/agent/chat - Groq LLM - profile tags - frontend</text>
+  <text x="60" y="952" fill="#fbbf24" font-size="11">2 Brain: POST /api/scrape/session - brainService - cached SQLite OR live Bright Data OR demo snapshot</text>
+  <text x="60" y="972" fill="#fde68a" font-size="11">   Returns: results, replayEvents, healEvents, executiveSummary, explanation, presentation steps</text>
+  <text x="60" y="992" fill="#fb923c" font-size="11">3 Live SSE: POST /api/scrape/start - scrapeService streams events to frontend timeline</text>
+  <text x="60" y="1012" fill="#c4b5fd" font-size="11">4 Results: deterministicExplanation + resultsConductor - UI actions + TTS captions</text>
+  <text x="60" y="1032" fill="#4ade80" font-size="11">5 Collectors: GET /api/collectors/status - POST /api/collectors/heal - Bright Data self-heal</text>
+  <text x="800" y="1075" text-anchor="middle" fill="#64748b" font-size="10">Clearweb Health - Bright Data Hackathon - Austin 787xx demo scope</text>
+</svg>
