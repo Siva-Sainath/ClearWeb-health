@@ -88,8 +88,14 @@ function fadeOutAndStop(): void {
 
 export function unlockAudioPlayback(): void {
   const ctx = getAudioContext();
-  if (!ctx) return;
-  void ctx.resume();
+  if (ctx) void ctx.resume();
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  try {
+    window.speechSynthesis.resume();
+    void window.speechSynthesis.getVoices();
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function fetchTtsBlob(text: string): Promise<Blob> {
@@ -223,8 +229,13 @@ function playBuffer(
   });
 }
 
-function pickBrowserVoice(): SpeechSynthesisVoice | null {
+/** Chrome GCs utterances that are not held on a global — that kills audio with no error. */
+let heldUtterance: SpeechSynthesisUtterance | null = null;
+let pinnedVoice: SpeechSynthesisVoice | null = null;
+
+function pinBrowserVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !window.speechSynthesis) return null;
+  if (pinnedVoice && window.speechSynthesis.getVoices().includes(pinnedVoice)) return pinnedVoice;
   const voices = window.speechSynthesis.getVoices();
   const scored = voices
     .filter((v) => /^en(-|$)/i.test(v.lang))
@@ -232,12 +243,19 @@ function pickBrowserVoice(): SpeechSynthesisVoice | null {
       const n = v.name;
       let score = 0;
       if (/Aria/i.test(n)) score += 50;
-      if (/Samantha|Jenny|Natural|Google US English|Female/i.test(n)) score += 20;
+      if (/Samantha|Jenny|Google US English|Microsoft Aria|Female/i.test(n)) score += 20;
       if (/en-US/i.test(v.lang)) score += 10;
       return { v, score };
     })
     .sort((a, b) => b.score - a.score);
-  return scored[0]?.v ?? null;
+  pinnedVoice = scored[0]?.v ?? null;
+  return pinnedVoice;
+}
+
+if (typeof window !== "undefined" && window.speechSynthesis) {
+  window.speechSynthesis.addEventListener("voiceschanged", () => {
+    pinBrowserVoice();
+  });
 }
 
 function speakBrowser(text: string, gen: number, options?: SpeakTtsOptions): Promise<void> {
@@ -247,10 +265,13 @@ function speakBrowser(text: string, gen: number, options?: SpeakTtsOptions): Pro
   if (gen !== currentVoiceGeneration()) return Promise.resolve();
 
   window.speechSynthesis.cancel();
+  window.speechSynthesis.resume();
   const utter = new SpeechSynthesisUtterance(text);
+  heldUtterance = utter;
   utter.rate = 1.04;
   utter.pitch = 1.02;
-  const voice = pickBrowserVoice();
+  utter.lang = "en-US";
+  const voice = pinBrowserVoice();
   if (voice) utter.voice = voice;
 
   return new Promise((resolve) => {
@@ -258,13 +279,14 @@ function speakBrowser(text: string, gen: number, options?: SpeakTtsOptions): Pro
     const finish = () => {
       if (settled) return;
       settled = true;
+      if (heldUtterance === utter) heldUtterance = null;
       resolve();
     };
     utter.onend = finish;
     utter.onerror = finish;
     options?.onPlaying?.();
     window.speechSynthesis.speak(utter);
-    window.setTimeout(finish, Math.min(20000, 400 + text.length * 80));
+    window.setTimeout(finish, Math.min(25000, 800 + text.length * 90));
   });
 }
 
@@ -274,22 +296,44 @@ export async function speakTts(text: string, options?: SpeakTtsOptions): Promise
 
   fadeOutAndStop();
   const gen = nextVoiceGeneration();
+  void getAudioContext()?.resume();
+  if (typeof window !== "undefined") {
+    try {
+      window.speechSynthesis?.resume();
+    } catch {
+      /* ignore */
+    }
+  }
 
   const localStop = () => {
     fadeOutAndStop();
+    heldUtterance = null;
     if (options?.audioRef) options.audioRef.current = null;
   };
   registerVoiceStop(localStop);
 
   try {
-    const blob = await getTtsBlob(clean);
-    if (gen !== currentVoiceGeneration()) return;
-    const buffer = await decodeBlob(clean, blob);
-    if (gen !== currentVoiceGeneration()) return;
-    await getAudioContext()?.resume();
-    await playBuffer(buffer, gen, options);
+    const cached = blobCache.get(cacheKey(clean));
+    if (cached) {
+      const buffer = await decodeBlob(clean, cached);
+      if (gen !== currentVoiceGeneration()) return;
+      await getAudioContext()?.resume();
+      await playBuffer(buffer, gen, options);
+      return;
+    }
+
+    // Unique LLM lines must speak now — Edge often takes >10s or 429s. Cache the clip in the background.
+    void getTtsBlob(clean).catch(() => {});
+    await speakBrowser(clean, gen, options);
   } catch (err) {
     console.warn("[tts] playback failed:", err);
+    if (gen === currentVoiceGeneration()) {
+      try {
+        await speakBrowser(clean, gen, options);
+      } catch {
+        /* ignore */
+      }
+    }
   } finally {
     unregisterVoiceStop(localStop);
     if (options?.audioRef) options.audioRef.current = null;

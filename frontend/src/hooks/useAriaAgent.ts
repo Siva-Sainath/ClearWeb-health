@@ -799,6 +799,8 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       const trimmed = normalizeUserTranscript(userText.trim());
       if (!trimmed || phase === "scraping") return;
 
+      unlockAudioPlayback();
+
       if (!isActiveRef.current) {
         setIsActive(true);
         isActiveRef.current = true;
