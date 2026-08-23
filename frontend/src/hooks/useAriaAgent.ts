@@ -223,7 +223,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       const tick = () => {
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length / 255;
-        setAudioLevel(Math.max(0.08, avg));
+        setAudioLevel(Math.min(1, Math.max(0.18, avg * 2.6)));
         setFreqData(new Uint8Array(data));
         recordLevelRafRef.current = requestAnimationFrame(tick);
       };
@@ -252,8 +252,8 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
     stopSpeechLevelSim();
     speechLevelTimerRef.current = setInterval(() => {
       const t = Date.now() / 1000;
-      const level = 0.25 + Math.sin(t * 4.2) * 0.12 + Math.sin(t * 9.1) * 0.07;
-      setAudioLevel(Math.max(0.15, Math.min(0.65, level)));
+      const level = 0.42 + Math.sin(t * 4.2) * 0.22 + Math.sin(t * 9.1) * 0.14;
+      setAudioLevel(Math.max(0.22, Math.min(0.95, level)));
     }, 50);
   }, [stopSpeechLevelSim]);
 
@@ -320,8 +320,8 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
     speakLevelTimerRef.current = setInterval(() => {
       // Smoother than pure random — sinusoidal base + small noise
       const t = Date.now() / 1000;
-      const level = 0.28 + Math.sin(t * 3.1) * 0.15 + Math.sin(t * 7.3) * 0.08;
-      setAudioLevel(Math.max(0.15, Math.min(0.85, level)));
+      const level = 0.45 + Math.sin(t * 3.1) * 0.28 + Math.sin(t * 7.3) * 0.14;
+      setAudioLevel(Math.max(0.22, Math.min(0.95, level)));
     }, 50); // 20 fps update
   }, [stopSpeakLevelSim]);
 
@@ -743,7 +743,6 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
 
   const handleDeterministicFollowUp = useCallback(
     async (trimmed: string, agentId: string) => {
-      if (AGENTIC_RESULTS) return false;
       if (!executiveSummary) return false;
       const visibleIds = Object.keys(facilities);
       const match = matchFollowUpIntent(trimmed, {
@@ -792,8 +791,15 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       setError(null);
 
       const uiContext = dashState ? buildUIStateContext(dashState) : "";
+      const agentId = `a-${Date.now()}`;
+      setMessages((prev) => [...prev, { id: agentId, role: "agent", text: "" }]);
 
       try {
+        if (phase === "results" && executiveSummary) {
+          const handledLocally = await handleDeterministicFollowUp(trimmed, agentId);
+          if (handledLocally) return;
+        }
+
         const res = await fetch(`${BACKEND}/api/agent/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -814,13 +820,6 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
         let fullText = "";
         let handled = false;
         let profileUpdates: Record<string, unknown> = {};
-        const agentId = `a-${Date.now()}`;
-        setMessages((prev) => [...prev, { id: agentId, role: "agent", text: "" }]);
-
-        if (phase === "results" && executiveSummary) {
-          const handledLocally = await handleDeterministicFollowUp(trimmed, agentId);
-          if (handledLocally) return;
-        }
 
         while (true) {
           const { done, value } = await reader.read();

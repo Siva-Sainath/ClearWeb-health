@@ -10,6 +10,7 @@ interface AgentLiveRibbonProps {
   voiceState: VoiceState;
   isSpeaking: boolean;
   audioLevel: number;
+  freqData?: Uint8Array | null;
   caption: string;
   activityLabel?: string | null;
   lastAgentLine?: string;
@@ -19,6 +20,7 @@ export default function AgentLiveRibbon({
   voiceState,
   isSpeaking,
   audioLevel,
+  freqData,
   caption,
   activityLabel,
   lastAgentLine,
@@ -54,6 +56,7 @@ export default function AgentLiveRibbon({
                 voiceState={voiceState}
                 isSpeaking={isSpeaking}
                 audioLevel={audioLevel}
+                freqData={freqData}
                 hideLabels
               />
             </div>

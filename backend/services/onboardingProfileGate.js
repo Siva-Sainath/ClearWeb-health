@@ -137,8 +137,9 @@ function fieldSupported(text, key, value) {
     }
     case "procedure":
     case "condition":
-    case "cptCode":
       return sharesTokensWithUser(text, value);
+    case "cptCode":
+      return /^\d{5}$/.test(String(value));
     case "priorities":
       return /\bcost\b|\bcheapest\b|\bdistance\b|\bclose\b|\baccredit\b|\bwait\b|\bquality\b/.test(
         text
@@ -158,14 +159,19 @@ function heuristicProfileFromMessages(messages) {
   const out = {};
 
   const procedurePatterns = [
-    { re: /\bbrain\s+mri\b/i, value: "Brain MRI" },
-    { re: /\bmri\s+(?:scan|of)\b/i, value: "MRI scan" },
+    { re: /\b(?:brain|head)\s+mri\b|\bmri\s+(?:of\s+(?:the\s+)?)?(?:brain|head)\b/i, value: "Brain MRI", cpt: "70553" },
+    { re: /\bknee\s+mri\b|\bmri\s+(?:of\s+(?:the\s+)?)?knee\b/i, value: "Knee MRI", cpt: "73721" },
+    { re: /\bshoulder\s+mri\b|\bmri\s+(?:of\s+(?:the\s+)?)?shoulder\b/i, value: "Shoulder MRI", cpt: "73221" },
+    { re: /\b(?:lumbar|spine|back)\s+mri\b|\bmri\s+(?:of\s+(?:the\s+)?)?(?:lumbar|spine|back)\b/i, value: "Lumbar MRI", cpt: "72148" },
+    { re: /\bcolonoscopy\b/i, value: "Colonoscopy", cpt: "45378" },
+    { re: /\b(?:er|emergency(?:\s+room)?)\s*(?:visit)?\b/i, value: "Emergency room visit", cpt: "99284" },
+    { re: /\b(?:ct|cat)\s+scan\b/i, value: "CT scan", cpt: "74177" },
+    { re: /\bmammogram\b/i, value: "Mammogram", cpt: "77067" },
+    { re: /\bknee\s+replacement\b/i, value: "Knee replacement", cpt: "27447" },
+    { re: /\bhip\s+replacement\b/i, value: "Hip replacement", cpt: "27130" },
+    { re: /\bmri\s+(?:scan|of)\b/i, value: "MRI scan", cpt: "70553" },
     { re: /\b(?:need|want|get)\s+(?:a\s+)?(.{4,48}?)(?:\s+priced|\s+price|\s+cost|could you)/i, fromGroup: 1 },
-    { re: /\b(er|emergency room)\s+visit\b/i, value: "Emergency room visit" },
-    { re: /\bcolonoscopy\b/i, value: "Colonoscopy" },
-    { re: /\bknee\s+replacement\b/i, value: "Knee replacement" },
-    { re: /\bct\s+scan\b/i, value: "CT scan" },
-    { re: /\bmri\b/i, value: "MRI" },
+    { re: /\bmri\b/i, value: "MRI", cpt: "70553" },
   ];
 
   for (const p of procedurePatterns) {
@@ -182,6 +188,7 @@ function heuristicProfileFromMessages(messages) {
     }
     if (proc && !isPlaceholderProfileValue(proc)) {
       out.procedure = proc;
+      if (p.cpt) out.cptCode = p.cpt;
       break;
     }
   }
@@ -251,6 +258,7 @@ function mergeHeuristicProfile(messages, extracted = {}, prev = {}) {
   };
 
   fill("procedure", heuristic.procedure);
+  fill("cptCode", heuristic.cptCode);
   fill("insurance", heuristic.insurance);
   fill("city", heuristic.city);
   fill("zipCode", heuristic.zipCode);

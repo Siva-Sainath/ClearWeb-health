@@ -8,6 +8,12 @@ from __future__ import annotations
 PROCEDURE_INDEX: dict[str, dict] = {
     "mri brain": {"cpt": ["70553", "70551", "70552"], "category": "radiology"},
     "brain mri": {"cpt": ["70553", "70551", "70552"], "category": "radiology"},
+    "mri of the brain": {"cpt": ["70553", "70551", "70552"], "category": "radiology"},
+    "head mri": {"cpt": ["70553", "70551", "70552"], "category": "radiology"},
+    "mri": {"cpt": ["70553", "70551", "70552"], "category": "radiology"},
+    "er visit": {"cpt": ["99281", "99282", "99283", "99284", "99285"], "category": "emergency"},
+    "emergency room visit": {"cpt": ["99281", "99282", "99283", "99284", "99285"], "category": "emergency"},
+    "emergency room": {"cpt": ["99281", "99282", "99283", "99284", "99285"], "category": "emergency"},
     "mri lumbar": {"cpt": ["72148", "72158", "72149"], "category": "radiology"},
     "lumbar mri": {"cpt": ["72148", "72158", "72149"], "category": "radiology"},
     "mri knee": {"cpt": ["73721", "73722", "73723"], "category": "radiology"},

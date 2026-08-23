@@ -38,6 +38,7 @@ import { insightSectionsFromExplanation } from "@/lib/llmExplanation";
 import type { FacilityInsight } from "@/lib/facilityInsights";
 import { tokens } from "@/lib/design-tokens";
 import { BRAND } from "@/lib/brand";
+import { austinCacheMismatchBanner } from "@/lib/procedureCpt";
 
 const AGENTIC_RESULTS = process.env.NEXT_PUBLIC_AGENTIC_RESULTS === "true";
 
@@ -217,7 +218,7 @@ export default function ResultsView() {
     profile: patientProfile,
     facilities,
     executiveSummary: summary,
-    autoStart: AGENTIC_RESULTS || !llmExplanation,
+    autoStart: walkthroughDone,
     onRouteFacility: handleRouteFacility,
     onThinkingChange: (thinking) => dispatch({ type: "SET_THINKING", payload: thinking }),
     dashState: {
@@ -338,6 +339,7 @@ export default function ResultsView() {
     messages,
     isSpeaking,
     audioLevel,
+    freqData,
     error,
     sendTextFallback,
     caption,
@@ -347,6 +349,14 @@ export default function ResultsView() {
     isProcessing,
   } = agent;
 
+  const firstFacility = Object.values(facilities)[0];
+  const honestyBanner = austinCacheMismatchBanner(
+    patientProfile.procedure || patientProfile.condition || summary.procedure || "",
+    patientProfile.cptCode || "",
+    firstFacility?.procedure,
+    firstFacility?.cpt_code
+  );
+
   return (
     <div className="w-full max-w-[min(100%,90rem)] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 pb-32 space-y-8">
       {!explanationSpeaking && (
@@ -354,6 +364,7 @@ export default function ResultsView() {
           voiceState={voiceState}
           isSpeaking={isSpeaking}
           audioLevel={audioLevel}
+          freqData={freqData}
           caption={caption}
           activityLabel={activityLabel}
           lastAgentLine={lastAgentLine}
@@ -376,6 +387,11 @@ export default function ResultsView() {
           {patientProfile.zipCode?.trim() ? ` · ${patientProfile.zipCode.trim()}` : ""}
           {patientProfile.radiusMi > 0 ? ` · ${patientProfile.radiusMi} mi` : ""}
         </p>
+        {honestyBanner && (
+          <p className="text-xs text-amber-200/90 bg-amber-950/40 border border-amber-500/20 rounded-xl px-3 py-2 leading-relaxed">
+            {honestyBanner}
+          </p>
+        )}
         {cacheHits > 0 && (
           <p className="text-xs text-[var(--color-text-tertiary)]">
             Demo cache: {cacheHits} hospital file{cacheHits > 1 ? "s" : ""} from disk

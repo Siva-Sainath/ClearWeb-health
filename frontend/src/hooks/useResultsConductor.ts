@@ -93,10 +93,10 @@ export function useResultsConductor({
         onSpeakingChange,
         onStepIndex: onPresentationStep,
       });
+      setConducting(false);
+      onComplete?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Conduct failed");
-      ranRef.current = false;
-    } finally {
       setConducting(false);
       onComplete?.();
     }

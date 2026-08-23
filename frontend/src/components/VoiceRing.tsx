@@ -64,6 +64,8 @@ function buildPoints(
     if (freq && freq.length > 0) {
       const idx = Math.min(freq.length - 1, Math.floor(angleNorm * freq.length * 0.72));
       audio = freq[idx] / 255;
+    } else {
+      audio = 0.4 + 0.6 * Math.abs(Math.sin(angle * 6 + t * 9 + linePhase));
     }
 
     const lobe1 = Math.sin(angle * 3 + t * 0.85 + linePhase) * 0.18;
@@ -72,7 +74,7 @@ function buildPoints(
     const lobe4 = Math.sin(angle * 13 + t * 0.55 + linePhase * 2) * 0.028;
 
     const idle = 0.035 + lobe1 + lobe2 + lobe3 + lobe4;
-    const active = audio * 0.42 * level;
+    const active = audio * 0.85 * level;
     const r = baseRadius * (1 + idle + active + radiusSkew);
 
     pts.push({
@@ -140,7 +142,10 @@ export default function VoiceRing({
       smoothRef.current =
         raw > prev ? prev + (raw - prev) * 0.4 : prev + (raw - prev) * 0.07;
 
-      const level = Math.max(0.06, smoothRef.current);
+      const state = voiceStateRef.current;
+      const boost =
+        state === "listening" ? 2.35 : state === "speaking" ? 1.85 : 1;
+      const level = Math.max(0.08, smoothRef.current) * boost;
       const colors = palette(voiceStateRef.current);
       const cx = size / 2;
       const cy = size / 2;

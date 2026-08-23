@@ -8,7 +8,9 @@
 
 Open **http://localhost:3000** — backend must be on **http://localhost:3001**.
 
-Say: *Brain MRI, CPT 70553, Aetna, Austin, ZIP 78701.*
+Say any care you need (colonoscopy, knee MRI, ER visit, CT) plus **Aetna** and ZIP **78701**. Brain MRI is not special — it was only a prompt example.
+
+**Honest prices:** the committed Austin demo cache is **CPT 99284 (ER visit)** dollars. Other procedures still run the full loop (onboarding → proof-reel → Aria presentation + follow-ups). If the CPT does not match the cache, the results page labels that clearly instead of relabeling ER prices as MRI.
 
 
 | Claim | Truth |

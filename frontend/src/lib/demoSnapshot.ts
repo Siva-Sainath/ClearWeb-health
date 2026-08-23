@@ -28,15 +28,11 @@ export function applyProfileToDemoResults(
   profile: PatientProfile,
   results: Record<string, FacilityResult>
 ): Record<string, FacilityResult> {
-  const proc = profile.procedure || profile.condition || "your procedure";
-  const cpt = profile.cptCode || "";
   const network = profile.insurance || "";
   const out: Record<string, FacilityResult> = {};
   for (const [id, f] of Object.entries(results)) {
     out[id] = {
       ...f,
-      procedure: proc,
-      cpt_code: cpt || f.cpt_code,
       network: network || f.network,
     };
   }
