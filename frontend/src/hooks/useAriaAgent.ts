@@ -639,7 +639,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
             if (block) {
               onCoverageNudge?.();
               setCaption(block.speech);
-              await speakWithEdgeTTS(block.speech);
+              void speakWithEdgeTTS(block.speech);
               return parsed;
             }
             onScrapeConfirm?.();

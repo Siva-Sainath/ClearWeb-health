@@ -16,6 +16,7 @@ import OnboardingProgress from "@/components/OnboardingProgress";
 import VoiceShell from "@/components/VoiceShell";
 import { coverageBlockFromProfile } from "@/lib/coverageGate";
 import { isProfileCoreReady, nextMissingField } from "@/lib/onboardingProgress";
+import { isProfileReady } from "@/components/ProfileFieldBubbles";
 import type { PatientProfile } from "@/lib/types";
 
 function CacheStatusBanner({
