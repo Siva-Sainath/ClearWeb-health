@@ -18,20 +18,18 @@ import {
   executeFacilityCall,
 } from "@/lib/facilityContact";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
-import { speakTts, prefetchTts, ensureTtsReady, speakTtsQueued, unlockAudioPlayback, getSharedAudioContext, isTtsPlaying } from "@/lib/ttsSpeak";
+import { speakTts, prefetchTts, unlockAudioPlayback, getSharedAudioContext, isTtsPlaying } from "@/lib/ttsSpeak";
 import { normalizeProfileUpdates, normalizeUserTranscript } from "@/lib/profileNormalize";
 import { gateOnboardingProfileUpdates } from "@/lib/onboardingProfileGate";
 import { EMPTY_PROFILE } from "@/lib/types";
 import { coverageBlockFromText, coverageBlockFromProfile } from "@/lib/coverageGate";
+import { isOnboardingComplete } from "@/lib/onboardingProgress";
 import { useWebSpeechRecognition } from "@/hooks/useWebSpeechRecognition";
 
 const BACKEND =
   typeof window !== "undefined"
     ? process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001"
     : "http://localhost:3001";
-
-const USE_INSTANT_DEMO =
-  typeof process !== "undefined" && process.env.NEXT_PUBLIC_DEMO_INSTANT_RESULTS !== "false";
 
 const AGENTIC_RESULTS =
   typeof process !== "undefined" && process.env.NEXT_PUBLIC_AGENTIC_RESULTS === "true";
@@ -482,7 +480,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       setCaption(clean);
 
       try {
-        await speakTtsQueued(clean, {
+        await speakTts(clean, {
           audioRef: ttsAudioRef,
           onPlaying: () => {
             startSpeakLevelSim();
@@ -596,6 +594,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
   const applyParsedTags = useCallback(
     (fullText: string, options?: { userMessage?: string; skipProfile?: boolean }) => {
       const parsed = parseAllTags(fullText);
+      let pendingScrape = false;
 
       if (
         !options?.skipProfile &&
@@ -640,10 +639,13 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
               onCoverageNudge?.();
               setCaption(block.speech);
               void speakWithEdgeTTS(block.speech);
-              return parsed;
+              return { ...parsed, pendingScrape: false as const };
             }
-            onScrapeConfirm?.();
-            return parsed;
+            if (phase === "onboarding" && !isOnboardingComplete(profileRef.current || EMPTY_PROFILE)) {
+              continue;
+            }
+            pendingScrape = true;
+            continue;
           }
           onPhaseNavigate?.(action.payload as JourneyPhase);
         }
@@ -669,9 +671,9 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
           }
         });
 
-      return parsed;
+      return { ...parsed, pendingScrape };
     },
-    [applyProfileFromAgent, onUIActions, onPhaseNavigate, onScrapeConfirm, facilities, onRouteFacility, speakWithEdgeTTS, onCoverageNudge]
+    [applyProfileFromAgent, onUIActions, onPhaseNavigate, facilities, onRouteFacility, speakWithEdgeTTS, onCoverageNudge, phase]
   );
 
   const extractProfileFallback = useCallback(
@@ -707,6 +709,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       extraProfile?: Record<string, unknown>,
       userMessage?: string
     ) => {
+      const completeBefore = isOnboardingComplete(profileRef.current || EMPTY_PROFILE);
       const parsed = parseAllTags(fullText);
       const msg = userMessage ?? lastUserMessageRef.current;
       const hasServerProfile = extraProfile && Object.keys(extraProfile).length > 0;
@@ -725,7 +728,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
         !hasServerProfile &&
         !Object.keys(parsedForProfile.profileUpdates).length
       ) {
-        await extractProfileFallback(msg);
+        void extractProfileFallback(msg);
       }
 
       historyRef.current.push({ role: "assistant", content: fullText });
@@ -738,26 +741,34 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       }
 
       prefetchTts(display);
-      await Promise.all([
-        ensureTtsReady(display),
-        new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        }),
-      ]);
+      await speakWithEdgeTTS(display);
 
-      const triggersInstantResults =
-        USE_INSTANT_DEMO &&
-        parsed.actions.some(
-          (a) =>
-            a.type === "navigate_phase" &&
-            (a.payload === "scraping" || a.payload === "results")
-        );
-
-      if (!triggersInstantResults) {
-        await speakWithEdgeTTS(display);
+      const gatedUpdates = gateOnboardingProfileUpdates(
+        normalizeProfileUpdates(
+          {
+            ...((extraProfile as Record<string, unknown>) || {}),
+            ...(parsedForProfile.profileUpdates as Record<string, unknown>),
+          },
+          profileRef.current || EMPTY_PROFILE
+        ),
+        profileRef.current || EMPTY_PROFILE,
+        msg,
+        historyRef.current
+      );
+      const mergedForGate = {
+        ...(profileRef.current || EMPTY_PROFILE),
+        ...gatedUpdates,
+      };
+      const completeAfter = isOnboardingComplete(mergedForGate);
+      if (
+        phase === "onboarding" &&
+        completeAfter &&
+        (parsedForProfile.pendingScrape || !completeBefore)
+      ) {
+        onScrapeConfirm?.();
       }
     },
-    [applyParsedTags, applyProfileFromAgent, extractProfileFallback, phase, speakWithEdgeTTS]
+    [applyParsedTags, applyProfileFromAgent, extractProfileFallback, phase, speakWithEdgeTTS, onScrapeConfirm]
   );
 
   const handleDeterministicFollowUp = useCallback(
@@ -773,13 +784,6 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
 
       if (match.actions.length) onUIActions?.(match.actions);
       prefetchTts(match.speech);
-      await Promise.all([
-        ensureTtsReady(match.speech),
-        new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        }),
-      ]);
-
       historyRef.current.push({ role: "assistant", content: match.speech });
       setMessages((prev) =>
         prev.map((m) => (m.id === agentId ? { ...m, text: match.speech } : m))
@@ -857,6 +861,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
         let fullText = "";
         let handled = false;
         let profileUpdates: Record<string, unknown> = {};
+        let prefetchedPartial = "";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -875,6 +880,14 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
                     m.id === agentId ? { ...m, text: partialDisplay } : m
                   )
                 );
+                if (
+                  partialDisplay.length > 24 &&
+                  /[.!?]/.test(partialDisplay) &&
+                  partialDisplay !== prefetchedPartial
+                ) {
+                  prefetchedPartial = partialDisplay;
+                  prefetchTts(partialDisplay);
+                }
               }
             }
             if (json.done && !handled) {

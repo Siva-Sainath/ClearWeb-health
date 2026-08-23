@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useMemo, useState, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
 import { Database, Radio, Loader2, PanelRightOpen } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useDashboard } from "@/context/DashboardContext";
@@ -15,8 +14,7 @@ import InteractionStage from "@/components/InteractionStage";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import VoiceShell from "@/components/VoiceShell";
 import { coverageBlockFromProfile } from "@/lib/coverageGate";
-import { isProfileCoreReady, nextMissingField } from "@/lib/onboardingProgress";
-import { isProfileReady } from "@/components/ProfileFieldBubbles";
+import { isOnboardingComplete, nextMissingField } from "@/lib/onboardingProgress";
 import type { PatientProfile } from "@/lib/types";
 
 function CacheStatusBanner({
@@ -150,7 +148,7 @@ export default function VoiceOnboardingView() {
         updateProfile({ radiusMi: 25 });
       }
 
-      if (!isProfileCoreReady(profile)) return;
+      if (!isOnboardingComplete(profile)) return;
 
       const coverageBlock = coverageBlockFromProfile(profile);
       if (coverageBlock) {
@@ -186,25 +184,9 @@ export default function VoiceOnboardingView() {
   }, [agent.isListening, agent.isSpeaking, agent.caption, setIsListening, setIsSpeaking, setLastAgentMessage]);
 
   const showText = textInputOpen || !!agent.error;
-  const profileReady = isProfileReady(patientProfile);
-  const canPullPrices = isProfileCoreReady(patientProfile);
-  const mergeBubbles = scrapeConfirmed && canPullPrices;
+  const onboardingComplete = isOnboardingComplete(patientProfile);
+  const mergeBubbles = scrapeConfirmed && onboardingComplete;
   const missing = nextMissingField(patientProfile);
-
-  React.useEffect(() => {
-    if (!canPullPrices || transitioning) return;
-    const t = window.setTimeout(() => beginPriceSearch(), 700);
-    return () => window.clearTimeout(t);
-  }, [canPullPrices, transitioning, beginPriceSearch]);
-
-  const buttonLabel =
-    zipProbe.status === "ready" && zipProbe.data.cached
-      ? "Show cached prices (verified replay)"
-      : zipProbe.status === "ready" && zipProbe.data.zipKnown === false
-        ? "Show Austin demo (proof-reel)"
-        : zipProbe.status === "ready" && !zipProbe.data.cached
-          ? "Run live Bright Data scrape"
-          : "Pull hospital prices near you";
 
   return (
     <div className="pb-24">
@@ -230,25 +212,9 @@ export default function VoiceOnboardingView() {
         )}
         <OnboardingProgress profile={patientProfile} />
         <CacheStatusBanner zipProbe={zipProbe} />
-        {canPullPrices && !transitioning && (
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 w-full py-3.5 rounded-2xl font-medium text-sm bg-[var(--color-accent)] text-black hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(52,211,153,0.25)]"
-            onClick={() => beginPriceSearch()}
-          >
-            {buttonLabel}
-          </motion.button>
-        )}
-        {!canPullPrices && missing && agent.voiceState === "standby" && (
+        {!onboardingComplete && missing && agent.voiceState === "standby" && (
           <p className="mt-3 text-center text-xs text-[var(--color-text-tertiary)]">
             Still need: {missing}
-          </p>
-        )}
-        {canPullPrices && !profileReady && !transitioning && (
-          <p className="mt-2 text-center text-xs text-[var(--color-text-tertiary)]">
-            Radius defaults to 25 miles if you skip it
           </p>
         )}
       </div>

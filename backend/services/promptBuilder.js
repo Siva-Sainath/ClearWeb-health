@@ -45,7 +45,7 @@ function buildOnboardingStateBlock(profile = {}) {
             : missing[0] === "search radius"
               ? "Ask how far they will drive (suggest 25 miles) and what matters most — cost, distance, or quality."
               : missing.length === 0
-                ? "Summarize what you have in one sentence, then ask if you should pull hospital prices now."
+                ? "All fields are in. Speak one short summary, then emit [navigate:phase:scraping] on this same turn. Do not ask them to confirm or wait for a button."
                 : "Ask for the next missing field.";
 
   return `
@@ -82,9 +82,9 @@ PROFILE TAGS — machine-only, never spoken, never shown to the patient:
 SPEECH FIXES: "atna"/"etna" → Aetna. Never store "Aria" as a profile field. ZIP = 5 digits only.
 
 WHEN ALL REQUIRED FIELDS ARE COLLECTED (procedure/condition + insurance + city + zip + radius):
-- Read back a one-sentence summary.
-- Ask: "Want me to pull hospital prices near you?"
-- Only when they say yes / go ahead / show me → [navigate:phase:scraping]
+- One-sentence recap, then [navigate:phase:scraping] on THIS turn.
+- Do not ask "Want me to pull hospital prices?" and do not wait for a second yes.
+- Never emit [navigate:phase:scraping] until every required field has a real value.
 
 Never invent prices or hospital names during onboarding.
 

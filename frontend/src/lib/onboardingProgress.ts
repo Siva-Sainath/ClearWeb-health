@@ -48,6 +48,11 @@ export function nextMissingField(p: PatientProfile): string | null {
   return step?.label ?? null;
 }
 
+/** All five onboarding steps answered — only then start the proof-reel. */
+export function isOnboardingComplete(p: PatientProfile): boolean {
+  return ONBOARDING_STEPS.every((s) => s.filled(p));
+}
+
 /** Minimum fields to start a price search (radius defaults on confirm). */
 export function isProfileCoreReady(p: PatientProfile): boolean {
   const proc = p.procedure?.trim() || p.condition?.trim();

@@ -6,6 +6,9 @@ const { stripTags } = require("./tagParser");
 const { normalizeForSpeech } = require("./speechNormalize");
 
 const GROQ_SPEECH_URL = "https://api.groq.com/openai/v1/audio/speech";
+const GROQ_TIMEOUT_MS = 3500;
+/** After a 429 or timeout, skip Groq TTS so Edge can speak immediately. */
+let groqCooldownUntil = 0;
 
 function mimeFromBuffer(buf) {
   if (!buf?.length) return "audio/mpeg";
@@ -23,25 +26,45 @@ function groqVoice(requested) {
   return env.GROQ_TTS_VOICE;
 }
 
+function markGroqCooldown(ms = 20 * 60 * 1000) {
+  groqCooldownUntil = Date.now() + ms;
+}
+
 async function synthesizeWithGroq(text, options = {}) {
   if (!env.GROQ_API_KEY) throw new Error("GROQ_API_KEY not set");
+  if (Date.now() < groqCooldownUntil) {
+    throw new Error("Groq TTS cooldown");
+  }
 
-  const res = await fetch(GROQ_SPEECH_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.GROQ_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: env.GROQ_TTS_MODEL,
-      voice: groqVoice(options.voice),
-      input: text,
-      response_format: "wav",
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
+
+  let res;
+  try {
+    res = await fetch(GROQ_SPEECH_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: env.GROQ_TTS_MODEL,
+        voice: groqVoice(options.voice),
+        input: text,
+        response_format: "wav",
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    markGroqCooldown(2 * 60 * 1000);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
+    if (res.status === 429 || res.status === 503) markGroqCooldown();
     throw new Error(`Groq TTS ${res.status}: ${detail.slice(0, 240)}`);
   }
 
@@ -75,7 +98,8 @@ async function synthesizeSpeech(text, options = {}) {
   const hit = audioCache.get(cacheId);
   if (hit) return hit;
 
-  const provider = resolveProvider();
+  const provider =
+    resolveProvider() === "groq" && Date.now() < groqCooldownUntil ? "edge" : resolveProvider();
   let result;
   try {
     if (provider === "groq") {

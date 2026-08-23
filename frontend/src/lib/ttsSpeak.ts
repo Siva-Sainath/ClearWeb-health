@@ -1,6 +1,5 @@
 /**
- * Groq/Edge TTS playback via a single AudioContext — decode the full clip
- * before starting, fade in/out, never click from oscillators or hard pauses.
+ * TTS playback: Groq/Edge clip when it arrives quickly, browser speech otherwise.
  */
 
 import { stripTags } from "@/lib/uiActions";
@@ -14,6 +13,8 @@ import {
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 const FADE_SEC = 0.025;
+/** If hosted TTS has not returned by then, speak immediately in the browser. */
+const TTS_FALLBACK_MS = 700;
 
 let audioCtx: AudioContext | null = null;
 let currentSource: AudioBufferSourceNode | null = null;
@@ -46,16 +47,24 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
-/** One context for TTS, VAD, and the mic visualizer — extra contexts click. */
 export function getSharedAudioContext(): AudioContext | null {
   return getAudioContext();
 }
 
 export function isTtsPlaying(): boolean {
-  return currentSource !== null;
+  if (currentSource !== null) return true;
+  if (typeof window !== "undefined" && window.speechSynthesis?.speaking) return true;
+  return false;
 }
 
 function fadeOutAndStop(): void {
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      /* ignore */
+    }
+  }
   const ctx = audioCtx;
   if (ctx && currentGain) {
     try {
@@ -79,7 +88,6 @@ function fadeOutAndStop(): void {
   }
 }
 
-/** Call synchronously inside a click/tap handler — before any await. */
 export function unlockAudioPlayback(): void {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -101,7 +109,7 @@ export async function fetchTtsBlob(text: string): Promise<Blob> {
       signal: controller.signal,
     });
     if (!res.ok) throw new Error(`TTS unavailable (${res.status})`);
-    const mime = res.headers.get("content-type") || "audio/wav";
+    const mime = res.headers.get("content-type") || "audio/mpeg";
     const raw = await res.blob();
     return new Blob([raw], { type: mime.split(";")[0] });
   } finally {
@@ -217,6 +225,51 @@ function playBuffer(
   });
 }
 
+function pickBrowserVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const scored = voices
+    .filter((v) => /^en(-|$)/i.test(v.lang))
+    .map((v) => {
+      const n = v.name;
+      let score = 0;
+      if (/Aria/i.test(n)) score += 50;
+      if (/Samantha|Jenny|Natural|Google US English|Female/i.test(n)) score += 20;
+      if (/en-US/i.test(v.lang)) score += 10;
+      return { v, score };
+    })
+    .sort((a, b) => b.score - a.score);
+  return scored[0]?.v ?? null;
+}
+
+function speakBrowser(text: string, gen: number, options?: SpeakTtsOptions): Promise<void> {
+  if (typeof window === "undefined" || !window.speechSynthesis) {
+    return Promise.reject(new Error("No speechSynthesis"));
+  }
+  if (gen !== currentVoiceGeneration()) return Promise.resolve();
+
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 1.04;
+  utter.pitch = 1.02;
+  const voice = pickBrowserVoice();
+  if (voice) utter.voice = voice;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    utter.onend = finish;
+    utter.onerror = finish;
+    options?.onPlaying?.();
+    window.speechSynthesis.speak(utter);
+    window.setTimeout(finish, Math.min(20000, 400 + text.length * 80));
+  });
+}
+
 export async function speakTts(text: string, options?: SpeakTtsOptions): Promise<void> {
   const clean = stripTags(text).trim();
   if (!clean) return;
@@ -231,14 +284,44 @@ export async function speakTts(text: string, options?: SpeakTtsOptions): Promise
   registerVoiceStop(localStop);
 
   try {
-    const blob = await getTtsBlob(clean);
+    const cached = blobCache.get(cacheKey(clean));
+    if (cached) {
+      if (gen !== currentVoiceGeneration()) return;
+      const buffer = await decodeBlob(clean, cached);
+      if (gen !== currentVoiceGeneration()) return;
+      await getAudioContext()?.resume();
+      await playBuffer(buffer, gen, options);
+      return;
+    }
+
+    const blobPromise = getTtsBlob(clean);
+    const raced = await Promise.race([
+      blobPromise.then((blob) => ({ ok: true as const, blob })),
+      new Promise<{ ok: false }>((resolve) => {
+        window.setTimeout(() => resolve({ ok: false }), TTS_FALLBACK_MS);
+      }),
+    ]);
+
     if (gen !== currentVoiceGeneration()) return;
-    const buffer = await decodeBlob(clean, blob);
-    if (gen !== currentVoiceGeneration()) return;
-    await getAudioContext()?.resume();
-    await playBuffer(buffer, gen, options);
+
+    if (raced.ok) {
+      const buffer = await decodeBlob(clean, raced.blob);
+      if (gen !== currentVoiceGeneration()) return;
+      await getAudioContext()?.resume();
+      await playBuffer(buffer, gen, options);
+      return;
+    }
+
+    await speakBrowser(clean, gen, options);
   } catch (err) {
     console.warn("[tts] playback failed:", err);
+    if (gen === currentVoiceGeneration()) {
+      try {
+        await speakBrowser(clean, gen, options);
+      } catch {
+        /* ignore */
+      }
+    }
   } finally {
     unregisterVoiceStop(localStop);
     if (options?.audioRef) options.audioRef.current = null;
