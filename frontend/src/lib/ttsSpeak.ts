@@ -1,5 +1,6 @@
 /**
- * TTS playback: Groq/Edge clip when it arrives quickly, browser speech otherwise.
+ * TTS playback — hosted Edge (en-US-AriaNeural) only for consistent Aria voice.
+ * Browser speechSynthesis is never used in the demo path.
  */
 
 import { stripTags } from "@/lib/uiActions";
@@ -10,23 +11,25 @@ import {
   unregisterVoiceStop,
   stopAllVoice,
 } from "@/lib/ariaVoiceController";
+import { getOnboardingWelcomeSpoken } from "@/lib/voiceCopy";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 const FADE_SEC = 0.025;
-/** Edge TTS can take ~20s on a cold socket — wait before falling back to browser. */
-const HOSTED_WAIT_MS = 22000;
+/** Edge cold-start can take ~20s — keep waiting rather than switching voices. */
+const HOSTED_WAIT_MS = 30000;
+const ARIA_VOICE = process.env.NEXT_PUBLIC_TTS_VOICE || "en-US-AriaNeural";
 
 let audioCtx: AudioContext | null = null;
 let currentSource: AudioBufferSourceNode | null = null;
 let currentGain: GainNode | null = null;
+let warmupPromise: Promise<void> | null = null;
 
 const inflight = new Map<string, Promise<Blob>>();
 const blobCache = new Map<string, Blob>();
 const decodeCache = new Map<string, AudioBuffer>();
 
 function ttsBody(text: string): Record<string, string> {
-  const body: Record<string, string> = { text };
-  if (process.env.NEXT_PUBLIC_TTS_VOICE) body.voice = process.env.NEXT_PUBLIC_TTS_VOICE;
+  const body: Record<string, string> = { text, voice: ARIA_VOICE };
   if (process.env.NEXT_PUBLIC_TTS_RATE) body.rate = process.env.NEXT_PUBLIC_TTS_RATE;
   if (process.env.NEXT_PUBLIC_TTS_PITCH) body.pitch = process.env.NEXT_PUBLIC_TTS_PITCH;
   return body;
@@ -34,6 +37,10 @@ function ttsBody(text: string): Record<string, string> {
 
 function cacheKey(text: string): string {
   return text;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function getAudioContext(): AudioContext | null {
@@ -52,19 +59,10 @@ export function getSharedAudioContext(): AudioContext | null {
 }
 
 export function isTtsPlaying(): boolean {
-  if (currentSource !== null) return true;
-  if (typeof window !== "undefined" && window.speechSynthesis?.speaking) return true;
-  return false;
+  return currentSource !== null;
 }
 
 function fadeOutAndStop(): void {
-  if (typeof window !== "undefined" && window.speechSynthesis) {
-    try {
-      window.speechSynthesis.cancel();
-    } catch {
-      /* ignore */
-    }
-  }
   const ctx = audioCtx;
   if (ctx && currentGain) {
     try {
@@ -89,15 +87,7 @@ function fadeOutAndStop(): void {
 }
 
 export function unlockAudioPlayback(): void {
-  const ctx = getAudioContext();
-  if (ctx) void ctx.resume();
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  try {
-    window.speechSynthesis.resume();
-    void window.speechSynthesis.getVoices();
-  } catch {
-    /* ignore */
-  }
+  void getAudioContext()?.resume();
 }
 
 export async function fetchTtsBlob(text: string): Promise<Blob> {
@@ -105,7 +95,7 @@ export async function fetchTtsBlob(text: string): Promise<Blob> {
   if (!clean) throw new Error("empty text");
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000);
+  const timer = setTimeout(() => controller.abort(), HOSTED_WAIT_MS + 5000);
 
   try {
     const res = await fetch(`${BACKEND}/api/tts/speak`, {
@@ -143,6 +133,27 @@ async function getTtsBlob(text: string): Promise<Blob> {
   return promise;
 }
 
+/** Wait for hosted audio — never fall back to browser speech. */
+async function ensureHostedBlob(text: string, maxMs = HOSTED_WAIT_MS): Promise<Blob | null> {
+  const clean = stripTags(text).trim();
+  if (!clean) return null;
+
+  const cached = blobCache.get(cacheKey(clean));
+  if (cached) return cached;
+
+  const deadline = Date.now() + maxMs;
+  while (Date.now() < deadline) {
+    try {
+      const blob = await getTtsBlob(clean);
+      if (blob?.size) return blob;
+    } catch {
+      /* retry until deadline */
+    }
+    await sleep(400);
+  }
+  return null;
+}
+
 async function decodeBlob(text: string, blob: Blob): Promise<AudioBuffer> {
   const key = cacheKey(text);
   const hit = decodeCache.get(key);
@@ -169,19 +180,29 @@ export function prefetchTtsLines(lines: string[]): void {
 }
 
 export async function ensureTtsReady(text: string): Promise<void> {
-  await getTtsBlob(text);
+  const blob = await ensureHostedBlob(text);
+  if (!blob) throw new Error("hosted TTS not ready");
+}
+
+/** Prime Edge voice + welcome line so the first spoken line is not a different engine. */
+export function warmAriaVoice(): Promise<void> {
+  if (warmupPromise) return warmupPromise;
+  warmupPromise = (async () => {
+    prefetchTts("Aria voice ready.");
+    prefetchTts(getOnboardingWelcomeSpoken());
+    try {
+      await ensureHostedBlob("Aria voice ready.", HOSTED_WAIT_MS);
+    } catch {
+      /* non-fatal */
+    }
+  })();
+  return warmupPromise;
 }
 
 export interface SpeakTtsOptions {
   onPlaying?: () => void;
   audioRef?: { current: HTMLAudioElement | null };
-  /**
-   * Scripted lines (scrape replay, results walkthrough) are prefetched, so it is
-   * worth waiting this long for the hosted clip instead of using the browser voice.
-   */
   hostedWaitMs?: number;
-  /** Skip hosted wait and use browser speech (onboarding welcome only if Edge is warm). */
-  instant?: boolean;
 }
 
 function playBuffer(
@@ -222,7 +243,7 @@ function playBuffer(
       resolve();
     };
 
-    const safety = window.setTimeout(finish, Math.ceil(dur * 1000) + 1500);
+    const safety = window.setTimeout(finish, Math.ceil(dur * 1000) + 2000);
     source.onended = () => {
       window.clearTimeout(safety);
       finish();
@@ -238,73 +259,6 @@ function playBuffer(
   });
 }
 
-/** Chrome GCs utterances that are not held on a global — that kills audio with no error. */
-let heldUtterance: SpeechSynthesisUtterance | null = null;
-let pinnedVoice: SpeechSynthesisVoice | null = null;
-
-function pinBrowserVoice(): SpeechSynthesisVoice | null {
-  if (typeof window === "undefined" || !window.speechSynthesis) return null;
-  if (pinnedVoice && window.speechSynthesis.getVoices().includes(pinnedVoice)) return pinnedVoice;
-  const voices = window.speechSynthesis.getVoices();
-  const scored = voices
-    .filter((v) => /^en(-|$)/i.test(v.lang))
-    .map((v) => {
-      const n = v.name;
-      let score = 0;
-      if (/Aria/i.test(n)) score += 50;
-      if (/Samantha|Jenny|Google US English|Microsoft Aria|Female/i.test(n)) score += 20;
-      if (/en-US/i.test(v.lang)) score += 10;
-      return { v, score };
-    })
-    .sort((a, b) => b.score - a.score);
-  pinnedVoice = scored[0]?.v ?? null;
-  return pinnedVoice;
-}
-
-if (typeof window !== "undefined" && window.speechSynthesis) {
-  window.speechSynthesis.addEventListener("voiceschanged", () => {
-    pinBrowserVoice();
-  });
-}
-
-function speakBrowser(text: string, gen: number, options?: SpeakTtsOptions): Promise<void> {
-  if (typeof window === "undefined" || !window.speechSynthesis) {
-    return Promise.reject(new Error("No speechSynthesis"));
-  }
-  if (gen !== currentVoiceGeneration()) return Promise.resolve();
-
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.resume();
-  const utter = new SpeechSynthesisUtterance(text);
-  heldUtterance = utter;
-  utter.rate = 1.04;
-  utter.pitch = 1.02;
-  utter.lang = "en-US";
-  const voice = pinBrowserVoice();
-  if (voice) utter.voice = voice;
-
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      if (heldUtterance === utter) heldUtterance = null;
-      resolve();
-    };
-    const safety = window.setTimeout(finish, Math.min(120000, 15000 + text.length * 120));
-    utter.onend = () => {
-      window.clearTimeout(safety);
-      finish();
-    };
-    utter.onerror = () => {
-      window.clearTimeout(safety);
-      finish();
-    };
-    options?.onPlaying?.();
-    window.speechSynthesis.speak(utter);
-  });
-}
-
 export async function speakTts(text: string, options?: SpeakTtsOptions): Promise<void> {
   const clean = stripTags(text).trim();
   if (!clean) return;
@@ -312,83 +266,27 @@ export async function speakTts(text: string, options?: SpeakTtsOptions): Promise
   fadeOutAndStop();
   const gen = nextVoiceGeneration();
   void getAudioContext()?.resume();
-  if (typeof window !== "undefined") {
-    try {
-      window.speechSynthesis?.resume();
-    } catch {
-      /* ignore */
-    }
-  }
 
   const localStop = () => {
     fadeOutAndStop();
-    heldUtterance = null;
     if (options?.audioRef) options.audioRef.current = null;
   };
   registerVoiceStop(localStop);
 
   try {
-    let hosted = blobCache.get(cacheKey(clean));
-    const waitMs = options?.instant ? 0 : (options?.hostedWaitMs ?? HOSTED_WAIT_MS);
+    const blob = await ensureHostedBlob(clean, options?.hostedWaitMs ?? HOSTED_WAIT_MS);
+    if (!blob || gen !== currentVoiceGeneration()) return;
 
-    if (!hosted && waitMs > 0) {
-      hosted = await Promise.race([
-        getTtsBlob(clean).catch(() => undefined),
-        new Promise<undefined>((resolve) => window.setTimeout(() => resolve(undefined), waitMs)),
-      ]);
-      if (gen !== currentVoiceGeneration()) return;
-    }
-
-    if (!hosted && !options?.instant) {
-      try {
-        hosted = await getTtsBlob(clean);
-      } catch {
-        /* fall through to browser */
-      }
-      if (gen !== currentVoiceGeneration()) return;
-    }
-
-    if (hosted) {
-      const buffer = await decodeBlob(clean, hosted);
-      if (gen !== currentVoiceGeneration()) return;
-      await getAudioContext()?.resume();
-      await playBuffer(buffer, gen, options);
-      return;
-    }
-
-    if (options?.instant) {
-      await speakBrowser(clean, gen, options);
-      return;
-    }
-
-    console.warn("[tts] hosted clip unavailable, using browser voice");
-    await speakBrowser(clean, gen, options);
+    const buffer = await decodeBlob(clean, blob);
+    if (gen !== currentVoiceGeneration()) return;
+    await getAudioContext()?.resume();
+    await playBuffer(buffer, gen, options);
   } catch (err) {
-    console.warn("[tts] playback failed:", err);
-    if (gen === currentVoiceGeneration()) {
-      try {
-        await speakBrowser(clean, gen, options);
-      } catch {
-        /* ignore */
-      }
-    }
+    console.warn("[tts] hosted playback failed:", err);
   } finally {
     unregisterVoiceStop(localStop);
     if (options?.audioRef) options.audioRef.current = null;
   }
-}
-
-export interface SpeakTtsSequenceOptions extends SpeakTtsOptions {
-  onChunkStart?: (index: number, text: string) => void;
-}
-
-export async function speakTtsSequence(
-  lines: string[],
-  options?: SpeakTtsSequenceOptions
-): Promise<void> {
-  const chunks = lines.map((l) => stripTags(l).trim()).filter(Boolean);
-  if (!chunks.length) return;
-  await speakTts(chunks.join(" "), options);
 }
 
 export function stopTtsPlayback(): void {
@@ -403,7 +301,6 @@ export function speakTtsQueued(text: string, options?: SpeakTtsOptions): Promise
   return voiceQueue;
 }
 
-/** Fixed demo script: hold out for the Edge clip so the voice stays consistent. */
 export function speakScriptedQueued(
   text: string,
   options?: SpeakTtsOptions
@@ -414,10 +311,19 @@ export function speakScriptedQueued(
 export async function waitForTtsIdle(maxMs = 60000): Promise<void> {
   const start = Date.now();
   while (isTtsPlaying() && Date.now() - start < maxMs) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await sleep(100);
   }
 }
 
 export function resetVoiceQueue(): void {
   voiceQueue = Promise.resolve();
+}
+
+export async function speakTtsSequence(
+  lines: string[],
+  options?: SpeakTtsOptions
+): Promise<void> {
+  const chunks = lines.map((l) => stripTags(l).trim()).filter(Boolean);
+  if (!chunks.length) return;
+  await speakTts(chunks.join(" "), options);
 }

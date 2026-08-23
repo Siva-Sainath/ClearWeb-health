@@ -13,7 +13,7 @@ import type { LlmExplanation, ExplanationSection } from "@/lib/llmExplanation";
 import type { FacilityResult, ScrapePresentationMode } from "@/lib/types";
 import { tokens } from "@/lib/design-tokens";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { prefetchTts, ensureTtsReady, stopTtsPlayback, speakTtsQueued } from "@/lib/ttsSpeak";
+import { prefetchTts, ensureTtsReady, stopTtsPlayback, speakScriptedQueued } from "@/lib/ttsSpeak";
 
 function waitForLayout(): Promise<void> {
   return new Promise((resolve) => {
@@ -114,7 +114,7 @@ export default function AgentResultsConductor({
         if (script) {
           onCaptionChange?.(script);
           await ensureTtsReady(script);
-          await speakTtsQueued(script);
+          await speakScriptedQueued(script);
         }
         for (let i = 0; i < explanation.sections.length; i++) {
           const section = explanation.sections[i];
@@ -126,7 +126,7 @@ export default function AgentResultsConductor({
           const line = sectionLine(section);
           if (line.trim()) {
             onCaptionChange?.(line);
-            await speakTtsQueued(line);
+            await speakScriptedQueued(line);
           }
         }
       } finally {

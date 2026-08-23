@@ -9,7 +9,7 @@ import {
 } from "@/lib/uiActions";
 import { matchFollowUpIntent } from "@/lib/followUpIntents";
 import type { JourneyPhase, PatientProfile, VapiMessage, FacilityResult, ScrapePresentationMode } from "@/lib/types";
-import { VOICE_COPY, getOnboardingWelcomeSpoken, getOnboardingWelcomeCaption, getOnboardingWelcomeMessage, getOnboardingWelcomeChunks } from "@/lib/voiceCopy";
+import { VOICE_COPY, getOnboardingWelcomeSpoken, getOnboardingWelcomeCaption, getOnboardingWelcomeMessage } from "@/lib/voiceCopy";
 import { deriveVoiceState, resolveActivityLabel } from "@/lib/voiceState";
 import type { VoiceState } from "@/lib/voiceState";
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
@@ -18,7 +18,7 @@ import {
   executeFacilityCall,
 } from "@/lib/facilityContact";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
-import { speakTts, prefetchTts, unlockAudioPlayback, getSharedAudioContext, isTtsPlaying, waitForTtsIdle } from "@/lib/ttsSpeak";
+import { speakTts, prefetchTts, ensureTtsReady, unlockAudioPlayback, getSharedAudioContext, isTtsPlaying, waitForTtsIdle } from "@/lib/ttsSpeak";
 import { normalizeProfileUpdates, normalizeUserTranscript } from "@/lib/profileNormalize";
 import { gateOnboardingProfileUpdates } from "@/lib/onboardingProfileGate";
 import { EMPTY_PROFILE } from "@/lib/types";
@@ -484,7 +484,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       try {
         await speakTts(clean, {
           audioRef: ttsAudioRef,
-          hostedWaitMs: 22000,
+          hostedWaitMs: 30000,
           onPlaying: () => {
             startSpeakLevelSim();
           },
@@ -523,17 +523,15 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
 
         try {
           if (phase === "onboarding") {
-            const chunks = getOnboardingWelcomeChunks();
-            for (let i = 0; i < chunks.length; i++) {
-              const chunk = chunks[i];
-              const lookRightCue = i === Math.min(1, chunks.length - 1);
-              setCaption(chunk);
-              if (lookRightCue) onWelcomeStart?.();
-              await speakTts(chunk, {
-                audioRef: ttsAudioRef,
-                onPlaying: () => startSpeakLevelSim(),
-              });
-            }
+            const full = getOnboardingWelcomeSpoken();
+            prefetchTts(full);
+            await ensureTtsReady(full);
+            onWelcomeStart?.();
+            await speakTts(full, {
+              audioRef: ttsAudioRef,
+              hostedWaitMs: 30000,
+              onPlaying: () => startSpeakLevelSim(),
+            });
             setCaption(getOnboardingWelcomeCaption());
           } else {
             prefetchTts(greeting);

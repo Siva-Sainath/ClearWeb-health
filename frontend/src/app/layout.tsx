@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Fraunces, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import TtsWarmup from "@/components/TtsWarmup";
 import WebBackground from "@/components/WebBackground";
 import { BRAND } from "@/lib/brand";
 
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-full flex flex-col bg-[#070d0a] text-[#f2f9f5]">
         <AppProvider>
           <WebBackground />
+          <TtsWarmup />
           {children}
         </AppProvider>
       </body>
