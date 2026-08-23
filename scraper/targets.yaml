@@ -217,3 +217,27 @@ hospitals:
   format_hint: json
   collector_id: c_mt5ho4zj21owytzg5g
   domain: parklandhealth.org
+- id: methodist_dallas_medical
+  name: Methodist Dallas Medical Center
+  collector_name: methodist_dallas_medical
+  homepage: https://methodisthealthsystem.org/cms-hpt.txt
+  price_transparency_page: https://methodisthealthsystem.org/cms-hpt.txt
+  format_hint: json
+  collector_id: c_mt5k6ivs1f2ozqfx6q
+  domain: methodisthealthsystem.org
+- id: christus_santa_rosa_sa
+  name: Christus Santa Rosa Hospital San Antonio
+  collector_name: christus_santa_rosa_sa
+  homepage: https://christushealth.org/cms-hpt.txt
+  price_transparency_page: https://christushealth.org/cms-hpt.txt
+  format_hint: json
+  collector_id: c_mt5l7e8i19kk3s1onz
+  domain: christushealth.org
+- id: methodist_stone_oak_sa
+  name: Methodist Hospital Stone Oak
+  collector_name: methodist_stone_oak_sa
+  homepage: https://sahealth.com/cms-hpt.txt
+  price_transparency_page: https://sahealth.com/cms-hpt.txt
+  format_hint: json
+  collector_id: c_mt5lg65f15im2oxigs
+  domain: sahealth.com

@@ -1,11 +1,12 @@
 {
   "byStatus": {
-    "failed": 2,
-    "pending": 11
+    "failed": 3,
+    "pending": 4,
+    "verified": 6
   },
-  "verified": 0,
-  "pending": 11,
-  "failed": 2,
+  "verified": 6,
+  "pending": 4,
+  "failed": 3,
   "recent": [
     {
       "slug": "el_paso_childrens",
@@ -35,56 +36,56 @@
       "slug": "methodist_stone_oak_sa",
       "hospitalName": "Methodist Hospital Stone Oak",
       "collectorId": "c_mt5lg65f15im2oxigs",
-      "status": "pending",
-      "reason": null,
+      "status": "verified",
+      "reason": "Passed validation on first run",
       "targetUrl": "https://sahealth.com/cms-hpt.txt"
     },
     {
       "slug": "christus_santa_rosa_sa",
       "hospitalName": "Christus Santa Rosa Hospital San Antonio",
       "collectorId": "c_mt5l7e8i19kk3s1onz",
-      "status": "pending",
-      "reason": null,
+      "status": "verified",
+      "reason": "Passed validation on first run",
       "targetUrl": "https://christushealth.org/cms-hpt.txt"
     },
     {
       "slug": "methodist_dallas_medical",
       "hospitalName": "Methodist Dallas Medical Center",
       "collectorId": "c_mt5k6ivs1f2ozqfx6q",
-      "status": "pending",
-      "reason": "Collector not found (c_mt5k6ivs1f2ozqfx6q)",
+      "status": "verified",
+      "reason": "Passed validation on first run",
       "targetUrl": "https://methodisthealthsystem.org/cms-hpt.txt"
     },
     {
       "slug": "bsw_all_saints_fort_worth",
       "hospitalName": "Baylor Scott & White All Saints Medical Center - Fort Worth",
       "collectorId": "c_mt5jz2ta1mnfh7kwpg",
-      "status": "pending",
-      "reason": "Collector not found (c_mt5jz2ta1mnfh7kwpg)",
+      "status": "failed",
+      "reason": "Still failed after heal: preview missing expected specific CSV/file URL fields",
       "targetUrl": "https://bswhealth.com/cms-hpt.txt"
     },
     {
       "slug": "parkland_dallas",
       "hospitalName": "Parkland Memorial Hospital",
       "collectorId": "c_mt5ho4zj21owytzg5g",
-      "status": "pending",
-      "reason": "Collector not found (c_mt5ho4zj21owytzg5g)",
+      "status": "verified",
+      "reason": "Passed validation on first run",
       "targetUrl": "https://www.parklandhealth.org/cms-hpt.txt"
     },
     {
       "slug": "harris_health_lbj",
       "hospitalName": "Harris Health Lyndon B. Johnson Hospital",
       "collectorId": "c_mt5h68pvcm4r2pbv5",
-      "status": "pending",
-      "reason": "Collector not found (c_mt5h68pvcm4r2pbv5)",
+      "status": "verified",
+      "reason": "Passed validation on first run",
       "targetUrl": "https://www.harrishealth.org/patients-visitors/billing-insurance/Pages/price-transparency.aspx"
     },
     {
       "slug": "md_anderson_houston",
       "hospitalName": "MD Anderson Cancer Center",
       "collectorId": "c_mt5gy41fox65bviaz",
-      "status": "pending",
-      "reason": "Collector not found (c_mt5gy41fox65bviaz)",
+      "status": "verified",
+      "reason": "Passed validation on first run",
       "targetUrl": "https://www.mdanderson.org/patients-family/becoming-our-patient/getting-started/price-transparency.html"
     },
     {
@@ -114,6 +115,14 @@
   ],
   "healEvents": [
     {
+      "timestamp": "2026-08-23T12:12:06.117141+00:00",
+      "collector_id": "c_mt5jz2ta1mnfh7kwpg",
+      "reason": "preview missing expected specific CSV/file URL fields",
+      "success": false,
+      "before_sample": "[{\"mrf_links_central_texas\": [{\"facility_name\": \"Baylor Scott & White Continuing Care Hospital\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/202850920_baylor-scott--white-continuing-care-hospital_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Emergency Medical Center - Cedar Park\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/203749695_baylor-scott--white-emergency-medical-center--cedar-park_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White McLane Children's Medical Center \\u2013 Temple\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741166904_baylor-scott--white-mclane-childrens-medical-center_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Austin\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/813040663_baylor-scott--white-medical-center--austin_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Buda\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/813040663_baylor-scott--white-medical-center--buda_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Brenham\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/742519752_baylor-scott--white-medical-center--brenham_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 College Station\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/274434451_baylor-scott--white-medical-center--college-station_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Hillcrest\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741161944_baylor-scott--white-medical-center--hillcrest_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Lakeway\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/203749695_baylor-scott--white-medical-center--lakeway_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Marble Falls\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/464007700_baylor-scott--white-medical-center--marble-falls_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Pflugerville\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/813040663_baylor-scott--white-medical-center--pflugerville_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Round Rock\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/203749695_baylor-scott--white-medical-center--round-rock_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Taylor\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741595711_baylor-scott--white-medical-center--taylor_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Temple\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741166904_baylor-scott--white-medical-center--temple_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Pavilion - Temple\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741166904_baylor-scott--white-pavilion--temple_standardcharges.csv\"}], \"mrf_links_north_texas\": [{\"facility_name\": \"Baylor Scott & White All Saints Medical Center \\u2013 Fort Worth\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751008430_baylor-scott--white-all-saints-medical-center--fort-worth_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Centennial\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/824052186_baylor-scott--white-medical-center--centennial_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Grapevine\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751777119_baylor-scott--white-medical-center--grapevine_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Irving\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/752586857_baylor-scott--white-medical-center--irving_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Lake Pointe\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/260194016_baylor-scott--white-medical-center--lake-pointe_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 McKinney\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751037591_baylor-scott--white-medical-center--mckinney_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Plano\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/820551704_baylor-scott--white-medical-center--plano_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Waxahachie\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751844139_baylor-scott--white-medical-center-at-waxahachie_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 Dallas\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/752834135_baylor-scott--white-heart-and-vascular-hospital--dallas_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 Denton\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/263603862_baylor-scott--white-the-heart-hospital--denton_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 McKinney\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/412101361_baylor-scott--white-the-heart-hospital--mckinney_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 Plano\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/412101361_baylor-scott--white-the-heart-hospital--plano_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 Waxahachie\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/752834135_baylor-scott--white-heart-and-vascular-hospital--waxahachie_standardcharges.csv\"}, {\"facility_name\": \"Baylor University Medical Center, part of Baylor Scott & White Health\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751837454_baylor-university-medical-center_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Frisco at PGA Parkway\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751037591_baylor-scott--white-medical-center--frisco-at-pga-parkway_standardcharges.csv\"}], \"product_page_url\": \"https://www.bswhealth.com/patient-tools/patient-registration-and-billing/estimate-your-cost-care/\", \"input\": {\"url\": \"https://bswhealth.com/cms-hpt.txt\"}}]",
+      "after_sample": "[{\"mrf_links_central_texas\": [{\"facility_name\": \"Baylor Scott & White Continuing Care Hospital\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/202850920_baylor-scott--white-continuing-care-hospital_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Emergency Medical Center - Cedar Park\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/203749695_baylor-scott--white-emergency-medical-center--cedar-park_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White McLane Children's Medical Center \\u2013 Temple\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741166904_baylor-scott--white-mclane-childrens-medical-center_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Austin\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/813040663_baylor-scott--white-medical-center--austin_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Buda\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/813040663_baylor-scott--white-medical-center--buda_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Brenham\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/742519752_baylor-scott--white-medical-center--brenham_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 College Station\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/274434451_baylor-scott--white-medical-center--college-station_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Hillcrest\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741161944_baylor-scott--white-medical-center--hillcrest_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Lakeway\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/203749695_baylor-scott--white-medical-center--lakeway_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Marble Falls\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/464007700_baylor-scott--white-medical-center--marble-falls_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Pflugerville\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/813040663_baylor-scott--white-medical-center--pflugerville_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Round Rock\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/203749695_baylor-scott--white-medical-center--round-rock_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Taylor\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741595711_baylor-scott--white-medical-center--taylor_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Temple\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741166904_baylor-scott--white-medical-center--temple_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Pavilion - Temple\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/741166904_baylor-scott--white-pavilion--temple_standardcharges.csv\"}], \"mrf_links_north_texas\": [{\"facility_name\": \"Baylor Scott & White All Saints Medical Center \\u2013 Fort Worth\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751008430_baylor-scott--white-all-saints-medical-center--fort-worth_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Centennial\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/824052186_baylor-scott--white-medical-center--centennial_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Grapevine\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751777119_baylor-scott--white-medical-center--grapevine_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Irving\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/752586857_baylor-scott--white-medical-center--irving_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Lake Pointe\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/260194016_baylor-scott--white-medical-center--lake-pointe_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 McKinney\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751037591_baylor-scott--white-medical-center--mckinney_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Plano\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/820551704_baylor-scott--white-medical-center--plano_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Waxahachie\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751844139_baylor-scott--white-medical-center-at-waxahachie_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 Dallas\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/752834135_baylor-scott--white-heart-and-vascular-hospital--dallas_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 Denton\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/263603862_baylor-scott--white-the-heart-hospital--denton_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 McKinney\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/412101361_baylor-scott--white-the-heart-hospital--mckinney_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 Plano\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/412101361_baylor-scott--white-the-heart-hospital--plano_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White The Heart Hospital \\u2013 Waxahachie\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/752834135_baylor-scott--white-heart-and-vascular-hospital--waxahachie_standardcharges.csv\"}, {\"facility_name\": \"Baylor University Medical Center, part of Baylor Scott & White Health\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751837454_baylor-university-medical-center_standardcharges.csv\"}, {\"facility_name\": \"Baylor Scott & White Medical Center \\u2013 Frisco at PGA Parkway\", \"mrf_url\": \"https://wadcdn.azureedge.net/bswhealth/com/siteassets/pricing-transparency/751037591_baylor-scott--white-medical-center--frisco-at-pga-parkway_standardcharges.csv\"}], \"product_page_url\": \"https://www.bswhealth.com/patient-tools/patient-registration-and-billing/estimate-your-cost-care/\", \"input\": {\"url\": \"https://bswhealth.com/cms-hpt.txt\"}}]"
+    },
+    {
       "timestamp": "2026-08-23T09:45:42.690630+00:00",
       "collector_id": "c_mt5gsveu1j066hutk5",
       "reason": "heal job exceeded 900s local wait, job_id=c_mt5gsveu1j066hutk5.",
@@ -139,5 +148,5 @@
     }
   ],
   "healSuccessCount": 0,
-  "asOf": "2026-08-23T12:00:00.000Z"
+  "asOf": "2026-08-23T12:13:04.423Z"
 }
