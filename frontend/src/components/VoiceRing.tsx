@@ -1,9 +1,8 @@
 "use client";
 
 /**
- * VoiceRing — soft ribbon around Aria.
- * Amplitude is clamped inside the canvas; radii are temporally smoothed
- * so speech and listening swell instead of snapping.
+ * VoiceRing — flowing ribbon around Aria.
+ * Strong organic lobes, smoothed curves, peaks clamped inside the canvas.
  */
 
 import { useEffect, useRef } from "react";
@@ -17,37 +16,37 @@ interface VoiceRingProps {
   className?: string;
 }
 
-const LINE_COUNT = 6;
-const POINT_COUNT = 48;
-/** Keep peaks inside the square with a few px of padding. */
-const EDGE_PAD = 14;
+const LINE_COUNT = 11;
+const POINT_COUNT = 72;
+const EDGE_PAD = 10;
 
 function palette(state: VoiceState): { stroke: string; glow: string } {
   switch (state) {
     case "listening":
-      return { stroke: "rgba(110,231,183,0.55)", glow: "rgba(52,211,153,0.16)" };
+      return { stroke: "rgba(110,231,183,0.7)", glow: "rgba(52,211,153,0.22)" };
     case "speaking":
-      return { stroke: "rgba(167,243,208,0.62)", glow: "rgba(110,231,183,0.2)" };
+      return { stroke: "rgba(167,243,208,0.78)", glow: "rgba(110,231,183,0.28)" };
     case "thinking":
     case "transcribing":
-      return { stroke: "rgba(125,211,252,0.48)", glow: "rgba(56,189,248,0.14)" };
+      return { stroke: "rgba(125,211,252,0.62)", glow: "rgba(56,189,248,0.18)" };
     case "error":
-      return { stroke: "rgba(252,211,77,0.42)", glow: "rgba(251,191,36,0.1)" };
+      return { stroke: "rgba(252,211,77,0.5)", glow: "rgba(251,191,36,0.12)" };
     case "ready":
-      return { stroke: "rgba(110,231,183,0.36)", glow: "rgba(52,211,153,0.1)" };
+      return { stroke: "rgba(110,231,183,0.48)", glow: "rgba(52,211,153,0.14)" };
     default:
-      return { stroke: "rgba(148,163,184,0.26)", glow: "rgba(148,163,184,0.05)" };
+      return { stroke: "rgba(148,163,184,0.32)", glow: "rgba(148,163,184,0.08)" };
   }
 }
 
 function sampleFreq(freq: Uint8Array | null, angleNorm: number, t: number): number {
-  if (freq && freq.length > 2) {
-    const idx = Math.min(freq.length - 2, Math.floor(angleNorm * freq.length * 0.55));
-    const a = freq[idx] / 255;
-    const b = freq[idx + 1] / 255;
-    return a * 0.65 + b * 0.35;
+  if (freq && freq.length > 3) {
+    const idx = Math.min(freq.length - 2, Math.floor(angleNorm * freq.length * 0.62));
+    const prev = freq[Math.max(0, idx - 1)] / 255;
+    const cur = freq[idx] / 255;
+    const next = freq[idx + 1] / 255;
+    return prev * 0.2 + cur * 0.6 + next * 0.2;
   }
-  return 0.35 + 0.25 * Math.abs(Math.sin(angleNorm * Math.PI * 4 + t * 1.4));
+  return 0.45 + 0.35 * (0.5 + 0.5 * Math.sin(angleNorm * Math.PI * 3 + t * 1.1));
 }
 
 function targetRadius(
@@ -59,17 +58,21 @@ function targetRadius(
   level: number,
   freq: Uint8Array | null
 ): number {
-  const angle = angleNorm * Math.PI * 2 - Math.PI / 2;
-  const linePhase = (lineIndex - LINE_COUNT / 2) * 0.22;
-  const audio = sampleFreq(freq, angleNorm, t);
+  const spin = t * 0.18;
+  const angle = angleNorm * Math.PI * 2 - Math.PI / 2 + spin;
+  const lineNorm = lineIndex / LINE_COUNT;
+  const linePhase = (lineIndex - LINE_COUNT / 2) * 0.07;
+  const audio = sampleFreq(freq, (angleNorm + lineNorm * 0.04) % 1, t);
 
-  const breathe = Math.sin(t * 0.7 + linePhase) * 0.018;
-  const lobeA = Math.sin(angle * 2 + t * 0.55 + linePhase) * 0.045;
-  const lobeB = Math.sin(angle * 3 - t * 0.4) * 0.028;
-  const voice = audio * Math.min(0.2, level * 0.11);
+  const breathe = Math.sin(t * 0.55 + linePhase) * 0.04;
+  const lobeA = Math.sin(angle * 3 + t * 0.62 + linePhase) * 0.16;
+  const lobeB = Math.sin(angle * 5 - t * 0.38 + lineNorm * Math.PI) * 0.09;
+  const lobeC = Math.sin(angle * 2 + t * 0.22) * 0.05;
+  const voice = audio * Math.min(0.28, 0.08 + level * 0.16);
+  const ribbon = (lineIndex - LINE_COUNT / 2) * 0.012;
 
-  const r = baseRadius * (1 + breathe + lobeA + lobeB + voice);
-  return Math.min(maxRadius, Math.max(baseRadius * 0.92, r));
+  const r = baseRadius * (1 + breathe + lobeA + lobeB + lobeC + voice + ribbon);
+  return Math.min(maxRadius, Math.max(baseRadius * 0.78, r));
 }
 
 function strokeClosedCurve(
@@ -108,7 +111,7 @@ export default function VoiceRing({
   const voiceStateRef = useRef(voiceState);
   const audioLevelRef = useRef(audioLevel);
   const freqRef = useRef<Uint8Array | null>(freqData ?? null);
-  const smoothLevelRef = useRef(0.08);
+  const smoothLevelRef = useRef(0.12);
   const radiiRef = useRef<number[][]>(
     Array.from({ length: LINE_COUNT }, () => new Array(POINT_COUNT).fill(0))
   );
@@ -137,7 +140,7 @@ export default function VoiceRing({
     const cx = size / 2;
     const cy = size / 2;
     const maxRadius = size / 2 - EDGE_PAD;
-    const baseRadius = maxRadius * 0.72;
+    const baseRadius = maxRadius * 0.58;
     for (let li = 0; li < LINE_COUNT; li++) {
       radiiRef.current[li] = new Array(POINT_COUNT).fill(baseRadius);
     }
@@ -151,21 +154,21 @@ export default function VoiceRing({
       const state = voiceStateRef.current;
       const live = state === "listening" || state === "speaking";
 
-      const raw = audioLevelRef.current;
+      const raw = Math.max(audioLevelRef.current, live ? 0.22 : 0.1);
       const prev = smoothLevelRef.current;
-      const rise = live ? 0.18 : 0.1;
-      const fall = 0.06;
+      const rise = live ? 0.22 : 0.1;
+      const fall = 0.08;
       smoothLevelRef.current =
         raw > prev ? prev + (raw - prev) * rise : prev + (raw - prev) * fall;
 
-      const boost = state === "listening" ? 1.35 : state === "speaking" ? 1.2 : 0.55;
-      const level = Math.max(0.06, smoothLevelRef.current) * boost;
+      const boost = state === "listening" ? 1.55 : state === "speaking" ? 1.4 : 0.85;
+      const level = Math.max(0.12, smoothLevelRef.current) * boost;
       const colors = palette(state);
 
       ctx.clearRect(0, 0, size, size);
 
       ctx.save();
-      const halo = ctx.createRadialGradient(cx, cy, baseRadius * 0.5, cx, cy, maxRadius);
+      const halo = ctx.createRadialGradient(cx, cy, baseRadius * 0.4, cx, cy, maxRadius);
       halo.addColorStop(0, colors.glow);
       halo.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = halo;
@@ -174,11 +177,11 @@ export default function VoiceRing({
       ctx.fill();
       ctx.restore();
 
-      const follow = live ? 0.14 : 0.07;
+      const follow = live ? 0.2 : 0.09;
 
       for (let li = 0; li < LINE_COUNT; li++) {
         const radii = radiiRef.current[li];
-        const pts: { x: number; y: number }[] = [];
+        const next = new Array(POINT_COUNT);
         for (let i = 0; i < POINT_COUNT; i++) {
           const angleNorm = i / POINT_COUNT;
           const target = targetRadius(
@@ -190,8 +193,18 @@ export default function VoiceRing({
             level,
             freqRef.current
           );
-          radii[i] += (target - radii[i]) * follow;
-          const angle = angleNorm * Math.PI * 2 - Math.PI / 2;
+          next[i] = radii[i] + (target - radii[i]) * follow;
+        }
+        for (let i = 0; i < POINT_COUNT; i++) {
+          const a = next[(i - 1 + POINT_COUNT) % POINT_COUNT];
+          const b = next[i];
+          const c = next[(i + 1) % POINT_COUNT];
+          radii[i] = a * 0.18 + b * 0.64 + c * 0.18;
+        }
+
+        const pts: { x: number; y: number }[] = [];
+        for (let i = 0; i < POINT_COUNT; i++) {
+          const angle = (i / POINT_COUNT) * Math.PI * 2 - Math.PI / 2;
           pts.push({
             x: cx + Math.cos(angle) * radii[i],
             y: cy + Math.sin(angle) * radii[i],
@@ -199,9 +212,9 @@ export default function VoiceRing({
         }
 
         ctx.save();
-        ctx.globalAlpha = 0.16 + (li / LINE_COUNT) * 0.42;
+        ctx.globalAlpha = 0.14 + (li / LINE_COUNT) * 0.5;
         ctx.strokeStyle = colors.stroke;
-        ctx.lineWidth = 0.9;
+        ctx.lineWidth = 0.7 + (li / LINE_COUNT) * 0.35;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         strokeClosedCurve(ctx, pts);
@@ -221,7 +234,7 @@ export default function VoiceRing({
       ref={canvasRef}
       aria-hidden="true"
       className={className}
-      style={{ width: size, height: size, overflow: "visible" }}
+      style={{ width: size, height: size }}
     />
   );
 }
