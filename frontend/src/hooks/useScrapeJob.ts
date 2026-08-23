@@ -98,30 +98,32 @@ export function useScrapeJob() {
       stopAllVoice();
       resetVoiceQueue();
 
-      setFacilities({});
-      setScrapeEvents([]);
-      setExecutiveSummary(null);
-      setLlmExplanation(null);
+      const seed = getDemoReplayEvents(profile);
+      if (seed.length) setReplayEvents(seed);
 
-      const session = await createBrainSession(profile, opts);
+      beginScrapeUi(opts.instant ? "instant" : "proof-reel");
 
-      if (session.status === "running" && session.jobId) {
-        setScrapeJobId(session.jobId);
-        beginScrapeUi("live");
-        pollUntilComplete(session.jobId);
+      try {
+        const session = await createBrainSession(profile, opts);
+
+        if (session.status === "running" && session.jobId) {
+          setScrapeJobId(session.jobId);
+          beginScrapeUi("live");
+          pollUntilComplete(session.jobId);
+          return session;
+        }
+
+        applyBrainSession(session);
+        beginScrapeUi(session.presentationMode === "instant" ? "instant" : "proof-reel");
+        setScrapeJobId(null);
         return session;
+      } catch (err) {
+        console.warn("[scrape] session failed — continuing seeded Austin replay", err);
+        return null;
       }
-
-      applyBrainSession(session);
-      beginScrapeUi(session.presentationMode === "instant" ? "instant" : "proof-reel");
-      setScrapeJobId(null);
-      return session;
     },
     [
-      setFacilities,
-      setScrapeEvents,
-      setExecutiveSummary,
-      setLlmExplanation,
+      setReplayEvents,
       setScrapeJobId,
       applyBrainSession,
       beginScrapeUi,
@@ -199,29 +201,43 @@ export function useScrapeJob() {
         radiusMi: profile.radiusMi > 0 ? profile.radiusMi : 25,
       };
 
+      const seed = getDemoReplayEvents(profileNorm);
+      if (seed.length) setReplayEvents(seed);
+      beginScrapeUi("proof-reel");
+
       if (SKIP_SCRAPE_ANIMATION) {
         await loadInstantDemo(profileNorm);
         return;
       }
 
-      const cacheStatus = await checkZipCache(profileNorm);
-      const hasCache = cacheStatus?.cached === true;
-      const zipKnown = cacheStatus?.zipKnown !== false;
+      try {
+        const cacheStatus = await checkZipCache(profileNorm);
+        const hasCache = cacheStatus?.cached === true;
+        const zipKnown = cacheStatus?.zipKnown !== false;
 
-      if (HACKATHON_DEMO_MODE && !hasCache && zipKnown) {
+        if (HACKATHON_DEMO_MODE && !hasCache && zipKnown) {
+          await startLiveScrape(profileNorm);
+          return;
+        }
+
+        if (hasCache || !zipKnown) {
+          await startProofReelFlow(profileNorm);
+          return;
+        }
+
         await startLiveScrape(profileNorm);
-        return;
+      } catch (err) {
+        console.warn("[scrape] continuing seeded proof-reel", err);
       }
-
-      if (hasCache || !zipKnown) {
-        // Austin ZIP with cache, or out-of-coverage ZIP → proof-reel + honest snapshot fallback
-        await startProofReelFlow(profileNorm);
-        return;
-      }
-
-      await startLiveScrape(profileNorm);
     },
-    [patientProfile, loadInstantDemo, startLiveScrape, startProofReelFlow]
+    [
+      patientProfile,
+      setReplayEvents,
+      beginScrapeUi,
+      loadInstantDemo,
+      startLiveScrape,
+      startProofReelFlow,
+    ]
   );
 
   const cancelScrape = useCallback(async () => {

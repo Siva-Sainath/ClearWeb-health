@@ -290,8 +290,14 @@ app.get("/api/scrape/:jobId/events", (req, res) => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 app.listen(env.PORT, () => {
+  const { activeProvider } = require("./services/llmProvider");
+  const llm = activeProvider();
   console.log(`\n🕸️  ${BRAND.name} API  →  http://localhost:${env.PORT}`);
-  console.log(`   Model: ${env.OLLAMA_MODEL}  |  Ollama: ${env.OLLAMA_BASE}`);
+  console.log(
+    llm === "groq"
+      ? `   LLM: Groq ${env.GROQ_LLM_MODEL || "llama-3.3-70b-versatile"}`
+      : `   Model: ${env.OLLAMA_MODEL}  |  Ollama: ${env.OLLAMA_BASE}`
+  );
   console.log(
     `   TTS: ${env.TTS_PROVIDER === "groq" || env.GROQ_API_KEY ? env.GROQ_TTS_MODEL : env.TTS_VOICE} (${env.GROQ_API_KEY ? "groq" : "edge"})`
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Database, Radio, Loader2 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useDashboard } from "@/context/DashboardContext";
@@ -77,7 +77,6 @@ export default function VoiceOnboardingView() {
   const { applyActions, state: dashState, dispatch } = useDashboard();
   const [textInputOpen, setTextInputOpen] = useState(false);
   const [textInput, setTextInput] = useState("");
-  const [flashZoom, setFlashZoom] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [scrapeConfirmed, setScrapeConfirmed] = useState(false);
   const transitioningRef = useRef(false);
@@ -140,13 +139,9 @@ export default function VoiceOnboardingView() {
       agent.stopVoiceSession();
       setScrapeConfirmed(true);
       setTransitioning(true);
-      setFlashZoom(true);
       setIsListening(false);
       setIsSpeaking(false);
-
-      window.setTimeout(() => {
-        void startScrape(profile);
-      }, 480);
+      void startScrape(profile);
     },
     [patientProfile, updateProfile, agent, startScrape, setIsListening, setIsSpeaking]
   );
@@ -164,6 +159,12 @@ export default function VoiceOnboardingView() {
   const canPullPrices = isProfileCoreReady(patientProfile);
   const mergeBubbles = scrapeConfirmed && canPullPrices;
   const missing = nextMissingField(patientProfile);
+
+  React.useEffect(() => {
+    if (!canPullPrices || transitioning) return;
+    const t = window.setTimeout(() => beginPriceSearch(), 700);
+    return () => window.clearTimeout(t);
+  }, [canPullPrices, transitioning, beginPriceSearch]);
 
   const buttonLabel =
     zipProbe.status === "ready" && zipProbe.data.cached
@@ -201,19 +202,6 @@ export default function VoiceOnboardingView() {
           </p>
         )}
       </div>
-      <AnimatePresence>
-        {flashZoom && (
-          <motion.div
-            className="flash-zoom"
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25, delay: 0.85 }}
-          >
-            <div className="flash-zoom-burst" />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <InteractionStage
         voiceState={agent.voiceState}

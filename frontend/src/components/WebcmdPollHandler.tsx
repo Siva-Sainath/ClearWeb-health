@@ -56,7 +56,7 @@ export default function WebcmdPollHandler() {
       } catch {
         /* ignore */
       }
-    }, 500);
+    }, 2500);
     return () => clearInterval(interval);
   }, [applyActions, dispatch, setJourneyPhase, startScrape, scrapeStatus, facilities]);
 

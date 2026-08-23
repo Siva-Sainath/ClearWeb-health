@@ -26,6 +26,62 @@ async function checkGroqLlmHealth() {
   }
 }
 
+async function streamChat({
+  systemPrompt,
+  messages,
+  onToken,
+  temperature = 0.35,
+  numPredict = 450,
+  model,
+}) {
+  if (!groqKey()) throw new Error("GROQ_API_KEY not configured");
+  const m = model || env.GROQ_LLM_MODEL || "llama-3.3-70b-versatile";
+  const res = await axios.post(
+    `${GROQ_BASE}/chat/completions`,
+    {
+      model: m,
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      stream: true,
+      temperature,
+      max_tokens: numPredict,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${groqKey()}`,
+        "Content-Type": "application/json",
+      },
+      responseType: "stream",
+      timeout: 60000,
+    }
+  );
+
+  let fullResponse = "";
+  return new Promise((resolve, reject) => {
+    res.data.on("data", (chunk) => {
+      const lines = chunk.toString().split("\n").filter((line) => line.startsWith("data: "));
+      for (const line of lines) {
+        const payload = line.slice(6).trim();
+        if (payload === "[DONE]") {
+          resolve(fullResponse);
+          return;
+        }
+        try {
+          const json = JSON.parse(payload);
+          const token = json.choices?.[0]?.delta?.content;
+          if (token) {
+            fullResponse += token;
+            onToken?.(token);
+          }
+        } catch {
+          /* skip partial SSE chunks */
+        }
+      }
+    });
+    res.data.on("error", reject);
+    res.data.on("end", () => resolve(fullResponse));
+  });
+}
+
 async function generateJSON({ systemPrompt, userPrompt, model }) {
   if (!groqKey()) throw new Error("GROQ_API_KEY not configured");
   const m = model || env.GROQ_LLM_MODEL || "llama-3.3-70b-versatile";
@@ -86,4 +142,4 @@ async function chatWithTools({ systemPrompt, userPrompt, tools, model }) {
   return { content: msg.content || "", toolCalls };
 }
 
-module.exports = { generateJSON, chatWithTools, checkGroqLlmHealth, groqKey };
+module.exports = { streamChat, generateJSON, chatWithTools, checkGroqLlmHealth, groqKey };

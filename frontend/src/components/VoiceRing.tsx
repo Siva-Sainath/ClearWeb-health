@@ -19,8 +19,8 @@ interface VoiceRingProps {
   className?: string;
 }
 
-const LINE_COUNT = 36;
-const POINTS = 220;
+const LINE_COUNT = 8;
+const POINTS = 64;
 
 function palette(state: VoiceState): { stroke: string; glow: string } {
   switch (state) {
@@ -123,7 +123,15 @@ export default function VoiceRing({
     let start: number | null = null;
     let raf = 0;
 
+    let frame = 0;
     const loop = (now: number) => {
+      frame += 1;
+      const idle =
+        voiceStateRef.current === "standby" || voiceStateRef.current === "ready";
+      if (idle && frame % 3 !== 0) {
+        raf = requestAnimationFrame(loop);
+        return;
+      }
       if (start === null) start = now;
       const t = (now - start) / 1000;
 
