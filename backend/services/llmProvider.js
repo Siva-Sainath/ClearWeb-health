@@ -41,10 +41,19 @@ async function streamChat(options) {
   return ollama.streamChat(options);
 }
 
-async function generateJSON(prompt) {
-  if (activeProvider() !== "ollama") {
-    throw new Error("generateJSON is only supported with LLM_PROVIDER=ollama for now");
+async function generateJSON(promptOrOpts) {
+  const groq = require("./groqLlmProvider");
+  if (groq.groqKey()) {
+    const opts =
+      typeof promptOrOpts === "string"
+        ? { systemPrompt: "Return JSON only.", userPrompt: promptOrOpts }
+        : promptOrOpts;
+    return groq.generateJSON(opts);
   }
+  if (activeProvider() !== "ollama") {
+    throw new Error("generateJSON requires GROQ_API_KEY or LLM_PROVIDER=ollama");
+  }
+  const prompt = typeof promptOrOpts === "string" ? promptOrOpts : `${promptOrOpts.systemPrompt}\n\n${promptOrOpts.userPrompt}`;
   return ollama.generateJSON(prompt);
 }
 

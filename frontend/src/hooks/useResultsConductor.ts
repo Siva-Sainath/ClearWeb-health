@@ -5,15 +5,17 @@ import type { ScrapePresentationMode, PatientProfile, FacilityResult } from "@/l
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { UIAction } from "@/lib/uiActions";
 import { parseActionStrings } from "@/lib/uiActions";
-import { prefetchTts, speakTtsQueued, stopTtsPlayback } from "@/lib/ttsSpeak";
+import { usePresentationOrchestrator, type PresentationStep } from "@/hooks/usePresentationOrchestrator";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
 export interface ConductResultsResponse {
   spokenScript?: string;
   fullText?: string;
+  steps?: PresentationStep[];
   actions?: UIAction[];
   uiActions?: string[];
+  source?: string;
 }
 
 interface UseResultsConductorOptions {
@@ -26,6 +28,7 @@ interface UseResultsConductorOptions {
   onUiActions?: (actions: UIAction[]) => void;
   onCaptionChange?: (caption: string) => void;
   onSpeakingChange?: (speaking: boolean) => void;
+  onPresentationStep?: (index: number) => void;
   onComplete?: () => void;
 }
 
@@ -39,11 +42,13 @@ export function useResultsConductor({
   onUiActions,
   onCaptionChange,
   onSpeakingChange,
+  onPresentationStep,
   onComplete,
 }: UseResultsConductorOptions) {
   const [conducting, setConducting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ranRef = useRef(false);
+  const { play, stop } = usePresentationOrchestrator();
 
   const runConduct = useCallback(async () => {
     if (!enabled || ranRef.current || Object.keys(facilities).length === 0) return;
@@ -68,25 +73,22 @@ export function useResultsConductor({
         throw new Error(data.error || `conduct-results failed (${res.status})`);
       }
       const data = (await res.json()) as ConductResultsResponse;
-      const script = data.spokenScript?.trim() || data.fullText?.trim() || "";
       const uiFromStrings = data.uiActions?.length ? parseActionStrings(data.uiActions) : [];
-      const actions = [...(data.actions ?? []), ...uiFromStrings];
+      const fallbackActions = [...(data.actions ?? []), ...uiFromStrings];
 
-      if (actions.length) onUiActions?.(actions);
-
-      if (script) {
-        prefetchTts(script);
-        onSpeakingChange?.(true);
-        onCaptionChange?.(script);
-        stopTtsPlayback();
-        await speakTtsQueued(script);
-      }
+      await play({
+        spokenScript: data.spokenScript?.trim() || data.fullText?.trim() || "",
+        steps: data.steps,
+        fallbackActions,
+        onUiActions,
+        onCaptionChange,
+        onSpeakingChange,
+        onStepIndex: onPresentationStep,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Conduct failed");
       ranRef.current = false;
     } finally {
-      onSpeakingChange?.(false);
-      onCaptionChange?.("");
       setConducting(false);
       onComplete?.();
     }
@@ -100,13 +102,16 @@ export function useResultsConductor({
     onUiActions,
     onCaptionChange,
     onSpeakingChange,
+    onPresentationStep,
     onComplete,
+    play,
   ]);
 
   useEffect(() => {
     if (!enabled) return;
     void runConduct();
-  }, [enabled, runConduct]);
+    return () => stop();
+  }, [enabled, runConduct, stop]);
 
-  return { conducting, error, rerun: runConduct };
+  return { conducting, error, rerun: runConduct, stop };
 }

@@ -41,13 +41,17 @@ WEBCMD_BRIDGE_SECRET=...
 
 ## Autonomous UI (how the agent moves the website)
 
+Battle-tested pattern: **OpenAI-style tool calling** (Groq `llama-3.3-70b` when `GROQ_API_KEY` set) → structured `steps[]` with `delayMs` → browser orchestrator applies UI with framer-motion. Fallback: Ollama JSON plan or legacy `[action:...]` tag stream.
+
 Three layers — same action vocabulary:
 
 1. **In-browser (Aria chat):** `useAriaAgent` parses `[action:...]` from `/api/agent/chat` stream → `applyActions()` directly.
-2. **Backend conductor:** `POST /api/agent/conduct-results` — sends scraped `facilities` + honest `presentationMode` to LLM → `parseAllTags` → `executeUICommands` → webcmd queue.
-3. **External (Gemini / Antigravity):** Read `GET /api/page-state` (Bearer secret) → reason over facilities/heal events → `POST /api/webcmd-action` with `{type,payload}` → `WebcmdPollHandler` polls every 500ms and runs actions.
+2. **Backend conductor:** `POST /api/agent/conduct-results` — Groq tools or JSON plan → `steps[]` with per-step `actions` → `usePresentationOrchestrator` staggers UI + TTS (no bulk webcmd dump).
+3. **External (Gemini / Antigravity / MCP):** `scripts/mcp-ui-bridge.mjs` or `GET /api/page-state` + `POST /api/webcmd-action` → `WebcmdPollHandler` polls every 500ms.
 
-**Frontend hooks:** `useResultsConductor` (auto on results when `NEXT_PUBLIC_AGENTIC_RESULTS=true`), `AppStateBridge` publishes live snapshot, `WebcmdPollHandler` executes queued actions including `layout`, `call`, `book`, `route`.
+**Frontend hooks:** `useResultsConductor` + `usePresentationOrchestrator`, `AppStateBridge`, `WebcmdPollHandler`.
+
+**Tool schema:** `backend/services/uiToolSchema.js` — `set_layout`, `spotlight_facility`, `set_tab`, `reveal_facility`, `compare_facilities`, etc.
 
 **Scrape management:** offload to Antigravity via `scraper/scripts/orchestrate_texas.py` (not the results UI).
 

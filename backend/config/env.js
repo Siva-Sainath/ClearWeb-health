@@ -33,6 +33,7 @@ const env = {
   STT_PRESET: process.env.STT_PRESET || "fast",
   STT_PROVIDER: process.env.STT_PROVIDER || "auto",
   GROQ_API_KEY: process.env.GROQ_API_KEY || "",
+  GROQ_LLM_MODEL: process.env.GROQ_LLM_MODEL || "llama-3.3-70b-versatile",
   GROQ_WHISPER_MODEL: process.env.GROQ_WHISPER_MODEL || "whisper-large-v3-turbo",
   S1_MINI_ENABLED: process.env.S1_MINI_ENABLED === "true",
   S1_MINI_MODEL: process.env.S1_MINI_MODEL || "s1-mini",

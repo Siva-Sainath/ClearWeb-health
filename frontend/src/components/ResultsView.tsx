@@ -62,6 +62,7 @@ export default function ResultsView() {
   const [explanationCaption, setExplanationCaption] = useState("");
   const [explanationSpeaking, setExplanationSpeaking] = useState(false);
   const [walkthroughDone, setWalkthroughDone] = useState(false);
+  const [presentationPulse, setPresentationPulse] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -230,6 +231,7 @@ export default function ResultsView() {
     onUiActions: applyActions,
     onCaptionChange: setExplanationCaption,
     onSpeakingChange: setExplanationSpeaking,
+    onPresentationStep: () => setPresentationPulse((n) => n + 1),
     onComplete: () => setWalkthroughDone(true),
   });
 
@@ -404,6 +406,12 @@ export default function ResultsView() {
         />
       )}
 
+      <motion.div
+        key={`${dashState.layoutMode}-${presentationPulse}`}
+        initial={{ opacity: 0.92, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+      >
       <ResultsLayoutShell
         layoutMode={dashState.layoutMode}
         summary={
@@ -515,6 +523,7 @@ export default function ResultsView() {
           </section>
         }
       />
+      </motion.div>
 
       <section className="glass rounded-2xl overflow-hidden">
         <button
