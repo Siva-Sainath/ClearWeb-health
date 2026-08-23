@@ -1240,7 +1240,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
     if (!enabled || !autoStart) return;
     if (welcomeStartedRef.current || spokenWelcomeRef.current || welcomeInFlightRef.current) return;
     if (phase === "results" && Object.keys(facilities).length === 0) return;
-    if (phase === "results" && !executiveSummary?.spokenSummary) return;
+    if (phase === "results" && !AGENTIC_RESULTS && !executiveSummary?.spokenSummary) return;
     const greeting = getWelcomeMessage();
     if (!greeting) return;
 

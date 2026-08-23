@@ -6,11 +6,12 @@ import { useDashboard } from "@/context/DashboardContext";
 import { useScrapeJob } from "@/hooks/useScrapeJob";
 import type { UIAction } from "@/lib/uiActions";
 import type { JourneyPhase } from "@/lib/types";
+import { executeFacilityBook, executeFacilityCall } from "@/lib/facilityContact";
 
 export default function WebcmdPollHandler() {
-  const { setJourneyPhase, scrapeStatus } = useAppContext();
+  const { setJourneyPhase, scrapeStatus, facilities } = useAppContext();
   const { startScrape } = useScrapeJob();
-  const { applyActions } = useDashboard();
+  const { applyActions, dispatch } = useDashboard();
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -36,6 +37,17 @@ export default function WebcmdPollHandler() {
             document.getElementById(`facility-${a.payload}`)?.scrollIntoView({ behavior: "smooth" });
           } else if (a.type === "navigate_panel") {
             document.getElementById(`panel-${a.payload}`)?.scrollIntoView({ behavior: "smooth" });
+          } else if (a.type === "call") {
+            const f = facilities[a.payload];
+            if (f) executeFacilityCall(f);
+          } else if (a.type === "book") {
+            const f = facilities[a.payload];
+            if (f) executeFacilityBook(f);
+          } else if (a.type === "route") {
+            dispatch({ type: "spotlight", payload: a.payload });
+            dispatch({ type: "tab", payload: "map" });
+            dispatch({ type: "layout", payload: "mapRoute" });
+            document.getElementById(`facility-${a.payload}`)?.scrollIntoView({ behavior: "smooth" });
           } else {
             dashActions.push(a);
           }
@@ -46,7 +58,7 @@ export default function WebcmdPollHandler() {
       }
     }, 500);
     return () => clearInterval(interval);
-  }, [applyActions, setJourneyPhase, startScrape, scrapeStatus]);
+  }, [applyActions, dispatch, setJourneyPhase, startScrape, scrapeStatus, facilities]);
 
   return null;
 }

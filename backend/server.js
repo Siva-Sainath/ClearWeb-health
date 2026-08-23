@@ -12,6 +12,7 @@ const { checkLlmHealth } = require("./services/llmProvider");
 const { checkTtsHealth, synthesizeSpeech, warmupTts } = require("./services/ttsService");
 const { checkSttHealth, transcribeAudio } = require("./services/sttService");
 const { handleAgentChatStream, extractProfile, analyseResults } = require("./services/ariaAgent");
+const { conductResults } = require("./services/resultsConductor");
 const scrapeService = require("./services/scrapeService");
 const { queryCachedPrices } = require("./services/priceQueryService");
 const multer = require("multer");
@@ -108,6 +109,23 @@ app.post("/api/analyse", async (req, res) => {
     const analysis = await analyseResults(req.body.facilities, req.body.userPreferences);
     res.json({ analysis });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** Autonomous results walkthrough — LLM + webcmd UI choreography */
+app.post("/api/agent/conduct-results", async (req, res) => {
+  try {
+    const result = await conductResults({
+      profile: req.body.profile,
+      facilities: req.body.facilities,
+      presentationMode: req.body.presentationMode,
+      healEvents: req.body.healEvents,
+      executiveSummary: req.body.executiveSummary,
+    });
+    res.json(result);
+  } catch (err) {
+    console.error("[conduct-results]", err.message);
     res.status(500).json({ error: err.message });
   }
 });

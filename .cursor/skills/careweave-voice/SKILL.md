@@ -39,6 +39,18 @@ WEBCMD_BRIDGE_SECRET=...
 - `[navigate:phase:scraping|results]`
 - `[profile:condition:...]` `[profile:insurance:...]` `[profile:zipCode:...]`
 
+## Autonomous UI (how the agent moves the website)
+
+Three layers — same action vocabulary:
+
+1. **In-browser (Aria chat):** `useAriaAgent` parses `[action:...]` from `/api/agent/chat` stream → `applyActions()` directly.
+2. **Backend conductor:** `POST /api/agent/conduct-results` — sends scraped `facilities` + honest `presentationMode` to LLM → `parseAllTags` → `executeUICommands` → webcmd queue.
+3. **External (Gemini / Antigravity):** Read `GET /api/page-state` (Bearer secret) → reason over facilities/heal events → `POST /api/webcmd-action` with `{type,payload}` → `WebcmdPollHandler` polls every 500ms and runs actions.
+
+**Frontend hooks:** `useResultsConductor` (auto on results when `NEXT_PUBLIC_AGENTIC_RESULTS=true`), `AppStateBridge` publishes live snapshot, `WebcmdPollHandler` executes queued actions including `layout`, `call`, `book`, `route`.
+
+**Scrape management:** offload to Antigravity via `scraper/scripts/orchestrate_texas.py` (not the results UI).
+
 ## webcmd bridge
 - `GET/POST /api/page-state` — full app snapshot
 - `POST /api/webcmd-action` — inject UI actions (Bearer `WEBCMD_BRIDGE_SECRET`)

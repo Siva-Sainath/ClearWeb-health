@@ -18,7 +18,6 @@ import AgentLiveRibbon from "./AgentLiveRibbon";
 import ExecutiveSummaryPanel from "./ExecutiveSummaryPanel";
 import ConsumerOptionCard from "./ConsumerOptionCard";
 import ExplanationStage from "./ExplanationStage";
-import AgentResultsConductor from "./AgentResultsConductor";
 import ResultsTabShell from "./ResultsTabShell";
 import FacilityFlashcards from "./FacilityFlashcards";
 import AgentActionBar from "./AgentActionBar";
@@ -31,6 +30,7 @@ import SavingsCallout from "./SavingsCallout";
 import CompareSplitView from "./CompareSplitView";
 import ScrapeTrustPanel from "./ScrapeTrustPanel";
 import ScrapeDemoActions from "./ScrapeDemoActions";
+import { useResultsConductor } from "@/hooks/useResultsConductor";
 import { buildScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import { buildFacilityFlashcards } from "@/lib/facilityInsights";
 import { insightSectionsFromExplanation } from "@/lib/llmExplanation";
@@ -220,6 +220,19 @@ export default function ResultsView() {
     resultsSource: scrapePresentationMode,
   });
 
+  const { conducting: autonomousConducting } = useResultsConductor({
+    enabled: AGENTIC_RESULTS && Object.keys(facilities).length > 0,
+    profile: patientProfile,
+    facilities,
+    presentationMode: scrapePresentationMode,
+    healEvents: scrapeHealEvents,
+    executiveSummary: summary,
+    onUiActions: applyActions,
+    onCaptionChange: setExplanationCaption,
+    onSpeakingChange: setExplanationSpeaking,
+    onComplete: () => setWalkthroughDone(true),
+  });
+
   useEffect(() => {
     if (!agent.error) return;
     const t = setTimeout(() => setShowTypeMode(true), 0);
@@ -364,6 +377,12 @@ export default function ResultsView() {
 
       <ScrapeDemoActions />
 
+      {autonomousConducting && AGENTIC_RESULTS && (
+        <p className="text-xs text-center text-violet-300/90 py-2" aria-live="polite">
+          Aria is analyzing your results and reshaping the dashboard…
+        </p>
+      )}
+
       {explanationSpeaking && explanationCaption && (
         <p
           className="text-sm text-center text-[var(--color-text-secondary)] leading-relaxed px-5 py-3 glass rounded-xl border border-white/[0.06]"
@@ -371,19 +390,6 @@ export default function ResultsView() {
         >
           {explanationCaption}
         </p>
-      )}
-
-      {walkthroughExplanation && !walkthroughDone && AGENTIC_RESULTS && (
-        <AgentResultsConductor
-          explanation={walkthroughExplanation}
-          facilities={facilities}
-          presentationMode={scrapePresentationMode}
-          onSectionReveal={handleExplanationReveal}
-          onUiActions={applyActions}
-          onSpeakingChange={setExplanationSpeaking}
-          onCaptionChange={setExplanationCaption}
-          onComplete={() => setWalkthroughDone(true)}
-        />
       )}
 
       {walkthroughExplanation && !walkthroughDone && !AGENTIC_RESULTS && (
