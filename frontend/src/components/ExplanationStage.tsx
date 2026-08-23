@@ -28,14 +28,14 @@ interface ExplanationStageProps {
 
 function insightSpeechLine(section: ExplanationSection): string {
   if (section.type !== "insight") return "";
-  if (section.title === "Your price range") {
+  if (section.title === "Your price range" || section.title === "Your price range") {
     return section.body;
   }
-  if (section.title === "How we collected prices") {
-    return "Next I'm showing how Bright Data crawled each hospital price file — check the timeline on screen.";
-  }
-  if (section.title === "What we searched") {
-    return section.body;
+  if (
+    section.title === "How we collected prices" ||
+    section.title === "How we collected prices"
+  ) {
+    return `${section.body} Watch the cards as I name each hospital.`;
   }
   return `${section.title}. ${section.body}`;
 }
@@ -79,6 +79,13 @@ export default function ExplanationStage({
     },
     [onSectionReveal, facilities]
   );
+
+  useEffect(() => {
+    if (autoPlay || playedRef.current) return;
+    playedRef.current = true;
+    explanation.sections.forEach((section, i) => revealSection(section, i));
+    onComplete?.();
+  }, [autoPlay, explanation, revealSection, onComplete]);
 
   useEffect(() => {
     if (!autoPlay || playedRef.current) return;

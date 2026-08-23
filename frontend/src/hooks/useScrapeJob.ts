@@ -9,6 +9,7 @@ import {
   applyProfileToDemoResults,
   getDemoReplayEvents,
 } from "@/lib/demoSnapshot";
+import { canPriceInDemo } from "@/lib/coverageGate";
 import { buildScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { PatientProfile } from "@/lib/types";
 import { checkZipCache } from "@/lib/zipCacheCheck";
@@ -104,11 +105,13 @@ export function useScrapeJob() {
       resetVoiceQueue();
 
       const seed = getDemoReplayEvents(profile);
-      if (seed.length) setReplayEvents(seed);
-      const demoFacilities = applyProfileToDemoResults(profile, AUSTIN_DEMO_SNAPSHOT.results);
-      if (Object.keys(demoFacilities).length) {
-        setFacilities(demoFacilities);
-        setExecutiveSummary(buildScrapeExecutiveSummary(profile, demoFacilities, seed));
+      if (canPriceInDemo(profile) && seed.length) setReplayEvents(seed);
+      if (canPriceInDemo(profile)) {
+        const demoFacilities = applyProfileToDemoResults(profile, AUSTIN_DEMO_SNAPSHOT.results);
+        if (Object.keys(demoFacilities).length) {
+          setFacilities(demoFacilities);
+          setExecutiveSummary(buildScrapeExecutiveSummary(profile, demoFacilities, seed));
+        }
       }
 
       beginScrapeUi(opts.instant ? "instant" : "proof-reel");

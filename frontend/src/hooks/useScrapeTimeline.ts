@@ -90,6 +90,7 @@ export interface UseScrapeTimelineOptions {
   resolveNodeId?: (log: ScraperLog) => string | null;
   onTimelineComplete?: () => void;
   onHealEvent?: (log: ScraperLog) => void;
+  onProcessEvent?: (log: ScraperLog) => void;
 }
 
 export function useScrapeTimeline({
@@ -104,6 +105,7 @@ export function useScrapeTimeline({
   resolveNodeId,
   onTimelineComplete,
   onHealEvent,
+  onProcessEvent,
 }: UseScrapeTimelineOptions): ScrapeTimelineState {
   const baseNodes = initialNodes ?? INITIAL_NODES;
   const [nodes, setNodes] = useState<SourceNode[]>(baseNodes);
@@ -129,11 +131,13 @@ export function useScrapeTimeline({
   const startedAtRef = useRef<number | null>(null);
   const onCompleteRef = useRef(onTimelineComplete);
   const onHealRef = useRef(onHealEvent);
+  const onProcessRef = useRef(onProcessEvent);
 
   useEffect(() => {
     onCompleteRef.current = onTimelineComplete;
     onHealRef.current = onHealEvent;
-  }, [onTimelineComplete, onHealEvent]);
+    onProcessRef.current = onProcessEvent;
+  }, [onTimelineComplete, onHealEvent, onProcessEvent]);
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((t) => clearTimeout(t));
@@ -181,6 +185,7 @@ export function useScrapeTimeline({
 
   const applyLog = useCallback(
     (log: ScraperLog) => {
+      onProcessRef.current?.(log);
       const nodeId = resolveLogNodeId(log);
       if (!nodeId) return;
 

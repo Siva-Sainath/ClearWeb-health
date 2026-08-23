@@ -31,6 +31,37 @@ export function buildScrapeNarrationLines(
   return { intro, afterReplay };
 }
 
+export function processNarrationFromLog(log: {
+  event?: string;
+  facility_name?: string;
+  hospital_name?: string;
+  cache_hit?: boolean;
+  cpt_code?: string;
+}): string | null {
+  const name = log.facility_name || log.hospital_name || "this hospital";
+  switch (log.event) {
+    case "collector_started":
+    case "collector_started":
+      return `Opening ${name}'s price-transparency page through Bright Data.`;
+    case "page_loaded":
+    case "page_loaded":
+      return `Found the CMS machine-readable file link at ${name}.`;
+    case "mrf_downloaded":
+    case "mrf_downloaded":
+      return log.cache_hit
+        ? `Loading the cached CMS price file for ${name}.`
+        : `Downloading the live CMS price file for ${name} through Web Unlocker.`;
+    case "price_extracted":
+    case "price_extracted":
+      return `Matching your procedure${log.cpt_code ? ` code ${log.cpt_code}` : ""} inside ${name}'s file.`;
+    case "extraction_failed":
+    case "extraction_failed":
+      return `${name} didn't publish a usable rate — moving to the next hospital.`;
+    default:
+      return null;
+  }
+}
+
 export function healNarrationLine(
   collectorId: string,
   detail?: string,

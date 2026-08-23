@@ -9,7 +9,7 @@ const PROCEDURE_CPT = [
   { re: /\bmri\b/i, cpt: "70553", label: "MRI" },
   { re: /\b(ct|cat)\s+scan\b|\bct\s+of\b/i, cpt: "74177", label: "CT scan" },
   { re: /\bcolonoscopy\b/i, cpt: "45378", label: "Colonoscopy" },
-  { re: /\b(er|emergency(?:\s+room)?)\b/i, cpt: "99284", label: "Emergency room visit" },
+  { re: /\b(er|emergency(?:\s+room)?)\b/i, cpt: "99283", label: "Emergency room visit" },
   { re: /\bknee\s+replacement\b|\btotal\s+knee\b/i, cpt: "27447", label: "Knee replacement" },
   { re: /\bhip\s+replacement\b|\btotal\s+hip\b/i, cpt: "27130", label: "Hip replacement" },
   { re: /\bmammogram\b/i, cpt: "77067", label: "Mammogram" },

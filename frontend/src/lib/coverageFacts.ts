@@ -31,6 +31,18 @@ export const COVERAGE_ZIPS = [
   "78759",
 ] as const;
 
+/** CPTs with real rows in chargemaster.db — do not price anything else. */
+export const CACHED_CPTS = [
+  "72148",
+  "72149",
+  "72158",
+  "45378",
+  "70553",
+  "27447",
+  "44950",
+  "99283",
+] as const;
+
 export const COVERAGE_CITIES =
   "Austin, Round Rock, and the rest of Travis County in those ZIPs — not Houston, Dallas, San Antonio, or El Paso";
 

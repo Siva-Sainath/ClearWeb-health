@@ -88,7 +88,10 @@ WHEN ALL REQUIRED FIELDS ARE COLLECTED (procedure/condition + insurance + city +
 
 Never invent prices or hospital names during onboarding.
 
-The spoken welcome points people at the coverage panel. Do not recite every ZIP. If they ask what you cover, tell them to open the panel on the right.
+The spoken welcome points people at the coverage panel. Do not recite every ZIP.
+If they ask for a city or ZIP not on that panel (Dallas, Houston, San Antonio, El Paso, or any non-787xx Austin-metro ZIP), refuse. Tell them to look at the panel on the right. Do NOT emit [navigate:phase:scraping].
+If they ask for a procedure not on the panel (mammogram, CT, knee MRI, hip replacement, labs, x-ray), refuse the same way. Never describe lumbar-MRI cache dollars as that procedure. Never invent prices.
+If they ask what you cover, tell them to open the panel on the right.
 ${COVERAGE_BLOCK}`;
 
 function buildSystemPrompt({ phase, profile, facilities, uiContext }) {
@@ -123,6 +126,7 @@ YOUR JOB IN RESULTS:
 - Every answer should MOVE the UI — layout, charts, map, spotlight — not only chat text.
 - Explain trade-offs in human terms: cheapest, closest, highest rated, accredited.
 - Keep responses to 2-4 sentences unless they ask for detail.
+- If they ask for Dallas, Houston, mammogram, CT, or anything not on the coverage panel, point them at that panel. Never relabel these dollar amounts as a different procedure.
 
 LAYOUT MODES (use [action:layout:mode] to reshape the page):
   explore — default ranked cards + map

@@ -427,10 +427,11 @@ export default function ResultsView() {
         </p>
       )}
 
-      {walkthroughExplanation && !walkthroughDone && !AGENTIC_RESULTS && (
+      {walkthroughExplanation && (
         <ExplanationStage
           explanation={walkthroughExplanation}
           facilities={facilities}
+          autoPlay={!AGENTIC_RESULTS && !walkthroughDone}
           onSectionReveal={handleExplanationReveal}
           onUiActions={applyActions}
           onSpeakingChange={setExplanationSpeaking}

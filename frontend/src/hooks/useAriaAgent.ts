@@ -22,6 +22,7 @@ import { speakTts, prefetchTts, ensureTtsReady, speakTtsQueued, unlockAudioPlayb
 import { normalizeProfileUpdates, normalizeUserTranscript } from "@/lib/profileNormalize";
 import { gateOnboardingProfileUpdates } from "@/lib/onboardingProfileGate";
 import { EMPTY_PROFILE } from "@/lib/types";
+import { coverageBlockFromText, coverageBlockFromProfile } from "@/lib/coverageGate";
 import { useWebSpeechRecognition } from "@/hooks/useWebSpeechRecognition";
 
 const BACKEND =
@@ -59,8 +60,8 @@ export interface UseAriaAgentOptions {
   executiveSummary?: ScrapeExecutiveSummary | null;
   onRouteFacility?: (facilityId: string) => void;
   resultsSource?: ScrapePresentationMode;
-  /** Fires when onboarding welcome TTS actually starts (first user tap). */
-  onWelcomeStart?: () => void;
+  /** Opens the coverage panel when Aria refuses an out-of-list ask. */
+  onCoverageNudge?: () => void;
 }
 
 export interface UseAriaAgentReturn {
@@ -108,6 +109,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
     onRouteFacility,
     resultsSource,
     onWelcomeStart,
+    onCoverageNudge,
   } = options;
 
   const [messages, setMessages] = useState<VapiMessage[]>([]);
@@ -633,6 +635,13 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
         }
         if (action.type === "navigate_phase") {
           if (action.payload === "scraping") {
+            const block = coverageBlockFromProfile(profileRef.current || EMPTY_PROFILE);
+            if (block) {
+              onCoverageNudge?.();
+              setCaption(block.speech);
+              await speakWithEdgeTTS(block.speech);
+              return parsed;
+            }
             onScrapeConfirm?.();
             return parsed;
           }
@@ -662,7 +671,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
 
       return parsed;
     },
-    [applyProfileFromAgent, onUIActions, onPhaseNavigate, onScrapeConfirm, facilities, onRouteFacility]
+    [applyProfileFromAgent, onUIActions, onPhaseNavigate, onScrapeConfirm, facilities, onRouteFacility, speakWithEdgeTTS, onCoverageNudge]
   );
 
   const extractProfileFallback = useCallback(
@@ -797,8 +806,26 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
       setMessages((prev) => [...prev, { id: `u-${Date.now()}`, role: "user", text: trimmed }]);
       historyRef.current.push({ role: "user", content: trimmed });
       lastUserMessageRef.current = trimmed;
-      setCaption(VOICE_COPY.thinking);
       setError(null);
+
+      const coverageHit = coverageBlockFromText(trimmed);
+      if (coverageHit && (phase === "onboarding" || phase === "results")) {
+        setProcessing(true);
+        pauseListening();
+        const agentId = `a-cov-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: agentId, role: "agent", text: coverageHit.speech }]);
+        historyRef.current.push({ role: "assistant", content: coverageHit.speech });
+        setCaption(coverageHit.speech);
+        onCoverageNudge?.();
+        try {
+          await speakWithEdgeTTS(coverageHit.speech);
+        } finally {
+          setProcessing(false);
+        }
+        return;
+      }
+
+      setCaption(VOICE_COPY.thinking);
 
       const uiContext = dashState ? buildUIStateContext(dashState) : "";
       const agentId = `a-${Date.now()}`;
@@ -875,7 +902,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
         setProcessing(false);
       }
     },
-    [phase, facilities, dashState, handleAgentResponse, handleDeterministicFollowUp, executiveSummary, pauseListening, setProcessing]
+    [phase, facilities, dashState, handleAgentResponse, handleDeterministicFollowUp, executiveSummary, pauseListening, setProcessing, speakWithEdgeTTS, onCoverageNudge]
   );
 
   useEffect(() => {

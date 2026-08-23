@@ -14,7 +14,7 @@ import CoverageDrawer from "@/components/CoverageDrawer";
 import InteractionStage from "@/components/InteractionStage";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import VoiceShell from "@/components/VoiceShell";
-import { isProfileReady } from "@/components/ProfileFieldBubbles";
+import { coverageBlockFromProfile } from "@/lib/coverageGate";
 import { isProfileCoreReady, nextMissingField } from "@/lib/onboardingProgress";
 import type { PatientProfile } from "@/lib/types";
 
@@ -133,6 +133,10 @@ export default function VoiceOnboardingView() {
         if (!transitioningRef.current) setCoverageOpen(true);
       }, 650);
     },
+    onCoverageNudge: () => {
+      setCoverageHintReady(true);
+      setCoverageOpen(true);
+    },
   });
 
   const beginPriceSearch = useCallback(
@@ -146,6 +150,14 @@ export default function VoiceOnboardingView() {
       }
 
       if (!isProfileCoreReady(profile)) return;
+
+      const coverageBlock = coverageBlockFromProfile(profile);
+      if (coverageBlock) {
+        setCoverageHintReady(true);
+        setCoverageOpen(true);
+        setLastAgentMessage(coverageBlock.speech);
+        return;
+      }
 
       transitioningRef.current = true;
       if (coverageOpenTimerRef.current) {
@@ -161,7 +173,7 @@ export default function VoiceOnboardingView() {
       setIsSpeaking(false);
       void startScrape(profile);
     },
-    [patientProfile, updateProfile, agent, startScrape, setIsListening, setIsSpeaking]
+    [patientProfile, updateProfile, agent, startScrape, setIsListening, setIsSpeaking, setLastAgentMessage]
   );
 
   beginPriceSearchRef.current = beginPriceSearch;

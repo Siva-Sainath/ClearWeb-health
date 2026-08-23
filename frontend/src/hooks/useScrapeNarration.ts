@@ -32,6 +32,8 @@ export interface UseScrapeNarrationOptions {
   /** Heal events from timeline (live or replay). */
   pendingHealLine?: string | null;
   onHealLineSpoken?: () => void;
+  pendingProcessLine?: string | null;
+  onProcessLineSpoken?: () => void;
 }
 
 export function useScrapeNarration({
@@ -44,6 +46,8 @@ export function useScrapeNarration({
   onFinished,
   pendingHealLine,
   onHealLineSpoken,
+  pendingProcessLine,
+  onProcessLineSpoken,
 }: UseScrapeNarrationOptions) {
   const runIdRef = useRef(0);
   const onFinishedRef = useRef(onFinished);
@@ -53,6 +57,7 @@ export function useScrapeNarration({
   const summaryRef = useRef(summary);
   const scrapeCompleteRef = useRef(scrapeComplete);
   const onHealSpokenRef = useRef(onHealLineSpoken);
+  const onProcessSpokenRef = useRef(onProcessLineSpoken);
 
   useEffect(() => {
     scrapeCompleteRef.current = scrapeComplete;
@@ -62,7 +67,8 @@ export function useScrapeNarration({
     profileRef.current = profile;
     summaryRef.current = summary;
     onHealSpokenRef.current = onHealLineSpoken;
-  }, [scrapeComplete, onFinished, onCaption, onSpeakingChange, profile, summary, onHealLineSpoken]);
+    onProcessSpokenRef.current = onProcessLineSpoken;
+  }, [scrapeComplete, onFinished, onCaption, onSpeakingChange, profile, summary, onHealLineSpoken, onProcessLineSpoken]);
 
   // Main narration sequence
   useEffect(() => {
@@ -130,6 +136,18 @@ export function useScrapeNarration({
       onHealSpokenRef.current?.();
     })();
   }, [active, pendingHealLine]);
+
+  useEffect(() => {
+    if (!active || !pendingProcessLine || pendingHealLine) return;
+    const line = pendingProcessLine;
+    void (async () => {
+      onCaptionRef.current?.(line);
+      onSpeakingRef.current?.(true);
+      await speakLineWithTimeout(line);
+      onSpeakingRef.current?.(false);
+      onProcessSpokenRef.current?.();
+    })();
+  }, [active, pendingProcessLine, pendingHealLine]);
 }
 
 /** Build heal caption from scrape log */

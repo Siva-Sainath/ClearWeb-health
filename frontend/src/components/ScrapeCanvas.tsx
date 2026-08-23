@@ -17,6 +17,7 @@ import { useScrapeTimeline, CX, CY } from "@/hooks/useScrapeTimeline";
 import { useScrapeOrchestrator } from "@/hooks/useScrapeOrchestrator";
 import { useScrapeJob } from "@/hooks/useScrapeJob";
 import { healLineFromLog, useScrapeNarration } from "@/hooks/useScrapeNarration";
+import { processNarrationFromLog } from "@/lib/scrapeNarration";
 import { useAppContext } from "@/context/AppContext";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
 import { resetVoiceQueue } from "@/lib/ttsSpeak";
@@ -332,11 +333,13 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
   const [narrationComplete, setNarrationComplete] = useState(false);
   const [narrationCaption, setNarrationCaption] = useState("");
   const [pendingHealLine, setPendingHealLine] = useState<string | null>(null);
+  const [pendingProcessLine, setPendingProcessLine] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAnimating) {
       setNarrationComplete(false);
       setPendingHealLine(null);
+      setPendingProcessLine(null);
     }
   }, [isAnimating, scrapePresentationMode, scrapeJobId]);
 
@@ -347,6 +350,12 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
 
   const handleHealEvent = useCallback((log: ScraperLog) => {
     setPendingHealLine(healLineFromLog(log));
+  }, []);
+
+  const handleProcessEvent = useCallback((log: ScraperLog) => {
+    if (/heal/i.test(log.event || "")) return;
+    const line = processNarrationFromLog(log);
+    if (line) setPendingProcessLine(line);
   }, []);
 
   const timelineActive =
@@ -363,6 +372,7 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
     initialNodes: showcaseMode ? SHOWCASE_NODES : undefined,
     resolveNodeId: showcaseMode ? () => resolveShowcaseNodeId() : undefined,
     onHealEvent: handleHealEvent,
+    onProcessEvent: handleProcessEvent,
     onTimelineComplete: showcaseMode?.onReplayComplete,
   });
 
@@ -379,6 +389,8 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
     scrapeComplete,
     pendingHealLine,
     onHealLineSpoken: () => setPendingHealLine(null),
+    pendingProcessLine,
+    onProcessLineSpoken: () => setPendingProcessLine(null),
     onCaption: (line) => {
       setNarrationCaption(line);
       setLastAgentMessage(line);
@@ -496,7 +508,7 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
         {narrationCaption && isAnimating && (
           <div className="shrink-0 px-4 pb-2 z-10">
             <p
-              className="text-sm text-center text-[var(--color-text-secondary)] leading-relaxed px-4 py-3 glass rounded-xl border border-white/[0.06]"
+              className="text-base sm:text-lg text-center text-emerald-100 leading-relaxed px-5 py-4 glass rounded-2xl border border-emerald-400/30 bg-emerald-950/50 shadow-[0_0_28px_rgba(52,211,153,0.15)]"
               aria-live="polite"
             >
               {narrationCaption}

@@ -75,13 +75,13 @@ export function buildDeterministicExplanation(
 
   const brightDataBody =
     cacheHits > 0 && liveHits === 0
-      ? `Bright Data Scraper Studio collectors opened each hospital price-transparency portal and located the CMS machine-readable file (MRF). We loaded ${cacheHits} real MRF files from disk cache — same published hospital data, faster for the demo.`
-      : `Bright Data Scraper Studio collectors navigated ${Math.max(websiteCount, summary.sourcesChecked)} hospital websites, found each MRF download link, and Web Unlocker pulled the JSON through bot protection — ${liveHits} live download${liveHits === 1 ? "" : "s"}, ${cacheHits} from cache.` +
+      ? `Bright Data collectors opened each Austin hospital price-transparency site, found the CMS machine-readable file, and we replayed ${cacheHits} real cached downloads so you could watch the scrape without waiting on the live network.`
+      : `Bright Data collectors opened hospital price-transparency sites, found each CMS file, and Web Unlocker pulled the JSON — ${liveHits} live download${liveHits === 1 ? "" : "s"}, ${cacheHits} from cache.` +
         (healCount > 0
-          ? ` When a layout broke or a site throttled us, self-healing collectors retried ${healCount} time${healCount === 1 ? "" : "s"}.`
+          ? ` When a site blocked or broke, self-healing retried ${healCount} time${healCount === 1 ? "" : "s"}.`
           : "");
 
-  const searchBody = `For ${summary.procedure} in ${place}, within ${summary.radiusMi} miles on ${summary.insurance}. We matched your procedure code against negotiated rates inside each MRF.`;
+  const searchBody = `We only priced ${summary.procedure} near ${place} (within ${summary.radiusMi} miles on ${summary.insurance}). These dollars are that CPT in the Austin cache — not a stand-in for a different test.`;
 
   const sections: ExplanationSection[] = [
     {

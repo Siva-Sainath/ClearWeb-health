@@ -7,6 +7,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { coverageBlockFromProfile } = require("../lib/coverageGate");
 const { queryCachedPrices } = require("./priceQueryService");
 const scrapeService = require("./scrapeService");
 const { buildScrapeContext, healEventsFromLogs } = require("./scrapeContext");
@@ -238,6 +239,12 @@ async function createSession({ profile: rawProfile, mode = "auto", agentic, inst
   let lastUpdated = data.lastUpdated;
 
   if (!Object.keys(results).length) {
+    if (coverageBlockFromProfile(profile)) {
+      results = {};
+      events = [];
+      replayEvents = [];
+      healEvents = [];
+    } else {
     const demo = loadDemoSnapshot();
     if (!demo) throw new Error("No cached prices and demo snapshot unavailable");
     results = applyProfileToDemoResults(profile, demo.results);
@@ -247,6 +254,7 @@ async function createSession({ profile: rawProfile, mode = "auto", agentic, inst
       demo.replayEvents?.length ? demo.replayEvents : demo.events
     );
     healEvents = healEventsFromLogs(replayEvents);
+    }
   }
 
   const presentationMode = resolvedMode === "instant" ? "instant" : "proof-reel";
