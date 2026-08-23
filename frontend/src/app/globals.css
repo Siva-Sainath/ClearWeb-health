@@ -2,16 +2,16 @@
 
 @theme inline {
   /* ─── Neutral charcoal palette (design-tokens.ts) ─── */
-  --color-void: #0a0a0b;
-  --color-surface: #141416;
-  --color-surface-raised: #1c1c1f;
+  --color-void: #070d0a;
+  --color-surface: #0e1612;
+  --color-surface-raised: #15201a;
   --color-border: rgba(180, 168, 140, 0.10);
   --color-border-bright: rgba(255, 255, 255, 0.1);
 
   /* ─── Text ─── */
-  --color-text-primary: #fafafa;
-  --color-text-secondary: #a1a1aa;
-  --color-text-tertiary: #71717a;
+  --color-text-primary: #f2f9f5;
+  --color-text-secondary: #8baba0;
+  --color-text-tertiary: #5c7a70;
 
   /* ─── Accents ─── */
   --color-accent: #34d399;
@@ -40,8 +40,8 @@
 html,
 body {
   height: 100%;
-  background-color: #0a0a0b;
-  color: #fafafa;
+  background-color: #070d0a;
+  color: #f2f9f5;
   font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

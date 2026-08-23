@@ -52,7 +52,7 @@ export default function WebBackground() {
         <svg viewBox="0 0 1200 900" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
           <defs>
             <radialGradient id="webGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.04" />
+              <stop offset="0%" stopColor="#34d399" stopOpacity="0.10" />
               <stop offset="100%" stopColor="transparent" stopOpacity="0" />
             </radialGradient>
           </defs>
@@ -68,9 +68,9 @@ export default function WebBackground() {
                 y1={CENTER_Y}
                 x2={(CENTER_X + 560 * Math.cos(a)).toFixed(1)}
                 y2={(CENTER_Y + 480 * Math.sin(a)).toFixed(1)}
-                stroke="#ffffff"
+                stroke="#6ee7b7"
                 strokeWidth={i % 3 === 0 ? 0.8 : 0.4}
-                opacity={i % 3 === 0 ? 0.04 : 0.02}
+                opacity={i % 3 === 0 ? 0.12 : 0.06}
               />
             );
           })}

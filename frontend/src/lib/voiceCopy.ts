@@ -47,8 +47,7 @@ export const PHASE_LABEL: Record<JourneyPhase, string> = {
 };
 
 export const HERO_SUBTITLE: Record<JourneyPhase, string> = {
-  onboarding:
-    "Austin ZIPs 78701–78759 listed in full on this screen · eight cached CPTs · twelve hospitals · Aetna through cash pay",
+  onboarding: "Look at the coverage panel — then tell Aria what to price",
   scraping: "Pulling prices from hospitals near you…",
   results: "Here’s what we found — tap a chip or just ask.",
 };

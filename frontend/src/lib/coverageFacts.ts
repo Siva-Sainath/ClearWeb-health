@@ -86,17 +86,9 @@ export const COVERAGE_INSURERS = [
   "cash / self-pay",
 ] as const;
 
-function speakZip(zip: string): string {
-  return zip.split("").join(" ");
-}
-
 export function getCoverageWelcomeChunks(agentName: string): string[] {
-  const zips = COVERAGE_ZIPS.map(speakZip).join(", ");
   return [
-    `Hi, I'm ${agentName}. I only have consumer prices for Austin metro. The ZIPs I can search are ${zips}.`,
-    `Hospitals already in the cache: ${COVERAGE_HOSPITALS.join("; ")}.`,
-    `Treatments with real scraped rows: ${COVERAGE_PROCEDURES.join("; ")}.`,
-    `Insurers in those files: ${COVERAGE_INSURERS.join(", ")}. I do not have Houston or Dallas consumer prices. What do you need priced today?`,
+    `Hi, I'm ${agentName}. Look to your right — that panel lists every ZIP, hospital, treatment, and insurer I already have scraped. What do you need priced today?`,
   ];
 }
 

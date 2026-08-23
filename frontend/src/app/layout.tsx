@@ -35,7 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       lang="en"
       className={`${inter.variable} ${fraunces.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#0a0a0b] text-zinc-50">
+      <body className="min-h-full flex flex-col bg-[#070d0a] text-[#f2f9f5]">
         <AppProvider>
           <WebBackground />
           {children}

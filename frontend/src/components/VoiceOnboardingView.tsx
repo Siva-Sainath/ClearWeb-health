@@ -10,7 +10,7 @@ import { useScrapeJob } from "@/hooks/useScrapeJob";
 import { useZipCacheProbe } from "@/hooks/useZipCacheProbe";
 import { prefetchTtsLines } from "@/lib/ttsSpeak";
 import { getOnboardingWelcomeChunks } from "@/lib/voiceCopy";
-import { COVERAGE_PROCEDURES, COVERAGE_INSURERS, COVERAGE_ZIPS, COVERAGE_HOSPITALS } from "@/lib/coverageFacts";
+import CoverageDrawer from "@/components/CoverageDrawer";
 import InteractionStage from "@/components/InteractionStage";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import VoiceShell from "@/components/VoiceShell";
@@ -76,6 +76,7 @@ export default function VoiceOnboardingView() {
   const { startScrape } = useScrapeJob();
   const zipProbe = useZipCacheProbe(patientProfile);
   const { applyActions, state: dashState, dispatch } = useDashboard();
+  const [coverageOpen, setCoverageOpen] = useState(true);
   const [textInputOpen, setTextInputOpen] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [transitioning, setTransitioning] = useState(false);
@@ -179,23 +180,14 @@ export default function VoiceOnboardingView() {
   return (
     <div className="pb-24">
       <div className="px-6 pt-6 max-w-lg mx-auto">
-        <div className="text-[11px] leading-relaxed text-[var(--color-text-tertiary)] text-left mb-3 space-y-1.5">
-          <p>
-            <span className="font-medium text-[var(--color-text-secondary)]">ZIPs: </span>
-            {COVERAGE_ZIPS.join(", ")}
-          </p>
-          <p>
-            <span className="font-medium text-[var(--color-text-secondary)]">Hospitals: </span>
-            {COVERAGE_HOSPITALS.join("; ")}
-          </p>
-          <p>
-            <span className="font-medium text-[var(--color-text-secondary)]">Cached care: </span>
-            {COVERAGE_PROCEDURES.join("; ")}
-          </p>
-          <p>
-            <span className="font-medium text-[var(--color-text-secondary)]">Payers: </span>
-            {COVERAGE_INSURERS.join(", ")}
-          </p>
+        <div className="flex justify-center mb-3">
+          <button
+            type="button"
+            onClick={() => setCoverageOpen(true)}
+            className="text-xs font-medium rounded-full px-3 py-1.5 border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15"
+          >
+            Coverage — ZIPs, hospitals, procedures, payers
+          </button>
         </div>
         <OnboardingProgress profile={patientProfile} />
         <CacheStatusBanner zipProbe={zipProbe} />
@@ -258,6 +250,7 @@ export default function VoiceOnboardingView() {
         }}
         onTypeFallback={() => setTextInputOpen((p) => !p)}
       />
+      <CoverageDrawer open={coverageOpen} onOpenChange={setCoverageOpen} />
     </div>
   );
 }
