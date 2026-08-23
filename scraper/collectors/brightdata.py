@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import time
@@ -58,6 +59,65 @@ def _is_rate_limited(stderr: str, stdout: str) -> bool:
         token in combined
         for token in ("rate limit", "rate_limit", "429", "too many requests", "throttl")
     )
+
+
+def _extract_response_id(text: str) -> str | None:
+    """Parse Bright Data async response_id from CLI stderr (sync timeout)."""
+    m = re.search(r"response_id:\s*([a-z0-9]+)", text, re.I)
+    return m.group(1) if m else None
+
+
+def get_result_by_response_id(response_id: str, timeout_s: int = 300) -> dict:
+    """Poll GET /dca/get_result by response_id after async/sync-timeout run."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        resp = requests.get(
+            f"{BD_API_BASE}/dca/get_result",
+            headers=_auth_headers(),
+            params={"response_id": response_id},
+            timeout=60,
+        )
+        if resp.status_code == 429:
+            raise RuntimeError("rate_limited: Bright Data get_result rate limited")
+        if resp.status_code in (404, 400):
+            time.sleep(3)
+            continue
+        if not resp.ok:
+            raise RuntimeError(f"get_result failed ({resp.status_code}): {resp.text[:400]}")
+        data = resp.json()
+        status = (data.get("status") or data.get("state") or "").lower()
+        if status in ("done", "complete", "success", "finished") or data.get("result"):
+            return data
+        if status in ("failed", "error"):
+            raise RuntimeError(f"Collector REST run failed: {data}")
+        time.sleep(3)
+    raise RuntimeError(f"get_result timed out after {timeout_s}s for response_id={response_id}")
+
+
+def collector_info_rest(collector_id: str) -> dict:
+    """GET collector metadata — used to detect missing template."""
+    resp = requests.get(
+        f"{BD_API_BASE}/dca/collectors/{collector_id}",
+        headers=_auth_headers(),
+        timeout=30,
+    )
+    if not resp.ok:
+        return {"error": resp.text[:200], "status_code": resp.status_code}
+    return resp.json()
+
+
+def collector_ready(collector_id: str) -> tuple[bool, str]:
+    """Return (ready, reason). False when BD reports no template / still building."""
+    info = collector_info_rest(collector_id)
+    if info.get("error"):
+        return True, "collector info unavailable — proceed with run"
+    err = (info.get("error_message") or info.get("error") or "").lower()
+    if "template" in err and "not" in err:
+        return False, "Collector does not have a template"
+    status = (info.get("status") or info.get("state") or "").lower()
+    if status in ("building", "pending", "creating"):
+        return False, f"Collector still {status}"
+    return True, "ready"
 
 
 def trigger_immediate_rest(collector_id: str, seed_url: str = "") -> dict:
@@ -208,6 +268,22 @@ def run_collector(
         if result.returncode != 0:
             if _is_rate_limited(result.stderr, result.stdout):
                 raise RuntimeError(f"rate_limited: {result.stderr[-200:]}")
+            combined = (result.stdout or "") + (result.stderr or "")
+            response_id = _extract_response_id(combined)
+            if response_id and use_sync and "timed out" in combined.lower():
+                logger.info("Sync timed out for %s — polling response_id %s", collector_id, response_id)
+                raw = get_result_by_response_id(
+                    response_id,
+                    timeout_s=int(os.environ.get("BRIGHTDATA_ASYNC_TIMEOUT", "300")),
+                )
+                data = raw.get("result") or raw.get("data") or raw
+                if isinstance(data, str):
+                    data = json.loads(data)
+                if isinstance(data, list):
+                    if not data:
+                        raise RuntimeError(f"Collector {collector_id} async returned empty list")
+                    data = data[0]
+                return data
             raise RuntimeError(
                 f"brightdata scraper run failed (exit {result.returncode}):\n"
                 f"stdout: {result.stdout[-800:]}\nstderr: {result.stderr[-400:]}"
@@ -232,12 +308,11 @@ def run_collector(
         return data
     except Exception as cli_exc:
         logger.warning("CLI run_collector failed for %s, trying REST: %s", collector_id, cli_exc)
+        if "does not have a template" in str(cli_exc).lower():
+            raise
         try:
-            return run_collector_rest(
-                collector_id,
-                seed_url,
-                timeout_s=SYNC_TIMEOUT if use_sync else int(os.environ.get("BRIGHTDATA_ASYNC_TIMEOUT", "300")),
-            )
+            async_timeout = int(os.environ.get("BRIGHTDATA_ASYNC_TIMEOUT", "300"))
+            return run_collector_rest(collector_id, seed_url, timeout_s=async_timeout)
         except Exception as rest_exc:
             if "rate_limited" in str(cli_exc) or "rate_limited" in str(rest_exc):
                 raise RuntimeError(f"rate_limited: {rest_exc}")

@@ -265,8 +265,74 @@ def get_pending_collector_jobs() -> list[dict]:
     """Return all pending collector jobs."""
     conn = _connect()
     try:
-        cursor = conn.execute("SELECT * FROM collector_jobs WHERE status = 'pending'")
+        cursor = conn.execute("SELECT * FROM collector_jobs WHERE status = 'pending' ORDER BY id")
         return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def get_failed_collector_jobs(limit: int = 50) -> list[dict]:
+    conn = _connect()
+    try:
+        cursor = conn.execute(
+            "SELECT * FROM collector_jobs WHERE status = 'failed' ORDER BY id DESC LIMIT ?",
+            (limit,),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def reset_collector_jobs_to_pending(slugs: list[str] | None = None) -> int:
+    """Reset failed jobs back to pending for retry. If slugs empty, reset all failed."""
+    conn = _connect()
+    try:
+        if slugs:
+            placeholders = ",".join("?" for _ in slugs)
+            cur = conn.execute(
+                f"UPDATE collector_jobs SET status='pending', reason='' WHERE status='failed' AND slug IN ({placeholders})",
+                slugs,
+            )
+        else:
+            cur = conn.execute(
+                "UPDATE collector_jobs SET status='pending', reason='' WHERE status='failed'"
+            )
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+
+def collector_jobs_summary() -> dict:
+    conn = _connect()
+    try:
+        rows = conn.execute(
+            "SELECT status, COUNT(*) as n FROM collector_jobs GROUP BY status"
+        ).fetchall()
+        by_status = {row[0]: row[1] for row in rows}
+        recent = conn.execute(
+            """
+            SELECT slug, hospital_name, collector_id, status, reason, target_url
+            FROM collector_jobs ORDER BY id DESC LIMIT 20
+            """
+        ).fetchall()
+        return {
+            "byStatus": by_status,
+            "verified": by_status.get("verified", 0),
+            "pending": by_status.get("pending", 0),
+            "failed": by_status.get("failed", 0),
+            "recent": [
+                {
+                    "slug": r[0],
+                    "hospitalName": r[1],
+                    "collectorId": r[2],
+                    "status": r[3],
+                    "reason": r[4],
+                    "targetUrl": r[5],
+                }
+                for r in recent
+            ],
+        }
     finally:
         conn.close()
 

@@ -13,6 +13,7 @@ const { buildScrapeContext, healEventsFromLogs } = require("./scrapeContext");
 const { buildExecutiveSummary } = require("./executiveSummary");
 const { buildDeterministicExplanation } = require("./deterministicExplanation");
 const { conductResults } = require("./resultsConductor");
+const { runCollectorStatus } = require("./collectorStatusService");
 
 const DEMO_SNAPSHOT_PATH = path.join(
   __dirname,
@@ -101,6 +102,24 @@ async function buildBrainPayload({
     healEvents: heals,
     presentationMode,
   });
+
+  let collectorPipeline = null;
+  try {
+    collectorPipeline = await runCollectorStatus();
+    if (collectorPipeline?.byStatus) {
+      scrapeContext.collectorPipeline = {
+        verified: collectorPipeline.verified,
+        pending: collectorPipeline.pending,
+        failed: collectorPipeline.failed,
+        recentFailures: (collectorPipeline.recent || [])
+          .filter((j) => j.status === "failed")
+          .slice(0, 5),
+      };
+    }
+  } catch {
+    /* optional — scraper DB may be unavailable on deploy */
+  }
+
   const executiveSummary = buildExecutiveSummary(profile, results, replay);
   const explanation =
     agentic || !executiveSummary
@@ -224,6 +243,19 @@ async function getSession(sessionId, { agentic } = {}) {
       profile: job.profile,
       eventCount: job.events?.length ?? 0,
       eventsUrl: `/api/scrape/${sessionId}/events`,
+    };
+  }
+
+  if (job.status === "failed" || job.status === "cancelled") {
+    return {
+      sessionId,
+      jobId: sessionId,
+      status: job.status,
+      presentationMode: "live",
+      profile: job.profile,
+      error: job.error,
+      events: job.events,
+      healEvents: healEventsFromLogs(job.events || []),
     };
   }
 

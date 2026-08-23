@@ -14,6 +14,7 @@ const { checkSttHealth, transcribeAudio } = require("./services/sttService");
 const { handleAgentChatStream, extractProfile, analyseResults } = require("./services/ariaAgent");
 const { conductResults } = require("./services/resultsConductor");
 const { createSession, getSession } = require("./services/brainService");
+const { runCollectorStatus } = require("./services/collectorStatusService");
 const scrapeService = require("./services/scrapeService");
 const { queryCachedPrices } = require("./services/priceQueryService");
 const multer = require("multer");
@@ -159,6 +160,17 @@ app.get("/api/scrape/session/:sessionId", async (req, res) => {
   } catch (err) {
     console.error("[scrape/session/:id]", err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+/** Bright Data collector pipeline status (jobs DB + heal events) */
+app.get("/api/collectors/status", async (_req, res) => {
+  try {
+    const status = await runCollectorStatus();
+    res.json(status);
+  } catch (err) {
+    console.error("[collectors/status]", err.message);
+    res.status(503).json({ error: err.message });
   }
 });
 

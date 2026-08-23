@@ -31,22 +31,41 @@ HEAL_LOG_PATH = Path(__file__).parent.parent / 'data' / 'heal_log.jsonl'
 def validate_preview(preview_result: list[dict] | None) -> tuple[bool, str]:
     if not preview_result:
         return False, 'preview returned empty list or null'
-    
+
+    url_keys = (
+        'shoppable_services_csv_url',
+        'standard_charges_csv_url',
+        'mrf_url',
+        'mrf-url',
+        'file_url',
+        'download_url',
+        'pricing_file_url',
+        'transparency_file_url',
+    )
+
     for row in preview_result:
+        if not isinstance(row, dict):
+            continue
         # HCA format
         if 'pricing_files' in row:
             files = row['pricing_files']
             if files and isinstance(files, list):
-                if any(f.get('file_url') or f.get('url') for f in files):
+                if any(f.get('file_url') or f.get('url') for f in files if isinstance(f, dict)):
                     return True, ''
             return False, 'preview returned 0 valid file URLs in pricing_files array'
-            
-        # General/Encompass format: explicitly check CSV fields
-        shoppable = row.get('shoppable_services_csv_url')
-        standard = row.get('standard_charges_csv_url')
-        if shoppable or standard:
-            return True, ''
-            
+
+        for key in url_keys:
+            val = row.get(key)
+            if isinstance(val, str) and val.startswith('http'):
+                return True, ''
+
+        # Flat URL-ish values in any string field
+        for val in row.values():
+            if isinstance(val, str) and val.startswith('http') and any(
+                val.lower().endswith(ext) for ext in ('.json', '.csv', '.zip', '.gz', '.txt')
+            ):
+                return True, ''
+
     return False, 'preview missing expected specific CSV/file URL fields'
 
 
@@ -105,6 +124,7 @@ def heal_collector(
     start_time = time.time()
     last_step = None
     data = None
+    max_wait = int(os.environ.get('HEAL_MAX_WAIT_SEC', '900'))
     
     while True:
         line = p.stdout.readline()
@@ -128,19 +148,36 @@ def heal_collector(
                 logger.info(f'[heal] Status transition: {last_step or "queued"} -> {step_info}')
                 last_step = step_info
                     
-        if time.time() - start_time > 600:
-            logger.error(f'[heal] Local wait exceeded 10 min.')
-            raise RuntimeError(f'heal job exceeded 10 min local wait, job_id={collector_id}.')
+        if time.time() - start_time > max_wait:
+            logger.error(f'[heal] Local wait exceeded {max_wait}s.')
+            raise RuntimeError(f'heal job exceeded {max_wait}s local wait, job_id={collector_id}.')
             
     p.wait()
 
     if p.returncode != 0 and not data:
+        try:
+            from collectors.brightdata import refactor_template_rest
+            logger.info(f'[heal] CLI heal exit {p.returncode} — trying REST refactor_template for {collector_id}')
+            refactor_template_rest(collector_id, reason[:500])
+            return {'collector_id': collector_id, 'status': 'heal_rest_triggered', 'approved': None}
+        except Exception as rest_exc:
+            logger.warning(f'[heal] REST refactor failed: {rest_exc}')
         raise RuntimeError(f'brightdata scraper heal failed (exit {p.returncode})')
     
     if data:
         data['collector_id'] = collector_id
         status = data.get('status')
         logger.info(f'[heal] CLI returned status: {status}')
+
+        if status == 'heal_trigger_failed':
+            try:
+                from collectors.brightdata import refactor_template_rest
+                logger.info(f'[heal] heal_trigger_failed — REST refactor for {collector_id}')
+                refactor_template_rest(collector_id, reason[:500])
+                data['status'] = 'heal_rest_triggered'
+            except Exception as rest_exc:
+                logger.warning(f'[heal] REST refactor after heal_trigger_failed: {rest_exc}')
+            return data
         
         if status == 'awaiting_approval':
             if auto_approve:

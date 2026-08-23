@@ -227,59 +227,9 @@ curl -X POST http://localhost:3001/api/scrape/session \
 
 ---
 
-## 8. How to test autonomous UI (not script demo)
+## 8. UI test note (for implementers)
 
-### Required services
-
-```bash
-# Terminal 1 — backend
-cd backend && node server.js
-
-# Terminal 2 — frontend
-cd frontend && npm run dev
-```
-
-### Environment (`frontend/.env.local`)
-
-```bash
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
-WEBCMD_BRIDGE_SECRET=clearweb-dev-bridge
-
-# Autonomous path — DO NOT use demo shortcuts
-NEXT_PUBLIC_SKIP_ONBOARDING=false
-NEXT_PUBLIC_AGENTIC_RESULTS=true
-NEXT_PUBLIC_USE_LLM_EXPLANATION=true
-NEXT_PUBLIC_HACKATHON_DEMO_MODE=false
-NEXT_PUBLIC_SKIP_SCRAPE_ANIMATION=false
-NEXT_PUBLIC_DEMO_INSTANT_RESULTS=false
-```
-
-### Backend (`backend/.env`)
-
-```
-GROQ_API_KEY=...          # STT + TTS + presentation tools
-TTS_PROVIDER=groq
-STT_PROVIDER=groq
-AGENTIC_RESULTS=true      # server-side presentation generation
-OLLAMA_BASE=http://localhost:11434   # Aria chat fallback
-```
-
-### Manual test path
-
-1. Open `http://localhost:3000`
-2. Speak through onboarding (or type if mic unavailable)
-3. Say **"pull hospital prices"** / confirm search
-4. Watch **ScrapeCanvas** proof-reel (8× replay)
-5. Land on **Results** — Aria should stagger layout/spotlight/reveal with TTS
-6. Try chips: "Show me the cheapest on a chart", "Put it on the map"
-
-### What “autonomous” means here
-
-- Brain built server-side (`brainService.js`)
-- `scrapeContext` includes honest cache/replay/heal narrative
-- `presentation.steps[]` from Groq tools (not hardcoded UI sequence)
-- `usePresentationOrchestrator` executes steps with delays
-- Follow-up chat uses live LLM + UI action tags
+Use Austin ZIP **78701** with the autonomous brain session (`POST /api/scrape/session`). Avoid `NEXT_PUBLIC_SKIP_ONBOARDING`, `NEXT_PUBLIC_DEMO_INSTANT_RESULTS`, and `NEXT_PUBLIC_SKIP_SCRAPE_ANIMATION` — those bypass the real voice + replay flow. Collector/scrape pipeline status: `GET /api/collectors/status`.
 
 ---
 
