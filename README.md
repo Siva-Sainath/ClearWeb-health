@@ -26,7 +26,8 @@ Full walkthrough: voice onboarding, scrape replay, ranked prices, and Aria expla
 
 The Austin demo uses pre-collected data for 8 hospital sites (ER visit CPT 99284, Aetna, ZIP 78704). On load it can skip onboarding and go straight into the scrape replay, then results.
 
-Full recording script: [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md)
+Full recording script: see local `docs/DEMO_GUIDE.md` (not in repo).
+
 
 ## Project layout
 
@@ -127,7 +128,8 @@ Keep secrets in `.env` files. Do not commit them.
 
 - `NEXT_PUBLIC_SKIP_ONBOARDING` to jump straight to demo scrape flow
 
-See [docs/CURSOR_PROJECT_BRIEF.md](docs/CURSOR_PROJECT_BRIEF.md) for Bright Data setup details.
+See `backend/.env.example` and `scraper/.env.example` for Bright Data setup.
+
 
 ## Self-healing and replay
 
@@ -142,14 +144,6 @@ The frontend replay (`useScrapeReplay`) plays those events back on the ScrapeCan
 ## Hackathon context
 
 Built for **Scrapeverse** using **Bright Data Scraper Studio** and **Web Unlocker** to crawl real hospital price transparency pages, download CMS MRF files, and surface plan-specific prices through a voice-first patient UI.
-
-## Docs
-
-- [DEMO_GUIDE.md](docs/DEMO_GUIDE.md) end-to-end demo script
-- [HACKATHON_DEMO.md](docs/HACKATHON_DEMO.md) Scrape-Verse 3-act BD + self-healing demo script
-- [JUDGE_QUICKSTART.md](docs/JUDGE_QUICKSTART.md) Honest judge path + what we actually ship
-- [CURSOR_PROJECT_BRIEF.md](docs/CURSOR_PROJECT_BRIEF.md) architecture and Bright Data integration
-- [webcmd-integration.md](docs/webcmd-integration.md) voice agent bridge notes
 
 ## Status
 

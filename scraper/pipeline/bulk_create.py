@@ -25,8 +25,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 CREATE_PROMPT = (
-    "Extract price transparency machine-readable file URLs from this page. "
-    "Return direct MRF/JSON/CSV download links only using collect(). "
+    "CMS hospital price transparency page or cms-hpt.txt file. "
+    "Extract mrf-url and direct MRF/JSON/CSV/ZIP download links only using collect(). "
     "Do NOT download file contents — URLs only."
 )
 

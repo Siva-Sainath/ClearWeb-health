@@ -31,11 +31,14 @@ __pycache__/
 # Scraper cache and raw MRF downloads (large, regeneratable)
 scraper/data/
 
-# IDE / Cursor
+# IDE / Cursor / internal (do not commit)
 .cursor/debug*.log
 .cursor/mcp.json
+.cursor/plans/
+.agy-prompts/
+docs/**/*.md
+scraper/docs/
 .agy-logs/
-scripts/logs/
 
 # Misc
 *.pem
