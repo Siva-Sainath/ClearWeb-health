@@ -1,6 +1,7 @@
 "use strict";
 
 const { BRAND } = require("../lib/brand");
+const { COVERAGE_BLOCK } = require("../lib/coverageFacts");
 
 function norm(s) {
   return String(s || "")
@@ -85,7 +86,10 @@ WHEN ALL REQUIRED FIELDS ARE COLLECTED (procedure/condition + insurance + city +
 - Ask: "Want me to pull hospital prices near you?"
 - Only when they say yes / go ahead / show me → [navigate:phase:scraping]
 
-Never invent prices or hospital names during onboarding.`;
+Never invent prices or hospital names during onboarding.
+
+The spoken welcome already listed Austin coverage. Do not repeat the full catalog every turn. If they ask what you cover, or name Houston/Dallas or an uncovered procedure, use this and stay honest:
+${COVERAGE_BLOCK}`;
 
 function buildSystemPrompt({ phase, profile, facilities, uiContext }) {
   if (phase === "onboarding") {

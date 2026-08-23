@@ -1,5 +1,6 @@
 import type { JourneyPhase, PatientProfile } from "@/lib/types";
 import { BRAND } from "@/lib/brand";
+import { getCoverageWelcomeSpoken } from "@/lib/coverageFacts";
 
 /** Single source for voice UI strings — calm, plain, said once. */
 export const VOICE_COPY = {
@@ -23,7 +24,7 @@ export const VOICE_COPY = {
 
 /** One spoken welcome — avoids double "Hi" from multi-chunk playback. */
 export function getOnboardingWelcomeSpoken(): string {
-  return `Hi, I'm ${BRAND.agentName}. What do you need priced today?`;
+  return getCoverageWelcomeSpoken(BRAND.agentName);
 }
 
 /** Shown on screen after greeting (same text). */
@@ -46,7 +47,7 @@ export const PHASE_LABEL: Record<JourneyPhase, string> = {
 };
 
 export const HERO_SUBTITLE: Record<JourneyPhase, string> = {
-  onboarding: "What are you trying to get priced?",
+  onboarding: "Austin metro · lumbar MRI, colonoscopy, brain MRI, knee replacement · Aetna, BCBS, Cigna, United, and more",
   scraping: "Pulling prices from hospitals near you…",
   results: "Here’s what we found — tap a chip or just ask.",
 };

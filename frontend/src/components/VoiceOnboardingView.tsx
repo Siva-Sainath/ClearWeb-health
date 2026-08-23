@@ -10,6 +10,7 @@ import { useScrapeJob } from "@/hooks/useScrapeJob";
 import { useZipCacheProbe } from "@/hooks/useZipCacheProbe";
 import { prefetchTtsLines } from "@/lib/ttsSpeak";
 import { getOnboardingWelcomeChunks } from "@/lib/voiceCopy";
+import { COVERAGE_PROCEDURES, COVERAGE_INSURERS } from "@/lib/coverageFacts";
 import InteractionStage from "@/components/InteractionStage";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import VoiceShell from "@/components/VoiceShell";
@@ -178,6 +179,10 @@ export default function VoiceOnboardingView() {
   return (
     <div className="pb-24">
       <div className="px-6 pt-6 max-w-lg mx-auto">
+        <p className="text-[11px] leading-relaxed text-[var(--color-text-tertiary)] text-center mb-3">
+          Coverage now: Austin 787xx only. Cached care: {COVERAGE_PROCEDURES.join(", ")}.
+          Payers in file: {COVERAGE_INSURERS.join(", ")}.
+        </p>
         <OnboardingProgress profile={patientProfile} />
         <CacheStatusBanner zipProbe={zipProbe} />
         {canPullPrices && !transitioning && (
