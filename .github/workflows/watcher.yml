@@ -7,15 +7,18 @@ on:
 
 jobs:
   watcher:
+    name: Scraper Watcher Pass
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install scraper deps
+      - name: Install scraper dependencies
         working-directory: scraper
         run: |
           python -m pip install --upgrade pip
@@ -27,16 +30,28 @@ jobs:
           BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
           BRIGHTDATA_UNLOCKER_ZONE: ${{ secrets.BRIGHTDATA_UNLOCKER_ZONE }}
           BRIGHTDATA_USE_UNLOCKER_ALL: "1"
-        run: python watcher.py --once || true
+        run: python watcher.py --once
 
       - name: Sweep pending collector jobs
         working-directory: scraper
         env:
           BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
-        run: python sweep_collector_jobs.py || true
+        run: python sweep_collector_jobs.py
+        continue-on-error: true
 
       - name: Approve orphaned heals
         working-directory: scraper
         env:
           BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
-        run: python check_and_approve_heal.py --scan-targets || true
+        run: python check_and_approve_heal.py --scan-targets
+        continue-on-error: true
+
+      - name: Upload watcher artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: watcher-artifacts-${{ github.run_id }}
+          path: |
+            scraper/data/watcher_log.jsonl
+            scraper/data/last_scrape_events.json
+          if-no-files-found: ignore

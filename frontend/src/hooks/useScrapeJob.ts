@@ -16,6 +16,8 @@ import type { PatientProfile, ScraperLog } from "@/lib/types";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 const USE_LLM_EXPLANATION = process.env.NEXT_PUBLIC_USE_LLM_EXPLANATION === "true";
+const AGENTIC_RESULTS = process.env.NEXT_PUBLIC_AGENTIC_RESULTS === "true";
+const USE_LLM_EXPLANATION_EFFECTIVE = USE_LLM_EXPLANATION || AGENTIC_RESULTS;
 const HACKATHON_DEMO_MODE = process.env.NEXT_PUBLIC_HACKATHON_DEMO_MODE === "true";
 const SKIP_SCRAPE_ANIMATION = process.env.NEXT_PUBLIC_SKIP_SCRAPE_ANIMATION === "true";
 
@@ -98,7 +100,9 @@ export function useScrapeJob() {
       setFacilities(results);
       setScrapeEvents(events);
       setExecutiveSummary(summary);
-      if (summary) {
+      if (AGENTIC_RESULTS) {
+        setLlmExplanation(null);
+      } else if (summary) {
         setLlmExplanation(buildDeterministicExplanation(profile, results, summary, events));
       }
     },
@@ -107,7 +111,7 @@ export function useScrapeJob() {
 
   const fetchLlmExplanation = useCallback(
     async (results: Record<string, unknown>, profile: PatientProfile) => {
-      if (!USE_LLM_EXPLANATION) return;
+      if (!USE_LLM_EXPLANATION_EFFECTIVE) return;
       try {
         const res = await fetch(`${BACKEND}/api/analyse`, {
           method: "POST",
@@ -244,6 +248,7 @@ export function useScrapeJob() {
 
       setReplayEvents(replay);
       applyResults(results, events, profileForDemo);
+      void fetchLlmExplanation(results, profileForDemo);
       setScrapeJobId(null);
       setScrapePresentationMode("proof-reel");
       setScrapeStatus("running");
@@ -260,6 +265,7 @@ export function useScrapeJob() {
       fetchCachedQuery,
       setScrapeLastUpdated,
       setScrapeHealEvents,
+      fetchLlmExplanation,
     ]
   );
 
@@ -291,6 +297,7 @@ export function useScrapeJob() {
       setScrapeLastUpdated(lastUpdatedFromResults(results));
       setScrapeHealEvents(healEventsFromLogs(replay.length ? replay : events));
       applyResults(results, events, profileForDemo);
+      void fetchLlmExplanation(results, profileForDemo);
       setJourneyPhase("results");
     },
     [
@@ -303,6 +310,7 @@ export function useScrapeJob() {
       setJourneyPhase,
       setScrapeLastUpdated,
       setScrapeHealEvents,
+      fetchLlmExplanation,
     ]
   );
 

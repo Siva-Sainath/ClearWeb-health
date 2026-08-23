@@ -32,6 +32,9 @@ const BACKEND =
 const USE_INSTANT_DEMO =
   typeof process !== "undefined" && process.env.NEXT_PUBLIC_DEMO_INSTANT_RESULTS !== "false";
 
+const AGENTIC_RESULTS =
+  typeof process !== "undefined" && process.env.NEXT_PUBLIC_AGENTIC_RESULTS === "true";
+
 /** Local Whisper via backend — avoids Chrome cloud speech "network" failures. */
 const PREFER_LOCAL_STT =
   typeof process !== "undefined" && process.env.NEXT_PUBLIC_PREFER_LOCAL_STT !== "false";
@@ -740,6 +743,7 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
 
   const handleDeterministicFollowUp = useCallback(
     async (trimmed: string, agentId: string) => {
+      if (AGENTIC_RESULTS) return false;
       if (!executiveSummary) return false;
       const visibleIds = Object.keys(facilities);
       const match = matchFollowUpIntent(trimmed, {

@@ -37,6 +37,8 @@ import type { FacilityInsight } from "@/lib/facilityInsights";
 import { tokens } from "@/lib/design-tokens";
 import { BRAND } from "@/lib/brand";
 
+const AGENTIC_RESULTS = process.env.NEXT_PUBLIC_AGENTIC_RESULTS === "true";
+
 export default function ResultsView() {
   const {
     patientProfile,
@@ -157,7 +159,7 @@ export default function ResultsView() {
     );
     const allRanked = summary.ranked.filter((o) => entries.some(([id]) => id === o.id));
 
-    if (!llmExplanation || walkthroughDone) return allRanked;
+    if (AGENTIC_RESULTS || !llmExplanation || walkthroughDone) return allRanked;
 
     const revealed = new Set([...revealedCardIds, ...dashState.revealedFacilities]);
     return allRanked.filter((o) => revealed.has(o.id));
@@ -197,7 +199,7 @@ export default function ResultsView() {
     profile: patientProfile,
     facilities,
     executiveSummary: summary,
-    autoStart: !llmExplanation,
+    autoStart: AGENTIC_RESULTS || !llmExplanation,
     onRouteFacility: handleRouteFacility,
     onThinkingChange: (thinking) => dispatch({ type: "SET_THINKING", payload: thinking }),
     dashState: {
@@ -370,7 +372,7 @@ export default function ResultsView() {
         </p>
       )}
 
-      {walkthroughExplanation && !walkthroughDone && (
+      {walkthroughExplanation && !walkthroughDone && !AGENTIC_RESULTS && (
         <ExplanationStage
           explanation={walkthroughExplanation}
           facilities={facilities}
@@ -388,7 +390,7 @@ export default function ResultsView() {
           dashState.layoutMode === "explore" ? <ExecutiveSummaryPanel summary={summary} /> : undefined
         }
         flashcards={
-          walkthroughDone &&
+          (AGENTIC_RESULTS || walkthroughDone) &&
           flashcardInsights.length > 0 &&
           dashState.layoutMode !== "trustGaps" ? (
             <FacilityFlashcards
@@ -452,7 +454,7 @@ export default function ResultsView() {
             <h2 className="text-sm font-medium uppercase tracking-wider text-[var(--color-text-tertiary)]">
               Ranked for you
             </h2>
-            {llmExplanation && !walkthroughDone && cardsToShow.length === 0 && (
+            {llmExplanation && !walkthroughDone && !AGENTIC_RESULTS && cardsToShow.length === 0 && (
               <p className="text-sm text-[var(--color-text-secondary)] glass rounded-2xl p-4">
                 Cards appear here as Aria walks through each hospital option.
               </p>

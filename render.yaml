@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: clearweb-health-api
+    runtime: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        sync: false
+      - key: WEBCMD_BRIDGE_SECRET
+        generateValue: true
+      - key: WEBCMD_ENABLED
+        value: "true"
+      - key: LLM_PROVIDER
+        value: openrouter
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: stealth/ox-alpha
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TTS_PROVIDER
+        value: groq
+      - key: BRIGHT_DATA_API_TOKEN
+        sync: false
+      - key: BRIGHTDATA_UNLOCKER_ZONE
+        sync: false

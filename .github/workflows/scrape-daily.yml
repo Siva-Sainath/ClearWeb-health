@@ -1,0 +1,127 @@
+name: Daily scrape job
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      max_hospitals:
+        description: "Max hospitals to scrape"
+        required: false
+        default: "17"
+
+jobs:
+  scrape:
+    name: Daily Scrape
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install scraper dependencies
+        working-directory: scraper
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run daily scrape job
+        working-directory: scraper
+        env:
+          BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
+          BRIGHTDATA_UNLOCKER_ZONE: ${{ secrets.BRIGHTDATA_UNLOCKER_ZONE }}
+          BRIGHTDATA_USE_UNLOCKER_ALL: "1"
+          SCRAPE_PARALLEL: "0"
+        run: |
+          set -e
+          python run_job.py \
+            --profile-json '{"zipCode":"78701","procedure":"MRI","insurance":"Aetna","radiusMi":50}' \
+            --max-hospitals ${{ github.event.inputs.max_hospitals || '17' }} \
+            > scrape_output.ndjson
+
+          python -c "
+          import json, sys
+          from pathlib import Path
+
+          output_file = Path('scrape_output.ndjson')
+          if not output_file.exists():
+              print('Error: scrape_output.ndjson was not found', file=sys.stderr)
+              sys.exit(1)
+
+          complete_payload = None
+          for line in output_file.read_text(encoding='utf-8').splitlines():
+              line = line.strip()
+              if not line:
+                  continue
+              try:
+                  data = json.loads(line)
+                  if data.get('type') == 'complete':
+                      complete_payload = data
+              except json.JSONDecodeError:
+                  continue
+
+          if not complete_payload:
+              print('Error: No complete JSON payload found in scraper output', file=sys.stderr)
+              sys.exit(1)
+
+          results = complete_payload.get('results', [])
+          events = complete_payload.get('events', [])
+          failed = complete_payload.get('failed_hospitals', [])
+          print(f'Scrape successful: {len(results)} hospitals parsed, {len(failed)} failed.')
+
+          # Ensure data directory exists and persist last_scrape_events.json if needed
+          data_dir = Path('data')
+          data_dir.mkdir(parents=True, exist_ok=True)
+          events_file = data_dir / 'last_scrape_events.json'
+          if not events_file.exists() or events_file.stat().st_size == 0:
+              events_data = {
+                  'savedAt': 'github-actions-daily-scrape',
+                  'events': events,
+                  'replayEvents': events
+              }
+              events_file.write_text(json.dumps(events_data, indent=2), encoding='utf-8')
+              print(f'Persisted {len(events)} events to {events_file}')
+          "
+
+      - name: Upload scrape artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrape-artifacts-${{ github.run_id }}
+          path: |
+            scraper/scrape_output.ndjson
+            scraper/data/last_scrape_events.json
+            scraper/data/watcher_log.jsonl
+          if-no-files-found: ignore
+
+  heal-approve:
+    name: Heal & Approve Check
+    runs-on: ubuntu-latest
+    needs: scrape
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install scraper dependencies
+        working-directory: scraper
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Approve pending heals
+        working-directory: scraper
+        env:
+          BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
+        run: python check_and_approve_heal.py --scan-targets
+        continue-on-error: true

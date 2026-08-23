@@ -25,7 +25,8 @@ async function postWebcmdActions(actions) {
 }
 
 function navigationsToActions(navigations) {
-  return navigations.map((n) => {
+  return (navigations || []).map((n) => {
+    if (!n) return null;
     if (n.kind === "phase") return { type: "navigate_phase", payload: n.payload };
     if (n.kind === "tab") return { type: "tab", payload: n.payload };
     if (n.kind === "panel") return { type: "navigate_panel", payload: n.payload };
@@ -35,8 +36,8 @@ function navigationsToActions(navigations) {
   }).filter(Boolean);
 }
 
-async function executeUICommands({ actions = [], navigations = [] }) {
-  const all = [...actions, ...navigationsToActions(navigations)];
+async function executeUICommands({ actions = [], navigations = [] } = {}) {
+  const all = [...(actions || []), ...navigationsToActions(navigations || [])];
   await postWebcmdActions(all);
   return all;
 }

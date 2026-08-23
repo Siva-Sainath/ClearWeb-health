@@ -1,8 +1,10 @@
 "use strict";
 
+const { env } = require("../config/env");
 const { buildSystemPrompt } = require("./promptBuilder");
 const { streamChat, generateJSON } = require("./llmProvider");
 const { parseAllTags } = require("./tagParser");
+const { executeUICommands } = require("./webcmdExecutor");
 const { normalizeProfileUpdates } = require("./profileNormalize");
 const { filterProfileByUserMessages, mergeHeuristicProfile } = require("./onboardingProfileGate");
 
@@ -55,8 +57,13 @@ async function handleAgentChatStream(req, res, body) {
       parsed.profileUpdates = normalizeProfileUpdates(updates, profile || {});
     }
 
-    // UI actions are applied client-side from stream tags (instant feedback).
-    // webcmd bridge is available for external automation via /api/webcmd-action.
+    // Push UI actions to webcmd bridge (polled by frontend) for agentic + split deploy stacks.
+    if (env.WEBCMD_ENABLED && (parsed.actions?.length || parsed.navigations?.length)) {
+      void executeUICommands({
+        actions: parsed.actions,
+        navigations: parsed.navigations,
+      });
+    }
 
     res.write(
       `data: ${JSON.stringify({

@@ -1,129 +1,128 @@
 """
-pipeline/bulk_create.py
-=======================
-Bulk creates Bright Data scrapers asynchronously.
+pipeline/bulk_create.py — Bulk-create Bright Data Scraper Studio collectors.
 """
 
+from __future__ import annotations
+
+import json
 import logging
-import re
-import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import TypedDict
-import json
 
-from db.store import insert_collector_job, collector_job_exists
+from dotenv import load_dotenv
+
+ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT / ".env")
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from collectors.brightdata import create_collector as bd_create_collector
+from db.store import init_db, insert_collector_job, collector_job_exists
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-class HospitalCandidate(TypedDict):
+CREATE_PROMPT = (
+    "Extract price transparency machine-readable file URLs from this page. "
+    "Return direct MRF/JSON/CSV download links only using collect(). "
+    "Do NOT download file contents — URLs only."
+)
+
+
+class HospitalCandidate(TypedDict, total=False):
     name: str
     slug: str
     domain: str
     url: str
+    city: str
+    region: str
 
 
-def create_collector(hospital: HospitalCandidate) -> tuple[str | None, subprocess.Popen | None]:
-    """
-    Fires off a bdata scraper create command asynchronously.
-    Reads the first few lines of stdout to parse the collector_id,
-    logs it to the DB, and returns the ID and the Popen process.
-    """
+def create_collector(hospital: HospitalCandidate) -> str | None:
+    """Create one BD collector; blocks until AI generation completes."""
     slug = hospital["slug"]
     url = hospital["url"]
-    
+
     if collector_job_exists(slug):
-        logger.info(f"[{slug}] Job already exists in DB. Skipping creation.")
-        return None, None
-    
-    logger.info(f"[{slug}] Firing create_collector for {url}")
+        logger.info("[%s] Already in collector_jobs — skip", slug)
+        return None
 
-    npx = "npx.cmd" if sys.platform == "win32" else "npx"
-    # Using the correct syntax: bdata scraper create <url> <description> --name <slug> --json
-    cmd = [
-        npx, "-y", "-p", "@brightdata/cli",
-        "bdata", "scraper", "create",
-        url,
-        "Extract the price transparency machine-readable file URLs from this page. Do NOT navigate to or download the CSV/JSON files themselves — only return their URLs as data using collect({product_page_url: url}) for each one found. The output should be a list of links, not file contents.",
-        "--name", slug,
-        "--json"
-    ]
+    logger.info("[%s] Creating BD collector for %s", slug, url)
+    try:
+        result = bd_create_collector(url, CREATE_PROMPT, name=slug, timeout=600)
+    except Exception as exc:
+        logger.error("[%s] create failed: %s", slug, exc)
+        return None
 
-    p = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8"
+    collector_id = result.get("collector_id")
+    if not collector_id:
+        logger.error("[%s] No collector_id in response: %s", slug, result)
+        return None
+
+    insert_collector_job(
+        hospital_name=hospital["name"],
+        slug=slug,
+        domain=hospital.get("domain", ""),
+        target_url=url,
+        collector_id=collector_id,
     )
-
-    collector_id = None
-    regex = re.compile(r"Template created:\s*(c_[a-z0-9]+)")
-
-    # Read the first 15 lines looking for the Template ID
-    # Note: we use a bounded loop to avoid blocking indefinitely if the format changes
-    for _ in range(15):
-        line = p.stdout.readline()
-        if not line:
-            break
-        line = line.strip()
-        logger.debug(f"[{slug}] CLI: {line}")
-        
-        match = regex.search(line)
-        if match:
-            collector_id = match.group(1)
-            break
-            
-    if collector_id:
-        logger.info(f"[{slug}] Captured collector_id: {collector_id}")
-        
-        # Drain the rest of the stdout in a background thread to prevent pipe deadlock
-        import threading
-        def drain():
-            for _ in p.stdout:
-                pass
-        threading.Thread(target=drain, daemon=True).start()
-        
-        insert_collector_job(
-            hospital_name=hospital["name"],
-            slug=slug,
-            domain=hospital["domain"],
-            target_url=url,
-            collector_id=collector_id
-        )
-    else:
-        logger.error(f"[{slug}] Failed to capture collector_id from CLI output. Process might have failed.")
-        # We leave the process running or it might have crashed.
-
-    return collector_id, p
+    logger.info("[%s] SUCCESS collector_id=%s", slug, collector_id)
+    return collector_id
 
 
-def create_collectors_bulk(hospitals: list[HospitalCandidate]) -> None:
-    """
-    Iterates through the list of hospitals and fires off creations sequentially.
-    Because create_collector returns as soon as the ID is parsed, this fires off
-    all builds in rapid succession, letting them build in parallel in the background.
-    """
-    logger.info(f"Starting bulk creation for {len(hospitals)} candidates...")
-    
-    processes = []
+def create_collectors_bulk(hospitals: list[HospitalCandidate]) -> list[str]:
+    """Create collectors sequentially (each blocks ~2-10 min)."""
+    init_db()
+    created: list[str] = []
     for hosp in hospitals:
-        cid, p = create_collector(hosp)
-        if p:
-            processes.append((hosp["slug"], p))
-        # Small delay to avoid slamming the Bright Data CLI/API in exactly the same millisecond
-        time.sleep(1)
-        
-    logger.info(f"Bulk creation initialized. {len(processes)} candidates are now building.")
-    logger.info("Waiting for all AI generation child processes to complete...")
-    
-    for slug, p in processes:
-        p.wait()
-        logger.info(f"[{slug}] AI generation CLI process finished with code {p.returncode}.")
-        
-    logger.info("All parallel AI generation builds have completed!")
+        cid = create_collector(hosp)
+        if cid:
+            created.append(cid)
+        time.sleep(2)
+    return created
+
+
+def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Bulk-create Bright Data scrapers")
+    parser.add_argument("--batch", type=int, default=5)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--execute", action="store_true")
+    parser.add_argument(
+        "--candidates",
+        type=str,
+        default=str(ROOT / "data" / "texas_candidates.json"),
+    )
+    parser.add_argument("--skip-slug", action="append", default=[], help="Slugs to skip")
+    args = parser.parse_args()
+
+    candidates_path = Path(args.candidates)
+    if not candidates_path.exists():
+        logger.error("Candidates file not found: %s", candidates_path)
+        sys.exit(1)
+
+    skip = set(args.skip_slug)
+    candidates: list[HospitalCandidate] = json.loads(candidates_path.read_text(encoding="utf-8"))
+    batch = [c for c in candidates if c.get("slug") not in skip][: max(0, args.batch)]
+
+    logger.info("Loaded %d candidates, batch=%d", len(candidates), len(batch))
+
+    if args.dry_run or not args.execute:
+        for c in batch:
+            print(f"  [{c.get('slug')}] {c.get('name')} — {c.get('url')}")
+        if not args.execute:
+            print("Pass --execute to create collectors (consumes BD credits).")
+        return
+
+    ids = create_collectors_bulk(batch)
+    print(f"\nCreated {len(ids)} collectors:")
+    for cid in ids:
+        print(f"  {cid}")
+    print("\nNext: python sweep_collector_jobs.py")
+
 
 if __name__ == "__main__":
-    # Test block
-    pass
+    main()
