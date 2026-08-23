@@ -204,7 +204,8 @@ function ScrapeModeBanner({
       <div className="flex flex-col gap-1.5 text-xs rounded-lg px-3 py-2 border border-violet-500/25 bg-violet-950/30">
         <div className="flex flex-wrap items-center gap-2">
           <Film size={14} className="text-violet-300" />
-          <span className="text-violet-100 font-medium">Replay — real scrape session</span>
+          <span className="text-violet-100 font-medium">Verified replay — real scrape events</span>
+          <span className="text-violet-300/80 text-xs">(8× speed · not a live run)</span>
           <span className="text-violet-200/80">Fast-forward · {formatElapsed(elapsedSec)}</span>
         </div>
         {(failureCount > 0 || healCount > 0) && (
@@ -222,7 +223,8 @@ function ScrapeModeBanner({
     return (
       <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-950/40 border border-emerald-500/25 text-sm">
         <Radio size={14} className="text-emerald-400 animate-pulse shrink-0" />
-        <span className="text-emerald-100 font-medium">Live scraping</span>
+        <span className="text-emerald-100 font-medium">Live scrape</span>
+        <span className="text-emerald-300/80 text-xs">(Bright Data SSE)</span>
         <span className="text-emerald-200/70 text-xs">
           {liveDownloads} live download{liveDownloads !== 1 ? "s" : ""} · {formatElapsed(elapsedSec)}
         </span>
