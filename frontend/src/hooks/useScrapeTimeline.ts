@@ -13,6 +13,7 @@ import {
   HOSPITAL_NODE_COUNT,
   resolveScrapeNodeId,
 } from "@/lib/austinNodes";
+import { normalizeScrapeEvent } from "@/lib/scrapeEventNormalize";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 
@@ -155,18 +156,21 @@ export function useScrapeTimeline({
     mitigationTimerRef.current = setTimeout(() => setMitigationLabel(null), 2800);
   }, []);
 
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+
   const resolveLogNodeId = useCallback(
     (log: ScraperLog) => {
       if (resolveNodeId) {
         const custom = resolveNodeId(log);
         if (custom) return custom;
       }
-      if (log.node_id && nodes.some((n) => n.id === log.node_id)) {
+      if (log.node_id && nodesRef.current.some((n) => n.id === log.node_id)) {
         return log.node_id;
       }
       return resolveScrapeNodeId(log);
     },
-    [resolveNodeId, nodes]
+    [resolveNodeId]
   );
 
   const beginHealDwell = useCallback(
@@ -186,17 +190,17 @@ export function useScrapeTimeline({
   const applyLog = useCallback(
     (log: ScraperLog) => {
       onProcessRef.current?.(log);
+      const event = normalizeScrapeEvent(log.event);
       const nodeId = resolveLogNodeId(log);
+      setLogs((prev) => [log, ...prev].slice(0, 60));
       if (!nodeId) return;
 
-      setLogs((prev) => [log, ...prev].slice(0, 60));
-
-      if (log.event === "mrf_downloaded") {
+      if (event === "mrf_downloaded") {
         if (log.cache_hit) setCacheHits((c) => c + 1);
         else setLiveDownloads((c) => c + 1);
       }
 
-      switch (log.event) {
+      switch (event) {
         case "collector_started":
         case "page_loaded":
           setActiveNode(nodeId);
@@ -304,19 +308,26 @@ export function useScrapeTimeline({
     setHealDwellActive(false);
   }, [clearTimers, baseNodes]);
 
-  // Replay mode
+  const applyLogRef = useRef(applyLog);
+  applyLogRef.current = applyLog;
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
+  const eventKey = events.map((e) => e.id).join("|");
+
+  // Replay mode — depend on event ids, not callback identity (nodes updates used to reset the reel to 0%).
   useEffect(() => {
     if (mode !== "replay" || !active) return;
 
     resetTimeline();
 
-    if (events.length === 0) {
+    const list = eventsRef.current;
+    if (list.length === 0) {
       const doneTimer = setTimeout(() => finishTimeline(), 1500);
       timersRef.current.push(doneTimer);
       return () => clearTimers();
     }
 
-    const sorted = [...events].sort((a, b) => a.ts.localeCompare(b.ts));
+    const sorted = [...list].sort((a, b) => a.ts.localeCompare(b.ts));
     const t0 = new Date(sorted[0]?.ts ?? Date.now()).getTime();
 
     const tick = setInterval(() => {
@@ -330,9 +341,9 @@ export function useScrapeTimeline({
       const eventTime = new Date(log.ts).getTime();
       const baseDelay = Math.max(100, (eventTime - t0) / speedMultiplier + i * 35);
       const delayMs = baseDelay + healDwellExtra;
-      const timer = setTimeout(() => applyLog(log), delayMs);
+      const timer = setTimeout(() => applyLogRef.current(log), delayMs);
       timersRef.current.push(timer);
-      if (healCinematicEnabled && log.event === "heal_triggered") {
+      if (healCinematicEnabled && normalizeScrapeEvent(log.event) === "heal_triggered") {
         healDwellExtra += healDwellMs;
       }
     });
@@ -355,11 +366,10 @@ export function useScrapeTimeline({
   }, [
     mode,
     active,
-    events,
+    eventKey,
     speedMultiplier,
     healCinematicEnabled,
     healDwellMs,
-    applyLog,
     finishTimeline,
     resetTimeline,
     clearTimers,

@@ -139,7 +139,7 @@ function fieldSupported(text, key, value) {
     case "condition":
       return sharesTokensWithUser(text, value);
     case "cptCode":
-      return /^\d{5}$/.test(String(value));
+      return /^\d{5}$/.test(String(value)) && !/^787\d{2}$/.test(String(value));
     case "priorities":
       return /\bcost\b|\bcheapest\b|\bdistance\b|\bclose\b|\baccredit\b|\bwait\b|\bquality\b/.test(
         text

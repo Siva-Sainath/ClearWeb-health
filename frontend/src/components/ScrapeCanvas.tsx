@@ -18,6 +18,7 @@ import { useScrapeOrchestrator } from "@/hooks/useScrapeOrchestrator";
 import { useScrapeJob } from "@/hooks/useScrapeJob";
 import { healLineFromLog, useScrapeNarration } from "@/hooks/useScrapeNarration";
 import { processNarrationFromLog } from "@/lib/scrapeNarration";
+import { getDemoReplayEvents } from "@/lib/demoSnapshot";
 import { useAppContext } from "@/context/AppContext";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
 import { resetVoiceQueue } from "@/lib/ttsSpeak";
@@ -316,6 +317,7 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
     setScrapeStatus,
     setIsSpeaking,
     setLastAgentMessage,
+    setReplayEvents,
   } = useAppContext();
   const { cancelScrape } = useScrapeJob();
 
@@ -329,6 +331,14 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
     : scrapeStatus === "running" && (isProofReel || isLive);
 
   const effectiveReplayEvents = showcaseMode?.replayEvents ?? replayEvents;
+
+  useEffect(() => {
+    if (showcaseMode) return;
+    if (!isAnimating || isLive) return;
+    if (replayEvents.length) return;
+    const seed = getDemoReplayEvents(patientProfile);
+    if (seed.length) setReplayEvents(seed);
+  }, [showcaseMode, isAnimating, isLive, replayEvents.length, patientProfile, setReplayEvents]);
 
   const [narrationComplete, setNarrationComplete] = useState(false);
   const [narrationCaption, setNarrationCaption] = useState("");
@@ -450,13 +460,20 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
         <div className="shrink-0 px-4 pt-4 pb-2 flex flex-col gap-2 z-10">
           <div className="flex flex-wrap justify-between items-start gap-2">
             <div className="flex flex-wrap gap-2">
+              {(patientProfile.zipCode || patientProfile.city) && (
+                <span className="badge badge-neutral text-xs">
+                  {patientProfile.city
+                    ? `${patientProfile.city}${patientProfile.zipCode ? ` ${patientProfile.zipCode}` : ""}`
+                    : `ZIP ${patientProfile.zipCode}`}
+                </span>
+              )}
               <span className="badge badge-neutral text-xs">
                 {showcaseMode?.headerLabel ||
                   patientProfile.procedure ||
                   patientProfile.condition ||
                   "Price search"}
               </span>
-              {!showcaseMode && (
+              {!showcaseMode && patientProfile.insurance && (
                 <span className="badge badge-neutral text-xs">{patientProfile.insurance}</span>
               )}
             </div>

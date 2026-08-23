@@ -1,5 +1,7 @@
 /** Spoken care → CPT so onboarding is not Brain-MRI-only. */
 
+import { isLikelyCptCode } from "@/lib/scrapeEventNormalize";
+
 const PROCEDURE_CPT: Array<{ re: RegExp; cpt: string; label: string }> = [
   { re: /\b(brain|head)\s+mri\b|\bmri\s+(?:of\s+(?:the\s+)?)?(brain|head)\b/i, cpt: "70553", label: "Brain MRI" },
   { re: /\b(knee)\s+mri\b|\bmri\s+(?:of\s+(?:the\s+)?)?knee\b/i, cpt: "73721", label: "Knee MRI" },
@@ -20,12 +22,12 @@ const PROCEDURE_CPT: Array<{ re: RegExp; cpt: string; label: string }> = [
 export function inferProcedureCpt(text: string): { cpt: string; label: string | null } | null {
   const raw = String(text || "").trim();
   if (!raw) return null;
-  if (/^\d{5}$/.test(raw)) return { cpt: raw, label: null };
   for (const row of PROCEDURE_CPT) {
     if (row.re.test(raw)) return { cpt: row.cpt, label: row.label };
   }
   const digits = raw.match(/\b(\d{5})\b/);
-  if (digits) return { cpt: digits[1], label: null };
+  if (digits && isLikelyCptCode(digits[1])) return { cpt: digits[1], label: null };
+  if (/^\d{5}$/.test(raw) && isLikelyCptCode(raw)) return { cpt: raw, label: null };
   return null;
 }
 

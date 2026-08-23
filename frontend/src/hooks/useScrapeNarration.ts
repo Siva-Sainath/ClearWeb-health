@@ -7,7 +7,7 @@ import type { PatientProfile, ScraperLog } from "@/lib/types";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
 import { speakTtsQueued, prefetchTtsLines } from "@/lib/ttsSpeak";
 
-const LINE_TIMEOUT_MS = 12000;
+const LINE_TIMEOUT_MS = 25000;
 
 function waitMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

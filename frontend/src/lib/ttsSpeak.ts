@@ -13,8 +13,6 @@ import {
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 const FADE_SEC = 0.025;
-/** If hosted TTS has not returned by then, speak immediately in the browser. */
-const TTS_FALLBACK_MS = 700;
 
 let audioCtx: AudioContext | null = null;
 let currentSource: AudioBufferSourceNode | null = null;
@@ -284,44 +282,14 @@ export async function speakTts(text: string, options?: SpeakTtsOptions): Promise
   registerVoiceStop(localStop);
 
   try {
-    const cached = blobCache.get(cacheKey(clean));
-    if (cached) {
-      if (gen !== currentVoiceGeneration()) return;
-      const buffer = await decodeBlob(clean, cached);
-      if (gen !== currentVoiceGeneration()) return;
-      await getAudioContext()?.resume();
-      await playBuffer(buffer, gen, options);
-      return;
-    }
-
-    const blobPromise = getTtsBlob(clean);
-    const raced = await Promise.race([
-      blobPromise.then((blob) => ({ ok: true as const, blob })),
-      new Promise<{ ok: false }>((resolve) => {
-        window.setTimeout(() => resolve({ ok: false }), TTS_FALLBACK_MS);
-      }),
-    ]);
-
+    const blob = await getTtsBlob(clean);
     if (gen !== currentVoiceGeneration()) return;
-
-    if (raced.ok) {
-      const buffer = await decodeBlob(clean, raced.blob);
-      if (gen !== currentVoiceGeneration()) return;
-      await getAudioContext()?.resume();
-      await playBuffer(buffer, gen, options);
-      return;
-    }
-
-    await speakBrowser(clean, gen, options);
+    const buffer = await decodeBlob(clean, blob);
+    if (gen !== currentVoiceGeneration()) return;
+    await getAudioContext()?.resume();
+    await playBuffer(buffer, gen, options);
   } catch (err) {
     console.warn("[tts] playback failed:", err);
-    if (gen === currentVoiceGeneration()) {
-      try {
-        await speakBrowser(clean, gen, options);
-      } catch {
-        /* ignore */
-      }
-    }
   } finally {
     unregisterVoiceStop(localStop);
     if (options?.audioRef) options.audioRef.current = null;

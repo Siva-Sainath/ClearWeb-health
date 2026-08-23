@@ -298,8 +298,10 @@ app.listen(env.PORT, () => {
       ? `   LLM: Groq ${env.GROQ_LLM_MODEL || "openai/gpt-oss-120b"}`
       : `   Model: ${env.OLLAMA_MODEL}  |  Ollama: ${env.OLLAMA_BASE}`
   );
+  const { resolveProvider } = require("./services/ttsService");
+  const ttsProvider = resolveProvider();
   console.log(
-    `   TTS: ${env.TTS_PROVIDER === "groq" || env.GROQ_API_KEY ? env.GROQ_TTS_MODEL : env.TTS_VOICE} (${env.GROQ_API_KEY ? "groq" : "edge"})`
+    `   TTS: ${ttsProvider === "groq" ? env.GROQ_TTS_MODEL : env.TTS_VOICE} (${ttsProvider})`
   );
   console.log(`   Frontend: ${env.FRONTEND_URL}\n`);
 

@@ -3,6 +3,7 @@
  */
 
 import type { PatientProfile } from "@/lib/types";
+import { isLikelyCptCode } from "@/lib/scrapeEventNormalize";
 
 const PLACEHOLDER_VALUES = new Set([
   "value",
@@ -68,8 +69,9 @@ function fieldSupported(text: string, field: keyof PatientProfile, value: unknow
     case "city":
     case "procedure":
     case "condition":
-    case "cptCode":
       return typeof value === "string" && sharesTokensWithUser(text, value);
+    case "cptCode":
+      return isLikelyCptCode(String(value));
     case "zipCode":
       return /\b\d{5}\b/.test(text);
     case "radiusMi":

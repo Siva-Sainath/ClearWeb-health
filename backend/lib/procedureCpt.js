@@ -21,12 +21,14 @@ const PROCEDURE_CPT = [
 function inferProcedureCpt(text) {
   const raw = String(text || "").trim();
   if (!raw) return null;
-  const digits = raw.match(/\b(\d{5})\b/);
-  if (/^\d{5}$/.test(raw)) return { cpt: raw, label: null };
   for (const row of PROCEDURE_CPT) {
     if (row.re.test(raw)) return { cpt: row.cpt, label: row.label };
   }
-  if (digits) return { cpt: digits[1], label: null };
+  const digits = raw.match(/\b(\d{5})\b/);
+  const code = /^\d{5}$/.test(raw) ? raw : digits?.[1];
+  if (code && /^\d{5}$/.test(code) && !/^787\d{2}$/.test(code)) {
+    return { cpt: code, label: null };
+  }
   return null;
 }
 

@@ -3,6 +3,7 @@
  */
 
 import type { PatientProfile } from "@/lib/types";
+import { isAustinZip, isLikelyCptCode } from "@/lib/scrapeEventNormalize";
 
 const ZIP_RE = /^\d{5}(-\d{4})?$/;
 
@@ -97,6 +98,17 @@ export function normalizeProfilePartial(
 
   if (out.zipCode?.trim() && looksLikeZip(out.zipCode)) {
     out.zipCode = normalizeZipCode(out.zipCode);
+  }
+
+  if (out.cptCode && isAustinZip(out.cptCode)) {
+    if (!out.zipCode?.trim() && !prev.zipCode?.trim()) {
+      out.zipCode = normalizeZipCode(out.cptCode);
+    }
+    delete out.cptCode;
+  }
+
+  if (out.cptCode && !isLikelyCptCode(out.cptCode)) {
+    delete out.cptCode;
   }
 
   // City field accidentally got a zip

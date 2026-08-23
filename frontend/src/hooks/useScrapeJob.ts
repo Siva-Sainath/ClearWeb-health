@@ -105,7 +105,7 @@ export function useScrapeJob() {
       resetVoiceQueue();
 
       const seed = getDemoReplayEvents(profile);
-      if (canPriceInDemo(profile) && seed.length) setReplayEvents(seed);
+      if (seed.length) setReplayEvents(seed);
       if (canPriceInDemo(profile)) {
         const demoFacilities = applyProfileToDemoResults(profile, AUSTIN_DEMO_SNAPSHOT.results);
         if (Object.keys(demoFacilities).length) {

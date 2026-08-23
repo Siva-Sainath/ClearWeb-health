@@ -255,6 +255,15 @@ async function createSession({ profile: rawProfile, mode = "auto", agentic, inst
     );
     healEvents = healEventsFromLogs(replayEvents);
     }
+  } else if (!replayEvents.length) {
+    const demo = loadDemoSnapshot();
+    if (demo) {
+      replayEvents = applyProfileToDemoEvents(
+        profile,
+        demo.replayEvents?.length ? demo.replayEvents : demo.events || []
+      );
+      if (!healEvents.length) healEvents = healEventsFromLogs(replayEvents);
+    }
   }
 
   const presentationMode = resolvedMode === "instant" ? "instant" : "proof-reel";

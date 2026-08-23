@@ -86,7 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const applyBrainSession = useCallback((session: BrainSessionResponse) => {
     if (session.results) setFacilities(session.results);
     if (session.events) setScrapeEvents(session.events);
-    if (session.replayEvents) setReplayEvents(session.replayEvents);
+    if (session.replayEvents?.length) setReplayEvents(session.replayEvents);
     if (session.healEvents) setScrapeHealEvents(session.healEvents);
     if (session.lastUpdated) setScrapeLastUpdated(session.lastUpdated);
     if (session.executiveSummary !== undefined) setExecutiveSummary(session.executiveSummary);

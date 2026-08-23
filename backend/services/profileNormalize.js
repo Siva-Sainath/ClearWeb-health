@@ -82,6 +82,15 @@ function normalizeProfileUpdates(updates = {}, prev = {}) {
     out.zipCode = normalizeZipCode(out.zipCode);
   }
 
+  if (out.cptCode && /^787\d{2}$/.test(String(out.cptCode).trim())) {
+    if (!out.zipCode && !prev.zipCode) out.zipCode = normalizeZipCode(out.cptCode);
+    delete out.cptCode;
+  }
+
+  if (out.cptCode && !/^\d{5}$/.test(String(out.cptCode).trim())) {
+    delete out.cptCode;
+  }
+
   if (out.city && looksLikeZip(out.city) && !looksLikeCity(out.city)) {
     if (!out.zipCode && !prev.zipCode) out.zipCode = normalizeZipCode(out.city);
     delete out.city;

@@ -4,6 +4,7 @@
 
 import type { PatientProfile, FacilityResult, ScraperLog } from "@/lib/types";
 import snapshot from "@/data/austinDemoSnapshot.json";
+import { isLikelyCptCode } from "@/lib/scrapeEventNormalize";
 
 export interface DemoSnapshot {
   profile: PatientProfile;
@@ -43,7 +44,7 @@ export function applyProfileToDemoEvents(
   profile: PatientProfile,
   events: ScraperLog[]
 ): ScraperLog[] {
-  const cpt = profile.cptCode || "";
+  const cpt = isLikelyCptCode(profile.cptCode || "") ? profile.cptCode : "";
   const network = profile.insurance || "";
   return events.map((e) => ({
     ...e,
