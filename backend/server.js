@@ -295,7 +295,7 @@ app.listen(env.PORT, () => {
   console.log(`\n🕸️  ${BRAND.name} API  →  http://localhost:${env.PORT}`);
   console.log(
     llm === "groq"
-      ? `   LLM: Groq ${env.GROQ_LLM_MODEL || "llama-3.3-70b-versatile"}`
+      ? `   LLM: Groq ${env.GROQ_LLM_MODEL || "openai/gpt-oss-120b"}`
       : `   Model: ${env.OLLAMA_MODEL}  |  Ollama: ${env.OLLAMA_BASE}`
   );
   console.log(

@@ -70,7 +70,7 @@ export default function InteractionStage({
   const merging = mergeBubbles && profileReady;
 
   return (
-    <div className="relative w-full min-h-[min(640px,78vh)] flex flex-col items-center justify-center px-6 py-12 sm:py-14 isolate">
+    <div className="relative w-full min-h-[min(640px,78vh)] flex flex-col items-center justify-center px-6 py-12 sm:py-14 isolate overflow-visible">
       <ProfileFieldBubbles
         profile={profile}
         merge={merging}

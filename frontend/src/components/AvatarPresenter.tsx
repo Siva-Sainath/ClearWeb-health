@@ -114,7 +114,7 @@ export default function AvatarIcon({
   return (
     <div className="flex flex-col items-center gap-4">
       <div
-        className="relative flex items-center justify-center"
+        className="relative flex items-center justify-center overflow-visible"
         style={{ width: ringSize, height: ringSize }}
       >
         {!reducedMotion && (
