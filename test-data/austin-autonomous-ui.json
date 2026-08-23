@@ -1,0 +1,33 @@
+{
+  "description": "Autonomous UI test profile — Austin cache hit, proof-reel + agentic presentation",
+  "profile": {
+    "procedure": "Brain MRI",
+    "condition": "Brain MRI",
+    "cptCode": "",
+    "insurance": "Aetna",
+    "city": "Austin",
+    "zipCode": "78701",
+    "radiusMi": 25,
+    "priorities": ["cost"]
+  },
+  "expected": {
+    "presentationMode": "proof-reel",
+    "facilityCount": 12,
+    "replayEventsMin": 10,
+    "cacheCheck": "cached=true for zip 78701"
+  },
+  "onboardingScript": [
+    "I need a brain MRI",
+    "Aetna",
+    "Austin",
+    "78701",
+    "Twenty five miles",
+    "Yes pull hospital prices"
+  ],
+  "resultsChipsToTry": [
+    "Show me the cheapest on a chart",
+    "Compare my top two",
+    "Put it on the map",
+    "What didn't work?"
+  ]
+}
