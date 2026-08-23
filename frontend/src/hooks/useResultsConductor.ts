@@ -25,6 +25,7 @@ interface UseResultsConductorOptions {
   presentationMode: ScrapePresentationMode | null;
   healEvents: Array<{ collector_id?: string; reason?: string; success?: boolean }>;
   executiveSummary: ScrapeExecutiveSummary | null;
+  prebuiltPresentation?: ConductResultsResponse | null;
   onUiActions?: (actions: UIAction[]) => void;
   onCaptionChange?: (caption: string) => void;
   onSpeakingChange?: (speaking: boolean) => void;
@@ -39,6 +40,7 @@ export function useResultsConductor({
   presentationMode,
   healEvents,
   executiveSummary,
+  prebuiltPresentation,
   onUiActions,
   onCaptionChange,
   onSpeakingChange,
@@ -57,22 +59,28 @@ export function useResultsConductor({
     setError(null);
 
     try {
-      const res = await fetch(`${BACKEND}/api/agent/conduct-results`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profile,
-          facilities,
-          presentationMode,
-          healEvents,
-          executiveSummary,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `conduct-results failed (${res.status})`);
+      let data: ConductResultsResponse;
+
+      if (prebuiltPresentation?.steps?.length || prebuiltPresentation?.spokenScript) {
+        data = prebuiltPresentation;
+      } else {
+        const res = await fetch(`${BACKEND}/api/agent/conduct-results`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            profile,
+            facilities,
+            presentationMode,
+            healEvents,
+            executiveSummary,
+          }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || `conduct-results failed (${res.status})`);
+        }
+        data = (await res.json()) as ConductResultsResponse;
       }
-      const data = (await res.json()) as ConductResultsResponse;
       const uiFromStrings = data.uiActions?.length ? parseActionStrings(data.uiActions) : [];
       const fallbackActions = [...(data.actions ?? []), ...uiFromStrings];
 
@@ -99,6 +107,7 @@ export function useResultsConductor({
     presentationMode,
     healEvents,
     executiveSummary,
+    prebuiltPresentation,
     onUiActions,
     onCaptionChange,
     onSpeakingChange,

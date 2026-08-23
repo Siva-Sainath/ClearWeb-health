@@ -13,6 +13,7 @@ const { checkTtsHealth, synthesizeSpeech, warmupTts } = require("./services/ttsS
 const { checkSttHealth, transcribeAudio } = require("./services/sttService");
 const { handleAgentChatStream, extractProfile, analyseResults } = require("./services/ariaAgent");
 const { conductResults } = require("./services/resultsConductor");
+const { createSession, getSession } = require("./services/brainService");
 const scrapeService = require("./services/scrapeService");
 const { queryCachedPrices } = require("./services/priceQueryService");
 const multer = require("multer");
@@ -122,10 +123,41 @@ app.post("/api/agent/conduct-results", async (req, res) => {
       presentationMode: req.body.presentationMode,
       healEvents: req.body.healEvents,
       executiveSummary: req.body.executiveSummary,
+      scrapeContext: req.body.scrapeContext,
     });
     res.json(result);
   } catch (err) {
     console.error("[conduct-results]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Autonomous brain session (unified scrape + explain + replay) ───────────
+
+app.post("/api/scrape/session", async (req, res) => {
+  try {
+    const session = await createSession({
+      profile: req.body.profile || req.body,
+      mode: req.body.mode || "auto",
+      agentic: req.body.agentic,
+      instant: req.body.instant === true,
+    });
+    res.json(session);
+  } catch (err) {
+    console.error("[scrape/session]", err.message);
+    res.status(503).json({ error: err.message });
+  }
+});
+
+app.get("/api/scrape/session/:sessionId", async (req, res) => {
+  try {
+    const session = await getSession(req.params.sessionId, {
+      agentic: req.query.agentic === "true" || req.query.agentic === "1",
+    });
+    if (!session) return res.status(404).json({ error: "session not found" });
+    res.json(session);
+  } catch (err) {
+    console.error("[scrape/session/:id]", err.message);
     res.status(500).json({ error: err.message });
   }
 });

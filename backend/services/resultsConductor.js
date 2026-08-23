@@ -11,6 +11,7 @@ const { parseAllTags } = require("./tagParser");
 const { executeUICommands } = require("./webcmdExecutor");
 const { generateJSON: ollamaJson } = require("./ollamaProvider");
 const { generateJSON: groqJson, chatWithTools, groqKey } = require("./groqLlmProvider");
+const { scrapeContextBlock } = require("./scrapeContext");
 const {
   UI_PRESENTATION_TOOLS,
   PRESENTATION_JSON_SCHEMA,
@@ -63,15 +64,29 @@ function enrichSteps(steps) {
   }));
 }
 
-async function generatePresentationPlan({ profile, facilities, presentationMode, executiveSummary }) {
+async function generatePresentationPlan({
+  profile,
+  facilities,
+  presentationMode,
+  executiveSummary,
+  scrapeContext,
+}) {
   const facilityIds = Object.keys(facilities || {});
-  const rec = executiveSummary?.recommendation?.id || facilityIds[0] || "n1";
+  const rec =
+    executiveSummary?.recommendation?.id ||
+    executiveSummary?.recommendation?.facility?.id ||
+    facilityIds[0] ||
+    "n1";
+
+  const contextBlock = scrapeContext
+    ? scrapeContextBlock(scrapeContext)
+    : presentationHonestyBlock(presentationMode);
 
   const systemPrompt = `${buildSystemPrompt({
     phase: "results",
     profile,
     facilities,
-    uiContext: presentationHonestyBlock(presentationMode),
+    uiContext: contextBlock,
   })}
 
 You plan an interactive UI walkthrough. ${PRESENTATION_JSON_SCHEMA}`;
@@ -121,6 +136,7 @@ async function conductResults({
   presentationMode,
   healEvents,
   executiveSummary,
+  scrapeContext,
   queueWebcmd = false,
 }) {
   const facilityCount = facilities ? Object.keys(facilities).length : 0;
@@ -132,6 +148,7 @@ async function conductResults({
       facilities,
       presentationMode,
       executiveSummary,
+      scrapeContext,
     });
     const steps = plan.steps || [];
     const allActions = stepsToUiActions(steps);
@@ -144,6 +161,7 @@ async function conductResults({
       spokenScript: plan.spokenScript || "",
       steps,
       actions: allActions,
+      scrapeContext,
       source: plan.source || "plan",
       uiActions: allActions
         .map((a) => {

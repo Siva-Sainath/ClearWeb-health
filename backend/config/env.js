@@ -38,6 +38,7 @@ const env = {
   S1_MINI_ENABLED: process.env.S1_MINI_ENABLED === "true",
   S1_MINI_MODEL: process.env.S1_MINI_MODEL || "s1-mini",
   S1_MINI_TIMEOUT_MS: parseInt(process.env.S1_MINI_TIMEOUT_MS || "15000", 10),
+  AGENTIC_RESULTS: process.env.AGENTIC_RESULTS === "true",
 };
 
 function validateEnv() {

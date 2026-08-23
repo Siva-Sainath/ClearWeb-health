@@ -39,6 +39,19 @@ WEBCMD_BRIDGE_SECRET=...
 - `[navigate:phase:scraping|results]`
 - `[profile:condition:...]` `[profile:insurance:...]` `[profile:zipCode:...]`
 
+## Autonomous brain (backend)
+
+**Single entry:** `POST /api/scrape/session` → prices + replay events + heal context + ranked summary + explanation (+ agentic presentation plan).
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/scrape/session` | `{ profile, mode: auto\|cached\|live, instant?, agentic? }` |
+| `GET /api/scrape/session/:id` | Poll live job → full brain payload when complete |
+
+**Server modules:** `brainService.js` orchestrates `scrapeContext`, `executiveSummary`, `deterministicExplanation`, `resultsConductor`.
+
+**Frontend:** `useScrapeJob` calls session API; `applyBrainSession()` loads context; `useResultsConductor` plays prebuilt `presentation` when agentic.
+
 ## Autonomous UI (how the agent moves the website)
 
 Battle-tested pattern: **OpenAI-style tool calling** (Groq `llama-3.3-70b` when `GROQ_API_KEY` set) → structured `steps[]` with `delayMs` → browser orchestrator applies UI with framer-motion. Fallback: Ollama JSON plan or legacy `[action:...]` tag stream.

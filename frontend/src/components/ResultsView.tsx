@@ -53,6 +53,7 @@ export default function ResultsView() {
     setIsSpeaking,
     setLastAgentMessage,
     scrapePresentationMode,
+    sessionPresentation,
   } = useAppContext();
   const [showTypeMode, setShowTypeMode] = useState(false);
   const [textInput, setTextInput] = useState("");
@@ -228,6 +229,7 @@ export default function ResultsView() {
     presentationMode: scrapePresentationMode,
     healEvents: scrapeHealEvents,
     executiveSummary: summary,
+    prebuiltPresentation: sessionPresentation,
     onUiActions: applyActions,
     onCaptionChange: setExplanationCaption,
     onSpeakingChange: setExplanationSpeaking,

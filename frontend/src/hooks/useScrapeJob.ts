@@ -4,72 +4,41 @@ import { useCallback, useRef } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
 import { resetVoiceQueue } from "@/lib/ttsSpeak";
-import { buildScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
-import { buildDeterministicExplanation } from "@/lib/deterministicExplanation";
-import {
-  AUSTIN_DEMO_SNAPSHOT,
-  applyProfileToDemoEvents,
-  applyProfileToDemoResults,
-  getDemoReplayEvents,
-} from "@/lib/demoSnapshot";
-import type { PatientProfile, ScraperLog } from "@/lib/types";
+import { getDemoReplayEvents } from "@/lib/demoSnapshot";
+import type { PatientProfile } from "@/lib/types";
 import { checkZipCache } from "@/lib/zipCacheCheck";
+import type { BrainSessionResponse } from "@/lib/scrapeSession";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
-const USE_LLM_EXPLANATION = process.env.NEXT_PUBLIC_USE_LLM_EXPLANATION === "true";
 const AGENTIC_RESULTS = process.env.NEXT_PUBLIC_AGENTIC_RESULTS === "true";
-const USE_LLM_EXPLANATION_EFFECTIVE = USE_LLM_EXPLANATION || AGENTIC_RESULTS;
 const HACKATHON_DEMO_MODE = process.env.NEXT_PUBLIC_HACKATHON_DEMO_MODE === "true";
 const SKIP_SCRAPE_ANIMATION = process.env.NEXT_PUBLIC_SKIP_SCRAPE_ANIMATION === "true";
 
-type HealEventSummary = {
-  collector_id?: string;
-  reason?: string;
-  success?: boolean;
-  timestamp?: string;
-};
-
-function healEventsFromLogs(events: ScraperLog[]): HealEventSummary[] {
-  const succeeded = new Set(
-    events
-      .filter((e) => e.event === "price_extracted" && e.hospital_id)
-      .map((e) => e.hospital_id as string)
-  );
-  const out: HealEventSummary[] = [];
-  for (const e of events) {
-    if (e.event === "heal_triggered") {
-      out.push({
-        collector_id: e.collector_id,
-        reason: e.detail,
-        success: e.hospital_id ? succeeded.has(e.hospital_id) : false,
-        timestamp: e.ts,
-      });
-    } else if (e.event === "heal_resumed") {
-      out.push({
-        collector_id: e.collector_id,
-        reason: e.detail,
-        success: true,
-        timestamp: e.ts,
-      });
-    } else if (e.event === "heal_failed") {
-      out.push({
-        collector_id: e.collector_id,
-        reason: e.detail,
-        success: false,
-        timestamp: e.ts,
-      });
-    }
-  }
-  return out.slice(-10);
+async function createBrainSession(
+  profile: PatientProfile,
+  opts: { mode?: string; instant?: boolean } = {}
+): Promise<BrainSessionResponse> {
+  const res = await fetch(`${BACKEND}/api/scrape/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      profile,
+      mode: opts.mode ?? "auto",
+      instant: opts.instant === true,
+      agentic: AGENTIC_RESULTS,
+    }),
+  });
+  const data = (await res.json()) as BrainSessionResponse & { error?: string };
+  if (!res.ok) throw new Error(data.error || `session failed (${res.status})`);
+  return data;
 }
 
-function lastUpdatedFromResults(
-  results: Record<string, import("@/lib/types").FacilityResult>
-): string {
-  const times = Object.values(results)
-    .map((f) => f.scraped_at)
-    .filter((t): t is string => !!t);
-  return times.length ? times.sort().pop()! : new Date().toISOString();
+async function fetchBrainSession(sessionId: string): Promise<BrainSessionResponse> {
+  const qs = AGENTIC_RESULTS ? "?agentic=true" : "";
+  const res = await fetch(`${BACKEND}/api/scrape/session/${sessionId}${qs}`);
+  const data = (await res.json()) as BrainSessionResponse & { error?: string };
+  if (!res.ok) throw new Error(data.error || `session poll failed (${res.status})`);
+  return data;
 }
 
 export function useScrapeJob() {
@@ -80,194 +49,96 @@ export function useScrapeJob() {
     setJourneyPhase,
     setFacilities,
     setScrapeEvents,
-    setScrapeLastUpdated,
-    setScrapeHealEvents,
     setExecutiveSummary,
     setLlmExplanation,
     setScrapePresentationMode,
-    setReplayEvents,
+    applyBrainSession,
     scrapeJobId,
     replayEvents,
+    setReplayEvents,
   } = useAppContext();
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const applyResults = useCallback(
-    (
-      results: Record<string, import("@/lib/types").FacilityResult>,
-      events: ScraperLog[],
-      profile: PatientProfile
-    ) => {
-      const summary = buildScrapeExecutiveSummary(profile, results, events);
-      setFacilities(results);
-      setScrapeEvents(events);
-      setExecutiveSummary(summary);
-      if (AGENTIC_RESULTS) {
-        setLlmExplanation(null);
-      } else if (summary) {
-        setLlmExplanation(buildDeterministicExplanation(profile, results, summary, events));
-      }
+  const beginScrapeUi = useCallback(
+    (mode: "live" | "proof-reel" | "instant") => {
+      setScrapePresentationMode(mode);
+      setScrapeStatus(mode === "instant" ? "complete" : "running");
+      setJourneyPhase(mode === "instant" ? "results" : "scraping");
     },
-    [setFacilities, setScrapeEvents, setExecutiveSummary, setLlmExplanation]
-  );
-
-  const fetchLlmExplanation = useCallback(
-    async (results: Record<string, unknown>, profile: PatientProfile) => {
-      if (!USE_LLM_EXPLANATION_EFFECTIVE) return;
-      try {
-        const res = await fetch(`${BACKEND}/api/analyse`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            facilities: results,
-            userPreferences: {
-              priority: profile.priorities?.[0] ?? "cost",
-              procedure: profile.procedure || profile.condition,
-              insurance: profile.insurance,
-              zipCode: profile.zipCode,
-              radiusMi: profile.radiusMi,
-            },
-          }),
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        const { normalizeLlmExplanation } = await import("@/lib/llmExplanation");
-        const normalized = normalizeLlmExplanation(data);
-        if (normalized) setLlmExplanation(normalized);
-      } catch {
-        /* deterministic explanation already set */
-      }
-    },
-    [setLlmExplanation]
-  );
-
-  const fetchCachedQuery = useCallback(
-    async (profile: PatientProfile): Promise<{
-      results: Record<string, import("@/lib/types").FacilityResult>;
-      events: ScraperLog[];
-      replayEvents: ScraperLog[];
-      lastUpdated?: string;
-      healEvents?: Array<{ collector_id?: string; reason?: string; success?: boolean; timestamp?: string }>;
-    } | null> => {
-      try {
-        const params = new URLSearchParams({
-          zip: profile.zipCode || "",
-          procedure: profile.procedure || profile.condition || "",
-          insurance: profile.insurance || "",
-        });
-        if (profile.cptCode) params.set("cpt", profile.cptCode);
-        const res = await fetch(`${BACKEND}/api/prices/query?${params}`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!data.results || Object.keys(data.results).length === 0) return null;
-        return {
-          results: data.results,
-          events: data.events?.length ? data.events : data.replayEvents ?? [],
-          replayEvents: data.replayEvents?.length ? data.replayEvents : data.events ?? [],
-          lastUpdated: data.lastUpdated,
-          healEvents: data.healEvents ?? [],
-        };
-      } catch {
-        return null;
-      }
-    },
-    []
+    [setScrapePresentationMode, setScrapeStatus, setJourneyPhase]
   );
 
   const pollUntilComplete = useCallback(
-    async (jobId: string) => {
+    (sessionId: string) => {
       const poll = async () => {
         try {
-          const res = await fetch(`${BACKEND}/api/scrape/${jobId}/results`);
-          if (!res.ok) throw new Error(`Scrape poll failed (${res.status})`);
-          const data = await res.json();
-
-          if (data.status === "complete") {
-            const results = data.results ?? {};
-            const events = data.events ?? [];
-            const profileForSummary = data.profile ?? patientProfile;
+          const session = await fetchBrainSession(sessionId);
+          if (session.status === "complete") {
+            applyBrainSession(session);
             setScrapeStatus("complete");
-            applyResults(results, events, profileForSummary);
-            if (events.length) setReplayEvents(events);
-            setScrapeHealEvents(healEventsFromLogs(events));
-            setScrapeLastUpdated(lastUpdatedFromResults(results));
-            void fetchLlmExplanation(results, profileForSummary);
             return;
           }
-
-          if (data.status === "failed" || data.status === "cancelled") {
-            setScrapeStatus(data.status);
-            setScrapeEvents(data.events ?? []);
+          if (session.status === "running") {
+            pollingRef.current = setTimeout(poll, 1200);
             return;
           }
-
-          pollingRef.current = setTimeout(poll, 1200);
+          setScrapeStatus("failed");
         } catch {
           setScrapeStatus("failed");
         }
       };
-      poll();
+      void poll();
     },
-    [patientProfile, setScrapeStatus, applyResults, fetchLlmExplanation, setScrapeEvents, setReplayEvents, setScrapeHealEvents, setScrapeLastUpdated]
+    [applyBrainSession, setScrapeStatus]
   );
 
-  /** Proof-reel: real events animation + results loaded in parallel */
-  const startProofReelFlow = useCallback(
-    async (profileOverride?: PatientProfile) => {
+  const runSession = useCallback(
+    async (profile: PatientProfile, opts: { mode?: string; instant?: boolean } = {}) => {
       if (pollingRef.current) clearTimeout(pollingRef.current);
-
       stopAllVoice();
       resetVoiceQueue();
 
+      setFacilities({});
+      setScrapeEvents([]);
+      setExecutiveSummary(null);
+      setLlmExplanation(null);
+
+      const session = await createBrainSession(profile, opts);
+
+      if (session.status === "running" && session.jobId) {
+        setScrapeJobId(session.jobId);
+        beginScrapeUi("live");
+        pollUntilComplete(session.jobId);
+        return session;
+      }
+
+      applyBrainSession(session);
+      beginScrapeUi(session.presentationMode === "instant" ? "instant" : "proof-reel");
+      setScrapeJobId(null);
+      return session;
+    },
+    [
+      setFacilities,
+      setScrapeEvents,
+      setExecutiveSummary,
+      setLlmExplanation,
+      setScrapeJobId,
+      applyBrainSession,
+      beginScrapeUi,
+      pollUntilComplete,
+    ]
+  );
+
+  const startProofReelFlow = useCallback(
+    async (profileOverride?: PatientProfile) => {
       const profile = profileOverride ?? patientProfile;
-      const profileForDemo: PatientProfile = {
+      const profileNorm: PatientProfile = {
         ...profile,
         radiusMi: profile.radiusMi > 0 ? profile.radiusMi : 25,
       };
-
-      let replay: ScraperLog[] = [];
-      let results: Record<string, import("@/lib/types").FacilityResult>;
-      let events: ScraperLog[];
-
-      const cached = await fetchCachedQuery(profileForDemo);
-      if (cached) {
-        results = cached.results;
-        events = cached.events;
-        replay = cached.replayEvents;
-        setScrapeLastUpdated(cached.lastUpdated ?? lastUpdatedFromResults(results));
-        setScrapeHealEvents(
-          cached.healEvents?.length
-            ? cached.healEvents
-            : healEventsFromLogs(replay.length ? replay : events)
-        );
-      } else {
-        results = applyProfileToDemoResults(profileForDemo, AUSTIN_DEMO_SNAPSHOT.results);
-        events = applyProfileToDemoEvents(profileForDemo, AUSTIN_DEMO_SNAPSHOT.events);
-        replay = getDemoReplayEvents(profileForDemo);
-        setScrapeLastUpdated(lastUpdatedFromResults(results));
-        setScrapeHealEvents(healEventsFromLogs(replay.length ? replay : events));
-      }
-
-      setReplayEvents(replay);
-      applyResults(results, events, profileForDemo);
-      void fetchLlmExplanation(results, profileForDemo);
-      setScrapeJobId(null);
-      setScrapePresentationMode("proof-reel");
-      setScrapeStatus("running");
-      setJourneyPhase("scraping");
+      await runSession(profileNorm, { mode: "cached" });
     },
-    [
-      patientProfile,
-      setScrapeJobId,
-      setScrapePresentationMode,
-      setReplayEvents,
-      setScrapeStatus,
-      applyResults,
-      setJourneyPhase,
-      fetchCachedQuery,
-      setScrapeLastUpdated,
-      setScrapeHealEvents,
-      fetchLlmExplanation,
-    ]
+    [patientProfile, runSession]
   );
 
   const startDemoScrapeFlow = useCallback(
@@ -278,41 +149,15 @@ export function useScrapeJob() {
   );
 
   const loadInstantDemo = useCallback(
-    (profileOverride?: PatientProfile) => {
-      if (pollingRef.current) clearTimeout(pollingRef.current);
-
+    async (profileOverride?: PatientProfile) => {
       const profile = profileOverride ?? patientProfile;
-      const profileForDemo: PatientProfile = {
+      const profileNorm: PatientProfile = {
         ...profile,
         radiusMi: profile.radiusMi > 0 ? profile.radiusMi : 25,
       };
-
-      const results = applyProfileToDemoResults(profileForDemo, AUSTIN_DEMO_SNAPSHOT.results);
-      const events = applyProfileToDemoEvents(profileForDemo, AUSTIN_DEMO_SNAPSHOT.events);
-      const replay = getDemoReplayEvents(profileForDemo);
-
-      setScrapeJobId(null);
-      setScrapePresentationMode("instant");
-      setReplayEvents(replay);
-      setScrapeStatus("complete");
-      setScrapeLastUpdated(lastUpdatedFromResults(results));
-      setScrapeHealEvents(healEventsFromLogs(replay.length ? replay : events));
-      applyResults(results, events, profileForDemo);
-      void fetchLlmExplanation(results, profileForDemo);
-      setJourneyPhase("results");
+      await runSession(profileNorm, { instant: true });
     },
-    [
-      patientProfile,
-      setScrapeJobId,
-      setScrapePresentationMode,
-      setReplayEvents,
-      setScrapeStatus,
-      applyResults,
-      setJourneyPhase,
-      setScrapeLastUpdated,
-      setScrapeHealEvents,
-      fetchLlmExplanation,
-    ]
+    [patientProfile, runSession]
   );
 
   const startReplayScrape = useCallback(() => {
@@ -336,51 +181,14 @@ export function useScrapeJob() {
 
   const startLiveScrape = useCallback(
     async (profileOverride?: PatientProfile) => {
-      if (pollingRef.current) clearTimeout(pollingRef.current);
-
       const profile = profileOverride ?? patientProfile;
-      const profileForScrape: PatientProfile = {
+      const profileNorm: PatientProfile = {
         ...profile,
         radiusMi: profile.radiusMi > 0 ? profile.radiusMi : 25,
       };
-
-      stopAllVoice();
-      resetVoiceQueue();
-
-      setScrapePresentationMode("live");
-      setScrapeStatus("running");
-      setJourneyPhase("scraping");
-      setFacilities({});
-      setScrapeEvents([]);
-      setExecutiveSummary(null);
-      setLlmExplanation(null);
-
-      try {
-        const res = await fetch(`${BACKEND}/api/scrape/start`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profile: profileForScrape }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Scrape start failed");
-        setScrapeJobId(data.jobId);
-        void pollUntilComplete(data.jobId);
-      } catch {
-        setScrapeStatus("failed");
-      }
+      await runSession(profileNorm, { mode: "live" });
     },
-    [
-      patientProfile,
-      setScrapeJobId,
-      setScrapePresentationMode,
-      setScrapeStatus,
-      setJourneyPhase,
-      setFacilities,
-      setScrapeEvents,
-      setExecutiveSummary,
-      setLlmExplanation,
-      pollUntilComplete,
-    ]
+    [patientProfile, runSession]
   );
 
   const startScrape = useCallback(
@@ -392,7 +200,7 @@ export function useScrapeJob() {
       };
 
       if (SKIP_SCRAPE_ANIMATION) {
-        loadInstantDemo(profileNorm);
+        await loadInstantDemo(profileNorm);
         return;
       }
 

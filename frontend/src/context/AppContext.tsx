@@ -11,6 +11,8 @@ import type {
 } from "@/lib/types";
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { LlmExplanation } from "@/lib/llmExplanation";
+import type { ScrapeContextPayload, BrainSessionResponse } from "@/lib/scrapeSession";
+import type { ConductResultsResponse } from "@/hooks/useResultsConductor";
 import { EMPTY_PROFILE } from "@/lib/types";
 import { normalizeProfilePartial } from "@/lib/profileNormalize";
 
@@ -40,6 +42,11 @@ interface AppContextType {
   setExecutiveSummary: (summary: ScrapeExecutiveSummary | null) => void;
   llmExplanation: LlmExplanation | null;
   setLlmExplanation: (explanation: LlmExplanation | null) => void;
+  scrapeContext: ScrapeContextPayload | null;
+  setScrapeContext: (ctx: ScrapeContextPayload | null) => void;
+  sessionPresentation: ConductResultsResponse | null;
+  setSessionPresentation: (p: ConductResultsResponse | null) => void;
+  applyBrainSession: (session: BrainSessionResponse) => void;
   isListening: boolean;
   setIsListening: (v: boolean) => void;
   isSpeaking: boolean;
@@ -66,12 +73,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   >([]);
   const [executiveSummary, setExecutiveSummary] = useState<ScrapeExecutiveSummary | null>(null);
   const [llmExplanation, setLlmExplanation] = useState<LlmExplanation | null>(null);
+  const [scrapeContext, setScrapeContext] = useState<ScrapeContextPayload | null>(null);
+  const [sessionPresentation, setSessionPresentation] = useState<ConductResultsResponse | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastAgentMessage, setLastAgentMessage] = useState<string | null>(null);
 
   const updateProfile = useCallback((partial: Partial<PatientProfile>) => {
     setPatientProfile((prev) => ({ ...prev, ...normalizeProfilePartial(partial, prev) }));
+  }, []);
+
+  const applyBrainSession = useCallback((session: BrainSessionResponse) => {
+    if (session.results) setFacilities(session.results);
+    if (session.events) setScrapeEvents(session.events);
+    if (session.replayEvents) setReplayEvents(session.replayEvents);
+    if (session.healEvents) setScrapeHealEvents(session.healEvents);
+    if (session.lastUpdated) setScrapeLastUpdated(session.lastUpdated);
+    if (session.executiveSummary !== undefined) setExecutiveSummary(session.executiveSummary);
+    if (session.explanation !== undefined) setLlmExplanation(session.explanation);
+    if (session.scrapeContext !== undefined) setScrapeContext(session.scrapeContext ?? null);
+    if (session.presentation !== undefined) setSessionPresentation(session.presentation ?? null);
+    if (session.presentationMode) setScrapePresentationMode(session.presentationMode);
+    if (session.jobId) setScrapeJobId(session.jobId);
   }, []);
 
   const value = useMemo(
@@ -101,6 +124,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setExecutiveSummary,
       llmExplanation,
       setLlmExplanation,
+      scrapeContext,
+      setScrapeContext,
+      sessionPresentation,
+      setSessionPresentation,
+      applyBrainSession,
       isListening,
       setIsListening,
       isSpeaking,
@@ -122,6 +150,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       scrapeHealEvents,
       executiveSummary,
       llmExplanation,
+      scrapeContext,
+      sessionPresentation,
+      applyBrainSession,
       isListening,
       isSpeaking,
       lastAgentMessage,

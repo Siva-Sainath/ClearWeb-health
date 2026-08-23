@@ -130,13 +130,14 @@ def check_zip_cache(zip_code: str, radius_mi: float = 25) -> dict:
     }
 
 
+def build_profile(args) -> dict:
     return {
         "condition": args.procedure or "",
         "procedure": args.procedure or "",
         "cptCode": args.cpt or "",
         "insurance": args.insurance or "",
         "zipCode": args.zip or "78701",
-        "radiusMi": 25,
+        "radiusMi": float(args.radius) if args.radius else 25.0,
         "priorities": ["cost"],
     }
 
