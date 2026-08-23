@@ -18,6 +18,7 @@ import AgentLiveRibbon from "./AgentLiveRibbon";
 import ExecutiveSummaryPanel from "./ExecutiveSummaryPanel";
 import ConsumerOptionCard from "./ConsumerOptionCard";
 import ExplanationStage from "./ExplanationStage";
+import AgentResultsConductor from "./AgentResultsConductor";
 import ResultsTabShell from "./ResultsTabShell";
 import FacilityFlashcards from "./FacilityFlashcards";
 import AgentActionBar from "./AgentActionBar";
@@ -370,6 +371,19 @@ export default function ResultsView() {
         >
           {explanationCaption}
         </p>
+      )}
+
+      {walkthroughExplanation && !walkthroughDone && AGENTIC_RESULTS && (
+        <AgentResultsConductor
+          explanation={walkthroughExplanation}
+          facilities={facilities}
+          presentationMode={scrapePresentationMode}
+          onSectionReveal={handleExplanationReveal}
+          onUiActions={applyActions}
+          onSpeakingChange={setExplanationSpeaking}
+          onCaptionChange={setExplanationCaption}
+          onComplete={() => setWalkthroughDone(true)}
+        />
       )}
 
       {walkthroughExplanation && !walkthroughDone && !AGENTIC_RESULTS && (

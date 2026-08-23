@@ -129,6 +129,20 @@ app.get("/api/prices/query", async (req, res) => {
   }
 });
 
+app.get("/api/prices/cache-check", async (req, res) => {
+  try {
+    const data = await queryCachedPrices({
+      zip: req.query.zip,
+      radius: parseFloat(req.query.radius || "25"),
+      check: true,
+    });
+    res.json(data);
+  } catch (err) {
+    console.error("[prices/cache-check]", err.message);
+    res.status(503).json({ error: err.message });
+  }
+});
+
 app.post("/api/scrape/start", (req, res) => {
   const profile = req.body.profile || req.body;
   const result = scrapeService.startScrape(profile);

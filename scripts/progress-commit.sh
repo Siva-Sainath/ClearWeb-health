@@ -46,37 +46,8 @@ if git diff --cached --quiet; then
 fi
 
 BRANCH="$(git branch --show-current)"
-STAT="$(git diff --cached --stat)"
-SUMMARY="$(echo "$STAT" | tail -1 | sed 's/^[[:space:]]*//')"
-FILES="$(git diff --cached --name-only)"
-
-# Build a judge-readable subject from touched areas.
-SUBJECT="chore: progress update"
-if echo "$FILES" | grep -q '^scraper/'; then
-  if echo "$FILES" | grep -q 'collector\|bulk\|texas'; then
-    SUBJECT="feat(texas): expand Bright Data collectors and scrape pipeline"
-  else
-    SUBJECT="feat(scraper): update scrape pipeline and heal tooling"
-  fi
-elif echo "$FILES" | grep -q '^frontend/'; then
-  if echo "$FILES" | grep -q 'Onboarding\|Voice\|Aria'; then
-    SUBJECT="fix(onboarding): improve voice flow and scrape handoff"
-  elif echo "$FILES" | grep -q 'Results\|Agent'; then
-    SUBJECT="feat(ui): agentic results presentation and Aria UX"
-  else
-    SUBJECT="feat(frontend): update demo UI and scrape experience"
-  fi
-elif echo "$FILES" | grep -q '^backend/'; then
-  SUBJECT="feat(backend): Aria agent, webcmd, or API updates"
-elif echo "$FILES" | grep -q '^docs/\|^README'; then
-  SUBJECT="docs: update hackathon demo and deploy guides"
-elif echo "$FILES" | grep -q '^\.github/'; then
-  SUBJECT="ci: update scheduled scrape and watcher workflows"
-elif echo "$FILES" | grep -q 'SKILL\.md'; then
-  SUBJECT="docs(voice): update Aria/Groq skill and agent conventions"
-fi
-
-MSG="${SUBJECT}
+SUMMARY="$(git diff --cached --stat | tail -1 | sed 's/^[[:space:]]*//')"
+MSG="chore: progress snapshot $(date -u +%Y-%m-%dT%H:%MZ)
 
 ${SUMMARY}"
 

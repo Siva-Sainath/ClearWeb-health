@@ -2,10 +2,12 @@
 
 import React, { useMemo, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Database, Radio, Loader2 } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useDashboard } from "@/context/DashboardContext";
 import { useAriaAgent } from "@/hooks/useAriaAgent";
 import { useScrapeJob } from "@/hooks/useScrapeJob";
+import { useZipCacheProbe } from "@/hooks/useZipCacheProbe";
 import { prefetchTtsLines } from "@/lib/ttsSpeak";
 import { getOnboardingWelcomeChunks } from "@/lib/voiceCopy";
 import InteractionStage from "@/components/InteractionStage";
@@ -14,6 +16,42 @@ import VoiceShell from "@/components/VoiceShell";
 import { isProfileReady } from "@/components/ProfileFieldBubbles";
 import { isProfileCoreReady, nextMissingField } from "@/lib/onboardingProgress";
 import type { PatientProfile } from "@/lib/types";
+
+function CacheStatusBanner({
+  zipProbe,
+}: {
+  zipProbe: ReturnType<typeof useZipCacheProbe>;
+}) {
+  if (zipProbe.status === "idle") return null;
+
+  if (zipProbe.status === "checking") {
+    return (
+      <p className="mt-3 flex items-center justify-center gap-2 text-xs text-[var(--color-text-tertiary)]">
+        <Loader2 size={12} className="animate-spin" />
+        Checking cached hospital prices for your ZIP…
+      </p>
+    );
+  }
+
+  if (zipProbe.status === "error") return null;
+
+  const { cached, hospitalCount } = zipProbe.data;
+  if (cached) {
+    return (
+      <p className="mt-3 flex items-center justify-center gap-2 text-xs text-violet-300">
+        <Database size={13} />
+        {hospitalCount} hospital{hospitalCount === 1 ? "" : "s"} cached near you — instant verified replay
+      </p>
+    );
+  }
+
+  return (
+    <p className="mt-3 flex items-center justify-center gap-2 text-xs text-emerald-300/90">
+      <Radio size={13} />
+      No cache yet — Bright Data will run a live scrape (a few minutes)
+    </p>
+  );
+}
 
 export default function VoiceOnboardingView() {
   const {
@@ -25,6 +63,7 @@ export default function VoiceOnboardingView() {
     setLastAgentMessage,
   } = useAppContext();
   const { startScrape } = useScrapeJob();
+  const zipProbe = useZipCacheProbe(patientProfile);
   const { applyActions, state: dashState, dispatch } = useDashboard();
   const [textInputOpen, setTextInputOpen] = useState(false);
   const [textInput, setTextInput] = useState("");
@@ -32,6 +71,7 @@ export default function VoiceOnboardingView() {
   const [transitioning, setTransitioning] = useState(false);
   const [scrapeConfirmed, setScrapeConfirmed] = useState(false);
   const transitioningRef = useRef(false);
+  const beginPriceSearchRef = useRef<(profile?: PatientProfile) => void>(() => {});
 
   const agentDashState = useMemo(
     () => ({
@@ -57,8 +97,6 @@ export default function VoiceOnboardingView() {
       dashState.compareB,
     ]
   );
-
-  const beginPriceSearchRef = useRef<(profile?: PatientProfile) => void>(() => {});
 
   React.useEffect(() => {
     prefetchTtsLines(getOnboardingWelcomeChunks());
@@ -117,23 +155,27 @@ export default function VoiceOnboardingView() {
   const mergeBubbles = scrapeConfirmed && canPullPrices;
   const missing = nextMissingField(patientProfile);
 
-  const handleConfirmScrape = useCallback(() => {
-    beginPriceSearch();
-  }, [beginPriceSearch]);
+  const buttonLabel =
+    zipProbe.status === "ready" && zipProbe.data.cached
+      ? "Show cached prices (verified replay)"
+      : zipProbe.status === "ready" && !zipProbe.data.cached
+        ? "Run live Bright Data scrape"
+        : "Pull hospital prices near you";
 
   return (
     <div className="pb-24">
       <div className="px-6 pt-6 max-w-lg mx-auto">
         <OnboardingProgress profile={patientProfile} />
+        <CacheStatusBanner zipProbe={zipProbe} />
         {canPullPrices && !transitioning && (
           <motion.button
             type="button"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 w-full py-3.5 rounded-2xl font-medium text-sm bg-[var(--color-accent)] text-black hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(52,211,153,0.25)] disabled:opacity-50"
-            onClick={handleConfirmScrape}
+            className="mt-4 w-full py-3.5 rounded-2xl font-medium text-sm bg-[var(--color-accent)] text-black hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(52,211,153,0.25)]"
+            onClick={() => beginPriceSearch()}
           >
-            Pull hospital prices near you
+            {buttonLabel}
           </motion.button>
         )}
         {!canPullPrices && missing && agent.voiceState === "standby" && (

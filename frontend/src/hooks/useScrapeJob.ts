@@ -13,6 +13,7 @@ import {
   getDemoReplayEvents,
 } from "@/lib/demoSnapshot";
 import type { PatientProfile, ScraperLog } from "@/lib/types";
+import { checkZipCache } from "@/lib/zipCacheCheck";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 const USE_LLM_EXPLANATION = process.env.NEXT_PUBLIC_USE_LLM_EXPLANATION === "true";
@@ -384,17 +385,33 @@ export function useScrapeJob() {
 
   const startScrape = useCallback(
     async (profileOverride?: PatientProfile) => {
+      const profile = profileOverride ?? patientProfile;
+      const profileNorm: PatientProfile = {
+        ...profile,
+        radiusMi: profile.radiusMi > 0 ? profile.radiusMi : 25,
+      };
+
       if (SKIP_SCRAPE_ANIMATION) {
-        loadInstantDemo(profileOverride);
+        loadInstantDemo(profileNorm);
         return;
       }
-      if (HACKATHON_DEMO_MODE) {
-        await startLiveScrape(profileOverride);
+
+      const cacheStatus = await checkZipCache(profileNorm);
+      const hasCache = cacheStatus?.cached === true;
+
+      if (HACKATHON_DEMO_MODE && !hasCache) {
+        await startLiveScrape(profileNorm);
         return;
       }
-      await startProofReelFlow(profileOverride);
+
+      if (hasCache) {
+        await startProofReelFlow(profileNorm);
+        return;
+      }
+
+      await startLiveScrape(profileNorm);
     },
-    [loadInstantDemo, startLiveScrape, startProofReelFlow]
+    [patientProfile, loadInstantDemo, startLiveScrape, startProofReelFlow]
   );
 
   const cancelScrape = useCallback(async () => {
@@ -413,6 +430,7 @@ export function useScrapeJob() {
 
   return {
     startScrape,
+    checkZipCache,
     loadInstantDemo,
     startDemoScrapeFlow,
     startProofReelFlow,

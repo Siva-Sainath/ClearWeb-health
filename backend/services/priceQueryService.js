@@ -12,7 +12,7 @@ function getPythonPath() {
 /**
  * Query cached SQLite prices + replay events for proof-reel mode.
  */
-function queryCachedPrices({ zip = "", procedure = "", insurance = "", cpt = "" } = {}) {
+function queryCachedPrices({ zip = "", procedure = "", insurance = "", cpt = "", check = false, radius = 25 } = {}) {
   return new Promise((resolve, reject) => {
     const script = path.join(__dirname, "../../scraper/query_prices.py");
     const args = [
@@ -25,7 +25,10 @@ function queryCachedPrices({ zip = "", procedure = "", insurance = "", cpt = "" 
       insurance || "",
       "--cpt",
       cpt || "",
+      "--radius",
+      String(radius),
     ];
+    if (check) args.push("--check");
 
     const child = spawn(getPythonPath(), args, {
       cwd: path.join(__dirname, "../../scraper"),

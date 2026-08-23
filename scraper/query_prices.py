@@ -80,7 +80,56 @@ def heal_events_from_replay(replay: list[dict]) -> list[dict]:
     return out[-10:]
 
 
-def build_profile(args: argparse.Namespace) -> dict:
+def check_zip_cache(zip_code: str, radius_mi: float = 25) -> dict:
+    """True when SQLite has price rows for hospitals within radius of zip."""
+    from match_engine import ZIP_COORDS, estimate_distance  # noqa: WPS433
+
+    init_db()
+    targets = load_targets()
+    zip_code = (zip_code or "").strip()
+    if len(zip_code) != 5 or not zip_code.isdigit():
+        return {
+            "cached": False,
+            "hospitalCount": 0,
+            "hospitalIds": [],
+            "zipKnown": False,
+            "zip": zip_code,
+            "radiusMi": radius_mi,
+            "reason": "invalid_zip",
+        }
+
+    if zip_code not in ZIP_COORDS:
+        return {
+            "cached": False,
+            "hospitalCount": 0,
+            "hospitalIds": [],
+            "zipKnown": False,
+            "zip": zip_code,
+            "radiusMi": radius_mi,
+            "reason": "zip_not_in_coverage",
+        }
+
+    count = 0
+    hospital_ids: list[str] = []
+    for hospital in targets:
+        rows = get_rows_for_hospital(hospital["id"])
+        if not rows:
+            continue
+        dist = estimate_distance(zip_code, hospital["id"])
+        if dist <= radius_mi:
+            count += 1
+            hospital_ids.append(hospital["id"])
+
+    return {
+        "cached": count > 0,
+        "hospitalCount": count,
+        "hospitalIds": hospital_ids,
+        "zipKnown": zip_code in ZIP_COORDS,
+        "zip": zip_code,
+        "radiusMi": radius_mi,
+    }
+
+
     return {
         "condition": args.procedure or "",
         "procedure": args.procedure or "",
@@ -144,7 +193,16 @@ def main() -> None:
     parser.add_argument("--procedure", default="")
     parser.add_argument("--insurance", default="")
     parser.add_argument("--cpt", default="")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Return cache status only (hospitals with prices near zip)",
+    )
+    parser.add_argument("--radius", type=float, default=25.0)
     args = parser.parse_args()
+    if args.check:
+        print(json.dumps(check_zip_cache(args.zip, args.radius)))
+        return
     profile = build_profile(args)
     payload = query_prices(profile)
     print(json.dumps(payload))
