@@ -14,7 +14,7 @@ const GROQ_LLM_FALLBACKS = [
 ];
 
 function groqKey() {
-  return env.GROQ_API_KEY || "";
+  return String(env.GROQ_API_KEY || "").replace(/^["']|["']$/g, "").trim();
 }
 
 function preferredModel(explicit) {

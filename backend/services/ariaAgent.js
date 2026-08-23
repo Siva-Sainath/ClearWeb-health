@@ -77,11 +77,15 @@ async function handleAgentChatStream(req, res, body) {
     );
     res.end();
   } catch (err) {
-    console.error("[ariaAgent]", err.message);
+    console.error("[ariaAgent]", err.response?.status || "", err.message);
+    const friendly =
+      err.response?.status === 404
+        ? "Aria's language model is unavailable (Groq returned 404). Check GROQ_LLM_MODEL."
+        : err.message;
     if (!res.headersSent) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: friendly });
     } else {
-      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: friendly })}\n\n`);
       res.end();
     }
   }
