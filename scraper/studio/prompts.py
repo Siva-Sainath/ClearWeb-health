@@ -20,8 +20,29 @@ def _read_template(filename: str) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
-def studio_context_for_system(system: str) -> str:
-    """Return studio JS template text for a health system (hca, ascension, bsw)."""
+CREATE_STUDIO_HINTS: dict[str, str] = {
+    "hca": (
+        "HCA health system: navigate Price Transparency CMS file listing; "
+        "return pricing_files[].file_url for the matching facility (JSON/CSV direct download)."
+    ),
+    "ascension": (
+        "Ascension portal: open healthcare.ascension.org price transparency; "
+        "return standard_charges_files or mrf_url direct download link."
+    ),
+    "bsw": (
+        "Baylor Scott & White: use estimate/cost-of-care or transparency page; "
+        "return direct MRF JSON/CSV URL, not an HTML portal page."
+    ),
+}
+
+BD_MAX_CREATE_PROMPT_LEN = 990
+
+
+def studio_context_for_system(system: str, *, for_create: bool = False) -> str:
+    """Studio guidance — short hints for create (BD 1000 char cap), full JS for heal."""
+    if for_create:
+        return CREATE_STUDIO_HINTS.get(system or "", "")
+
     filename = SYSTEM_TEMPLATES.get(system or "")
     if not filename:
         return ""
@@ -92,13 +113,14 @@ def enrich_heal_prompt(hospital: dict, reason: str, tier: int = 0) -> str:
 
 
 def enrich_create_prompt(hospital: dict, prompt: str) -> str:
-    """Append studio template to collector create prompts."""
+    """Append studio hint to collector create prompts (must stay under BD 1000 char limit)."""
     system = hospital.get("system") or infer_system(
         hospital.get("domain", ""),
         hospital.get("slug", hospital.get("id", "")),
         hospital.get("url", ""),
     )
-    studio = studio_context_for_system(system)
-    if not studio:
-        return prompt
-    return f"{prompt.strip()}\n\n{studio}"
+    hint = studio_context_for_system(system, for_create=True)
+    if not hint:
+        return prompt.strip()[:BD_MAX_CREATE_PROMPT_LEN]
+    combined = f"{prompt.strip()}\n\n{hint}"
+    return combined[:BD_MAX_CREATE_PROMPT_LEN]

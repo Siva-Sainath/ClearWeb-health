@@ -74,10 +74,26 @@ def create_collector(hospital: HospitalCandidate) -> str | None:
         url,
         hosp.get("system") or "generic",
     )
-    try:
-        result = bd_create_collector(url, CREATE_PROMPT, name=slug, timeout=600, hospital=hosp)
-    except Exception as exc:
-        logger.error("[%s] create failed: %s", slug, exc)
+    max_attempts = int(os.environ.get("COLLECTOR_CREATE_RETRIES", "3"))
+    cooldown = int(os.environ.get("COLLECTOR_CREATE_COOLDOWN_SEC", "90"))
+    result = None
+    last_exc: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            result = bd_create_collector(url, CREATE_PROMPT, name=slug, timeout=600, hospital=hosp)
+            break
+        except Exception as exc:
+            last_exc = exc
+            err = str(exc).lower()
+            if "rate limit" in err or "429" in err or "error_limit" in err:
+                wait = cooldown * attempt
+                logger.warning("[%s] BD rate limit (attempt %d/%d) — waiting %ds", slug, attempt, max_attempts, wait)
+                time.sleep(wait)
+                continue
+            logger.error("[%s] create failed: %s", slug, exc)
+            return None
+    if result is None:
+        logger.error("[%s] create failed after %d attempts: %s", slug, max_attempts, last_exc)
         return None
 
     collector_id = result.get("collector_id")
@@ -111,7 +127,7 @@ def create_collectors_bulk(hospitals: list[HospitalCandidate]) -> list[str]:
         cid = create_collector(hosp)
         if cid:
             created.append(cid)
-        time.sleep(2)
+        time.sleep(int(os.environ.get("COLLECTOR_INTER_CREATE_SEC", "30")))
     return created
 
 
