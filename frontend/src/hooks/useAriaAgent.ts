@@ -60,6 +60,8 @@ export interface UseAriaAgentOptions {
   resultsSource?: ScrapePresentationMode;
   /** Opens the coverage panel when Aria refuses an out-of-list ask. */
   onCoverageNudge?: () => void;
+  /** Fires as the welcome line starts speaking. */
+  onWelcomeStart?: () => void;
 }
 
 export interface UseAriaAgentReturn {

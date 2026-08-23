@@ -25,4 +25,16 @@ NOT IN CACHE: knee MRI, CT, mammogram, hip replacement, labs, x-ray. Say so. Do 
 INSURERS IN THE MRF ROWS: Aetna, Aetna Better Health, Meritain, Blue Cross Blue Shield of Texas, Cigna, UnitedHealthcare, Humana, Oscar, Molina, Superior Health Plan, Sendero, Amerigroup, Moda, MultiPlan/PHCS, Healthcare Highways, Harbor Health, Curative, Evry Health, Nomi Health, Covenant Management Systems, American Health Plan, Careworks workers' comp, cash/self-pay.
 `;
 
-module.exports = { COVERAGE_BLOCK };
+/** CPTs with real rows in chargemaster.db — never price anything else. */
+const CACHED_CPTS = [
+  "72148",
+  "72149",
+  "72158",
+  "45378",
+  "70553",
+  "27447",
+  "44950",
+  "99283",
+];
+
+module.exports = { COVERAGE_BLOCK, CACHED_CPTS };

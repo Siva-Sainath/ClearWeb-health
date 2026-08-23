@@ -1,11 +1,14 @@
 /**
  * Deterministic LLM-style explanation from scraped/cached facility data.
- * No Ollama required — reliable for demos with disk-cached MRF results.
+ * No Ollama or Groq required — this is the walkthrough the demo always plays.
  */
 
 import type { ScrapeExecutiveSummary, RankedOption } from "@/lib/scrapeExecutiveSummary";
 import type { FacilityResult, PatientProfile, ScraperLog } from "@/lib/types";
 import type { LlmExplanation, ExplanationSection, ExplanationFacilityReveal } from "@/lib/llmExplanation";
+import { CACHED_CPTS } from "@/lib/coverageFacts";
+import { speechFacilityName } from "@/lib/scrapeNarration";
+import { ST_LUKES_HEAL_SHOWCASE } from "@/lib/healShowcase";
 
 const DEFAULT_CHIPS = [
   "Show me the cheapest on a chart",
@@ -25,6 +28,38 @@ function locationLabel(profile: PatientProfile, fallback: string): string {
   return fallback;
 }
 
+function mode(values: Array<string | undefined>): string | null {
+  const counts = new Map<string, number>();
+  for (const v of values) {
+    const key = String(v || "").trim();
+    if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+
+/**
+ * The dollars on screen belong to whatever CPT the cached rows carry. Report that
+ * code, and flag it when it is not the procedure the patient asked for.
+ */
+function pricedFacts(
+  profile: PatientProfile,
+  facilities: Record<string, FacilityResult>,
+  summary: ScrapeExecutiveSummary
+) {
+  const rows = Object.values(facilities || {});
+  const code = mode(rows.map((f) => f.cpt_code));
+  const procedure = mode(rows.map((f) => f.procedure)) || summary.procedure;
+  const asked = String(profile.cptCode || "").trim();
+  return {
+    code,
+    procedure,
+    label: code ? `${procedure} (CPT ${code})` : procedure,
+    mismatch: Boolean(code && asked && asked !== code),
+    askedCode: asked,
+    known: Boolean(code && (CACHED_CPTS as readonly string[]).includes(code)),
+  };
+}
+
 export function buildDeterministicExplanation(
   profile: PatientProfile,
   facilities: Record<string, FacilityResult>,
@@ -41,17 +76,23 @@ export function buildDeterministicExplanation(
 
   const cacheHits = events.filter((e) => e.event === "mrf_downloaded" && e.cache_hit).length;
   const liveHits = events.filter((e) => e.event === "mrf_downloaded" && !e.cache_hit).length;
-  const healCount = events.filter((e) => e.event === "heal_triggered").length;
-  const websiteCount = new Set(
-    events.map((e) => e.collector_id).filter(Boolean)
-  ).size;
+  const healLogs = events.filter((e) => e.event === "heal_triggered");
 
   const place = locationLabel(profile, summary.location);
+  const priced = pricedFacts(profile, facilities, summary);
+  const procedureLabel = priced.label;
+  const mismatchNote = priced.mismatch
+    ? ` One honest caveat: the rows we have cached near you are ${priced.procedure}, CPT ${priced.code} — not CPT ${priced.askedCode}. These dollars are that code, not a stand-in for it.`
+    : "";
 
-  function facilityRevealSection(option: RankedOption, rank: number): ExplanationFacilityReveal {
+  function facilityReveal(
+    option: RankedOption,
+    uiActions: string[],
+    lead: string
+  ): ExplanationFacilityReveal {
     const f = option.facility;
     const narrated: string[] = [
-      `On your screen now — ${f.hospital_name}, rank #${rank}, about $${f.insurance_price} on ${summary.insurance}.`,
+      `${lead} ${f.hospital_name} — about $${f.insurance_price} on ${summary.insurance} for ${priced.procedure}.`,
     ];
     if (option.badge) narrated.push(option.badge);
     const extra = option.reasons.filter((r) => !r.startsWith("$")).slice(0, 1);
@@ -61,64 +102,77 @@ export function buildDeterministicExplanation(
       type: "facility_reveal",
       facilityId: option.id,
       reasons: narrated,
-      uiActions:
-        rank === 1
-          ? [
-              "layout:spotlightHero",
-              `spotlight:${option.id}`,
-              `show_card:${option.id}`,
-              "tab:map",
-            ]
-          : [`spotlight:${option.id}`, `show_card:${option.id}`, "layout:explore"],
+      uiActions,
     };
   }
 
-  const brightDataBody =
+  // Step 2 body: how collection actually worked, then the self-heal beat.
+  const collectionSentences: string[] = [];
+  collectionSentences.push(
     cacheHits > 0 && liveHits === 0
-      ? `Bright Data collectors opened each Austin hospital price-transparency site, found the CMS machine-readable file, and we replayed ${cacheHits} real cached downloads so you could watch the scrape without waiting on the live network.`
-      : `Bright Data collectors opened hospital price-transparency sites, found each CMS file, and Web Unlocker pulled the JSON — ${liveHits} live download${liveHits === 1 ? "" : "s"}, ${cacheHits} from cache.` +
-        (healCount > 0
-          ? ` When a site blocked or broke, self-healing retried ${healCount} time${healCount === 1 ? "" : "s"}.`
-          : "");
+      ? `Bright Data collectors opened each hospital's price-transparency site and found its CMS machine-readable file. We replayed ${cacheHits} real cached downloads instead of re-scraping live, so nothing here is invented.`
+      : `Bright Data collectors opened each hospital's price-transparency site, and Web Unlocker pulled the CMS files — ${liveHits} live download${liveHits === 1 ? "" : "s"} and ${cacheHits} from cache.`
+  );
 
-  const searchBody = `We only priced ${summary.procedure} near ${place} (within ${summary.radiusMi} miles on ${summary.insurance}). These dollars are that CPT in the Austin cache — not a stand-in for a different test.`;
+  const healFacility = healLogs.length
+    ? speechFacilityName(healLogs[0].facility_name)
+    : null;
+  if (healFacility) {
+    collectionSentences.push(
+      `${healFacility} broke the collector mid-run, and Bright Data self-healing repaired it on its own — no code change from us.`
+    );
+  }
+  collectionSentences.push(
+    `You can also watch the full recorded self-heal cycle we captured on ${speechFacilityName(
+      ST_LUKES_HEAL_SHOWCASE.facility.name
+    )} in ${ST_LUKES_HEAL_SHOWCASE.facility.city} — that one is a separate recording, not one of your ${place} prices.`
+  );
 
   const sections: ExplanationSection[] = [
     {
       type: "insight",
       title: "Your price range",
-      body: `On ${summary.insurance}, you're looking at about $${summary.priceRange.min} to $${summary.priceRange.max}. Picking a lower-cost hospital could save you up to $${savings}.`,
+      body: `For ${procedureLabel} near ${place} on ${summary.insurance}, you're looking at about $${summary.priceRange.min} to $${summary.priceRange.max}. Choosing well could save you up to $${savings}.${mismatchNote}`,
       emphasis: "cost",
       uiActions: ["layout:savingsStory", "tab:range"],
     },
     {
       type: "insight",
       title: "How we collected prices",
-      body: brightDataBody,
+      body: collectionSentences.join(" "),
       emphasis: "summary",
       uiActions: ["layout:trustGaps"],
     },
-    {
-      type: "insight",
-      title: "What we searched",
-      body: searchBody,
-      emphasis: "summary",
-      uiActions: ["layout:explore", "tab:map"],
-    },
   ];
 
-  const topReveal = facilityRevealSection(top, 1);
-  sections.push(topReveal);
+  sections.push(
+    facilityReveal(
+      top,
+      ["layout:spotlightHero", `spotlight:${top.id}`, `show_card:${top.id}`],
+      "My recommendation is"
+    )
+  );
 
   if (second) {
-    sections.push(facilityRevealSection(second, 2));
+    sections.push(
+      facilityReveal(
+        second,
+        [
+          "layout:compareSplit",
+          `compare:${top.id}:${second.id}`,
+          "tab:compare",
+          `show_card:${second.id}`,
+        ],
+        "Side by side with it,"
+      )
+    );
   }
 
   if (cheapest.id !== top.id) {
     sections.push({
       type: "insight",
       title: "Cheapest option",
-      body: `${cheapest.facility.hospital_name} is the lowest at about $${cheapest.facility.insurance_price} — ask me to put it on a chart anytime.`,
+      body: `${cheapest.facility.hospital_name} is the lowest at about $${cheapest.facility.insurance_price} — same procedure, just a different hospital's negotiated rate.`,
       emphasis: "cost",
       uiActions: [
         "layout:chartFocus",
@@ -129,17 +183,19 @@ export function buildDeterministicExplanation(
     });
   }
 
-  if (summary.missed.length > 0) {
-    sections.push({
-      type: "insight",
-      title: "Sites without public prices",
-      body: `${summary.missed.length} hospital${summary.missed.length > 1 ? "s" : ""} didn't publish online prices — I've listed them in the gaps panel.`,
-      emphasis: "summary",
-      uiActions: ["layout:trustGaps"],
-    });
-  }
+  const gapNote = summary.missed.length
+    ? `${summary.missed.length} hospital${summary.missed.length > 1 ? "s" : ""} never published a usable rate, so they're in the gaps panel rather than these numbers. `
+    : "";
 
-  const spokenScript = `Here's what I found for ${summary.procedure} near ${place}. Watch the screen — I'll walk you through your best options as I go.`;
+  sections.push({
+    type: "insight",
+    title: "Explore from here",
+    body: `${gapNote}Everything on your screen now is on the map. Ask me to chart the cheapest, compare any two, or help you book — I'll move the dashboard for you.`,
+    emphasis: "summary",
+    uiActions: ["layout:explore", "tab:map"],
+  });
+
+  const spokenScript = `Here's what we found for ${procedureLabel} near ${place}. Watch the screen — I'll walk you through it.`;
 
   return {
     spokenScript,

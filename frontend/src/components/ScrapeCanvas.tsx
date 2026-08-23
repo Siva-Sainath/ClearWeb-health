@@ -17,7 +17,7 @@ import { useScrapeTimeline, CX, CY } from "@/hooks/useScrapeTimeline";
 import { useScrapeOrchestrator } from "@/hooks/useScrapeOrchestrator";
 import { useScrapeJob } from "@/hooks/useScrapeJob";
 import { healLineFromLog, useScrapeNarration } from "@/hooks/useScrapeNarration";
-import { processNarrationFromLog } from "@/lib/scrapeNarration";
+import { phaseNarrationFromLog, type ScrapePhaseLine } from "@/lib/scrapeNarration";
 import { getDemoReplayEvents } from "@/lib/demoSnapshot";
 import { useAppContext } from "@/context/AppContext";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
@@ -343,13 +343,13 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
   const [narrationComplete, setNarrationComplete] = useState(false);
   const [narrationCaption, setNarrationCaption] = useState("");
   const [pendingHealLine, setPendingHealLine] = useState<string | null>(null);
-  const [pendingProcessLine, setPendingProcessLine] = useState<string | null>(null);
+  const [pendingPhaseLine, setPendingPhaseLine] = useState<ScrapePhaseLine | null>(null);
 
   useEffect(() => {
     if (isAnimating) {
       setNarrationComplete(false);
       setPendingHealLine(null);
-      setPendingProcessLine(null);
+      setPendingPhaseLine(null);
     }
   }, [isAnimating, scrapePresentationMode, scrapeJobId]);
 
@@ -358,15 +358,30 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
     setJourneyPhase("results");
   }, [setJourneyPhase, setScrapeStatus]);
 
-  const handleHealEvent = useCallback((log: ScraperLog) => {
-    setPendingHealLine(healLineFromLog(log));
-  }, []);
+  const spokenProcedure =
+    executiveSummary?.procedure?.trim() ||
+    patientProfile.procedure ||
+    patientProfile.condition ||
+    "your procedure";
 
-  const handleProcessEvent = useCallback((log: ScraperLog) => {
-    if (/heal/i.test(log.event || "")) return;
-    const line = processNarrationFromLog(log);
-    if (line) setPendingProcessLine(line);
-  }, []);
+  const handleHealEvent = useCallback(
+    (log: ScraperLog) => {
+      setPendingHealLine(healLineFromLog(log, isLive));
+    },
+    [isLive]
+  );
+
+  const handleProcessEvent = useCallback(
+    (log: ScraperLog) => {
+      if (/heal/i.test(log.event || "")) return;
+      const phase = phaseNarrationFromLog(log, {
+        procedure: spokenProcedure,
+        isLive,
+      });
+      if (phase) setPendingPhaseLine(phase);
+    },
+    [isLive, spokenProcedure]
+  );
 
   const timelineActive =
     isAnimating && (isLive || effectiveReplayEvents.length > 0);
@@ -397,10 +412,11 @@ export default function ScrapeCanvas({ showcaseMode }: ScrapeCanvasProps = {}) {
     profile: patientProfile,
     summary: executiveSummary,
     scrapeComplete,
+    isLive,
     pendingHealLine,
     onHealLineSpoken: () => setPendingHealLine(null),
-    pendingProcessLine,
-    onProcessLineSpoken: () => setPendingProcessLine(null),
+    pendingPhaseLine,
+    onPhaseLineSpoken: () => setPendingPhaseLine(null),
     onCaption: (line) => {
       setNarrationCaption(line);
       setLastAgentMessage(line);

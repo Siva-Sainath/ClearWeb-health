@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import type { UIAction } from "@/lib/uiActions";
-import { prefetchTts, speakTtsQueued, stopTtsPlayback } from "@/lib/ttsSpeak";
+import { prefetchTts, prefetchTtsLines, speakScriptedQueued, stopTtsPlayback } from "@/lib/ttsSpeak";
 
 export interface PresentationStep {
   tool?: string;
@@ -46,12 +46,17 @@ export function usePresentationOrchestrator() {
       onStepIndex,
     } = opts;
 
+    prefetchTtsLines(
+      steps.map((s) => s.caption?.trim() ?? "").filter(Boolean)
+    );
+
     if (spokenScript.trim()) {
       prefetchTts(spokenScript);
       onSpeakingChange?.(true);
       onCaptionChange?.(spokenScript);
       stopTtsPlayback();
-      void speakTtsQueued(spokenScript);
+      // Steps must not start moving the UI while the opener is still talking.
+      await speakScriptedQueued(spokenScript);
     }
 
     if (steps.length) {
@@ -68,9 +73,8 @@ export function usePresentationOrchestrator() {
 
         const caption = step.caption?.trim();
         if (caption) {
-          prefetchTts(caption);
           onCaptionChange?.(caption);
-          await speakTtsQueued(caption);
+          await speakScriptedQueued(caption);
         }
       }
     } else if (fallbackActions.length) {

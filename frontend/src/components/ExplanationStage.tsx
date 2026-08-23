@@ -7,7 +7,7 @@ import type { LlmExplanation, ExplanationSection } from "@/lib/llmExplanation";
 import type { FacilityResult } from "@/lib/types";
 import { tokens } from "@/lib/design-tokens";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { prefetchTts, ensureTtsReady, stopTtsPlayback, speakTtsQueued } from "@/lib/ttsSpeak";
+import { prefetchTts, stopTtsPlayback, speakScriptedQueued } from "@/lib/ttsSpeak";
 
 function waitForLayout(): Promise<void> {
   return new Promise((resolve) => {
@@ -26,17 +26,15 @@ interface ExplanationStageProps {
   autoPlay?: boolean;
 }
 
+const TITLE_ONLY_SPOKEN = new Set([
+  "Your price range",
+  "How we collected prices",
+  "Explore from here",
+]);
+
 function insightSpeechLine(section: ExplanationSection): string {
   if (section.type !== "insight") return "";
-  if (section.title === "Your price range" || section.title === "Your price range") {
-    return section.body;
-  }
-  if (
-    section.title === "How we collected prices" ||
-    section.title === "How we collected prices"
-  ) {
-    return `${section.body} Watch the cards as I name each hospital.`;
-  }
+  if (TITLE_ONLY_SPOKEN.has(section.title)) return section.body;
   return `${section.title}. ${section.body}`;
 }
 
@@ -118,8 +116,7 @@ export default function ExplanationStage({
 
         if (script) {
           onCaptionChange?.(script);
-          await ensureTtsReady(script);
-          await speakTtsQueued(script);
+          await speakScriptedQueued(script);
         }
 
         for (let i = 0; i < explanation.sections.length; i++) {
@@ -136,7 +133,7 @@ export default function ExplanationStage({
               : facilitySpeechLine(section);
           if (line.trim()) {
             onCaptionChange?.(line);
-            await speakTtsQueued(line);
+            await speakScriptedQueued(line);
           }
         }
       } finally {

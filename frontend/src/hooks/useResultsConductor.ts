@@ -30,7 +30,8 @@ interface UseResultsConductorOptions {
   onCaptionChange?: (caption: string) => void;
   onSpeakingChange?: (speaking: boolean) => void;
   onPresentationStep?: (index: number) => void;
-  onComplete?: () => void;
+  /** `ok` is false when the conductor failed and a local walkthrough should take over. */
+  onComplete?: (ok: boolean) => void;
 }
 
 export function useResultsConductor({
@@ -94,11 +95,11 @@ export function useResultsConductor({
         onStepIndex: onPresentationStep,
       });
       setConducting(false);
-      onComplete?.();
+      onComplete?.(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Conduct failed");
       setConducting(false);
-      onComplete?.();
+      onComplete?.(false);
     }
   }, [
     enabled,

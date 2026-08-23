@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { buildScrapeNarrationLines, healNarrationLine } from "@/lib/scrapeNarration";
+import {
+  allPhaseLines,
+  buildScrapeNarrationLines,
+  healNarrationLine,
+  type ScrapePhaseLine,
+} from "@/lib/scrapeNarration";
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { PatientProfile, ScraperLog } from "@/lib/types";
 import { stopAllVoice } from "@/lib/ariaVoiceController";
-import { speakTtsQueued, prefetchTtsLines } from "@/lib/ttsSpeak";
+import { speakScriptedQueued, prefetchTtsLines } from "@/lib/ttsSpeak";
 
 const LINE_TIMEOUT_MS = 25000;
 
@@ -15,7 +20,7 @@ function waitMs(ms: number): Promise<void> {
 
 async function speakLineWithTimeout(line: string): Promise<void> {
   await Promise.race([
-    speakTtsQueued(line),
+    speakScriptedQueued(line),
     waitMs(LINE_TIMEOUT_MS).then(() => undefined),
   ]);
 }
@@ -26,14 +31,21 @@ export interface UseScrapeNarrationOptions {
   summary: ScrapeExecutiveSummary | null;
   /** Replay: wait for animation. Live: wait for job complete. */
   scrapeComplete: boolean;
+  isLive?: boolean;
   onCaption?: (line: string) => void;
   onSpeakingChange?: (speaking: boolean) => void;
   onFinished: () => void;
-  /** Heal events from timeline (live or replay). */
+  /** Heal line from timeline — spoken once, ahead of pipeline phases. */
   pendingHealLine?: string | null;
   onHealLineSpoken?: () => void;
-  pendingProcessLine?: string | null;
-  onProcessLineSpoken?: () => void;
+  /** Pipeline phase line — deduped by phase key. */
+  pendingPhaseLine?: ScrapePhaseLine | null;
+  onPhaseLineSpoken?: () => void;
+}
+
+interface QueuedLine {
+  key: string;
+  line: string;
 }
 
 export function useScrapeNarration({
@@ -41,13 +53,14 @@ export function useScrapeNarration({
   profile,
   summary,
   scrapeComplete,
+  isLive = false,
   onCaption,
   onSpeakingChange,
   onFinished,
   pendingHealLine,
   onHealLineSpoken,
-  pendingProcessLine,
-  onProcessLineSpoken,
+  pendingPhaseLine,
+  onPhaseLineSpoken,
 }: UseScrapeNarrationOptions) {
   const runIdRef = useRef(0);
   const onFinishedRef = useRef(onFinished);
@@ -56,34 +69,66 @@ export function useScrapeNarration({
   const profileRef = useRef(profile);
   const summaryRef = useRef(summary);
   const scrapeCompleteRef = useRef(scrapeComplete);
+  const isLiveRef = useRef(isLive);
   const onHealSpokenRef = useRef(onHealLineSpoken);
-  const onProcessSpokenRef = useRef(onProcessLineSpoken);
+  const onPhaseSpokenRef = useRef(onPhaseLineSpoken);
+
+  /** Single serialized queue so intro, heal, and phase lines never overlap. */
+  const queueRef = useRef<QueuedLine[]>([]);
+  const spokenKeysRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     scrapeCompleteRef.current = scrapeComplete;
+    isLiveRef.current = isLive;
     onFinishedRef.current = onFinished;
     onCaptionRef.current = onCaption;
     onSpeakingRef.current = onSpeakingChange;
     profileRef.current = profile;
     summaryRef.current = summary;
     onHealSpokenRef.current = onHealLineSpoken;
-    onProcessSpokenRef.current = onProcessLineSpoken;
-  }, [scrapeComplete, onFinished, onCaption, onSpeakingChange, profile, summary, onHealLineSpoken, onProcessLineSpoken]);
+    onPhaseSpokenRef.current = onPhaseLineSpoken;
+  }, [
+    scrapeComplete,
+    isLive,
+    onFinished,
+    onCaption,
+    onSpeakingChange,
+    profile,
+    summary,
+    onHealLineSpoken,
+    onPhaseLineSpoken,
+  ]);
 
-  // Main narration sequence
   useEffect(() => {
     if (!active) return;
 
     const runId = ++runIdRef.current;
     const signal = { cancelled: false };
+    queueRef.current = [];
+    spokenKeysRef.current = new Set();
+
     const { intro, afterReplay } = buildScrapeNarrationLines(
       profileRef.current,
-      summaryRef.current
+      summaryRef.current,
+      { isLive: isLiveRef.current }
     );
-    prefetchTtsLines([...intro, ...afterReplay]);
+    const procedure =
+      summaryRef.current?.procedure?.trim() ||
+      profileRef.current.procedure ||
+      profileRef.current.condition ||
+      undefined;
+    prefetchTtsLines([
+      ...intro,
+      ...allPhaseLines({ procedure, isLive: isLiveRef.current }),
+      ...afterReplay,
+    ]);
 
-    const finish = () => {
-      if (!signal.cancelled && runId === runIdRef.current) onFinishedRef.current();
+    const live = () => !signal.cancelled && runId === runIdRef.current;
+
+    const speak = async (line: string) => {
+      if (!live()) return;
+      onCaptionRef.current?.(line);
+      await speakLineWithTimeout(line);
     };
 
     const run = async () => {
@@ -92,28 +137,39 @@ export function useScrapeNarration({
 
       try {
         for (const line of intro) {
-          if (signal.cancelled || runId !== runIdRef.current) break;
-          onCaptionRef.current?.(line);
-          await speakLineWithTimeout(line);
+          if (!live()) break;
+          await speak(line);
         }
 
-        while (
-          !signal.cancelled &&
-          runId === runIdRef.current &&
-          !scrapeCompleteRef.current
-        ) {
-          await waitMs(250);
+        // Drain pipeline/heal lines while the reel plays.
+        while (live() && !scrapeCompleteRef.current) {
+          const next = queueRef.current.shift();
+          if (!next) {
+            await waitMs(200);
+            continue;
+          }
+          await speak(next.line);
         }
 
-        for (const line of afterReplay) {
-          if (signal.cancelled || runId !== runIdRef.current) break;
-          onCaptionRef.current?.(line);
-          await speakLineWithTimeout(line);
+        // Anything captured right at the end (e.g. a late heal) still gets said.
+        const tail = queueRef.current.shift();
+        if (tail) await speak(tail.line);
+        queueRef.current = [];
+
+        // Re-read the summary — it usually lands while the reel is playing.
+        const { afterReplay: closing } = buildScrapeNarrationLines(
+          profileRef.current,
+          summaryRef.current,
+          { isLive: isLiveRef.current }
+        );
+        for (const line of closing) {
+          if (!live()) break;
+          await speak(line);
         }
       } finally {
         onSpeakingRef.current?.(false);
         onCaptionRef.current?.("");
-        finish();
+        if (live()) onFinishedRef.current();
       }
     };
 
@@ -124,33 +180,30 @@ export function useScrapeNarration({
     };
   }, [active]);
 
-  // Event-driven heal narration (interrupt queue with one line)
+  // Heal is the money moment — queue it first, only once.
   useEffect(() => {
     if (!active || !pendingHealLine) return;
-    const line = pendingHealLine;
-    void (async () => {
-      onCaptionRef.current?.(line);
-      onSpeakingRef.current?.(true);
-      await speakLineWithTimeout(line);
-      onSpeakingRef.current?.(false);
-      onHealSpokenRef.current?.();
-    })();
+    if (!spokenKeysRef.current.has("heal")) {
+      spokenKeysRef.current.add("heal");
+      queueRef.current.unshift({ key: "heal", line: pendingHealLine });
+    }
+    onHealSpokenRef.current?.();
   }, [active, pendingHealLine]);
 
   useEffect(() => {
-    if (!active || !pendingProcessLine || pendingHealLine) return;
-    const line = pendingProcessLine;
-    void (async () => {
-      onCaptionRef.current?.(line);
-      onSpeakingRef.current?.(true);
-      await speakLineWithTimeout(line);
-      onSpeakingRef.current?.(false);
-      onProcessSpokenRef.current?.();
-    })();
-  }, [active, pendingProcessLine, pendingHealLine]);
+    if (!active || !pendingPhaseLine) return;
+    const { key, line } = pendingPhaseLine;
+    if (!spokenKeysRef.current.has(key)) {
+      spokenKeysRef.current.add(key);
+      queueRef.current.push({ key, line });
+    }
+    onPhaseSpokenRef.current?.();
+  }, [active, pendingPhaseLine]);
 }
 
 /** Build heal caption from scrape log */
-export function healLineFromLog(log: ScraperLog): string {
-  return healNarrationLine(log.collector_id, log.detail, log.event);
+export function healLineFromLog(log: ScraperLog, isLive = false): string {
+  return healNarrationLine(log.collector_id, log.detail, log.event, log.facility_name, {
+    isLive,
+  });
 }

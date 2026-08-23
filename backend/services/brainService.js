@@ -154,10 +154,11 @@ async function buildBrainPayload({
   }
 
   const executiveSummary = buildExecutiveSummary(profile, results, replay);
-  const explanation =
-    agentic || !executiveSummary
-      ? null
-      : buildDeterministicExplanation(profile, results, executiveSummary, replay, scrapeContext);
+  // Always ship the deterministic walkthrough — in agentic mode the client uses it
+  // whenever the conductor has no steps or fails, so results are never silent.
+  const explanation = executiveSummary
+    ? buildDeterministicExplanation(profile, results, executiveSummary, replay, scrapeContext)
+    : null;
 
   let presentation = null;
   if (agentic && executiveSummary && Object.keys(results).length > 0) {
@@ -192,7 +193,7 @@ async function buildBrainPayload({
     scrapeContext,
     executiveSummary,
     explanation,
-    explanationSource: agentic ? "conductor" : "deterministic",
+    explanationSource: agentic && presentation ? "conductor" : "deterministic",
     presentation,
   };
 }

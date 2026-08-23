@@ -7,6 +7,11 @@ import Link from "next/link";
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
 import type { ScraperLog } from "@/lib/types";
 import { tokens } from "@/lib/design-tokens";
+import { ST_LUKES_HEAL_SHOWCASE } from "@/lib/healShowcase";
+import SelfHealCinematic from "@/components/SelfHealCinematic";
+
+const SHOWCASE_HEAL_EVENT =
+  ST_LUKES_HEAL_SHOWCASE.replayEvents.find((e) => e.event === "heal_triggered") ?? null;
 
 interface HealEventSummary {
   timestamp?: string;
@@ -53,6 +58,7 @@ export default function ScrapeTrustPanel({
   scrapeEvents = [],
 }: ScrapeTrustPanelProps) {
   const hasGaps = summary.missed.length > 0 || summary.partialIssues.length > 0;
+  const [healReplayOpen, setHealReplayOpen] = useState(false);
 
   const idsFromEvents = [
     ...new Set(
@@ -137,15 +143,44 @@ export default function ScrapeTrustPanel({
               </span>
             </div>
           ))}
-          <Link
-            href="/showcase/heal"
-            className="inline-flex items-center gap-1.5 text-xs text-sky-300 hover:text-sky-200 mt-1"
-          >
-            <Wrench size={12} />
-            Watch recorded St. Luke&apos;s self-heal replay
-          </Link>
         </div>
       )}
+
+      <div className="space-y-2 rounded-xl border border-sky-500/20 bg-sky-500/[0.04] p-3">
+        <p className="text-xs font-medium text-[var(--color-text-primary)]">
+          Recorded self-heal: {ST_LUKES_HEAL_SHOWCASE.facility.name}
+        </p>
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          Captured in {ST_LUKES_HEAL_SHOWCASE.facility.city} on collector{" "}
+          <span className="font-mono">{ST_LUKES_HEAL_SHOWCASE.collectorId}</span>. This is a separate
+          Bright Data recording — it is not one of the {summary.location} prices above.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setHealReplayOpen((v) => !v)}
+            className="inline-flex items-center gap-1.5 text-xs text-sky-300 hover:text-sky-200"
+          >
+            <Wrench size={12} />
+            {healReplayOpen ? "Hide the heal cycle" : "Play the recorded heal cycle"}
+          </button>
+          <Link
+            href="/showcase/heal"
+            className="inline-flex items-center gap-1.5 text-xs text-sky-300/80 hover:text-sky-200"
+          >
+            Open full showcase
+          </Link>
+        </div>
+        {healReplayOpen && SHOWCASE_HEAL_EVENT && (
+          <SelfHealCinematic
+            active
+            healEvent={SHOWCASE_HEAL_EVENT}
+            healLog={ST_LUKES_HEAL_SHOWCASE.healLog}
+            collectorId={ST_LUKES_HEAL_SHOWCASE.collectorId}
+            facilityName={ST_LUKES_HEAL_SHOWCASE.facility.name}
+          />
+        )}
+      </div>
 
       {!hasGaps && (
         <p className="text-sm text-[var(--color-text-secondary)]">

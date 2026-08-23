@@ -305,9 +305,11 @@ app.listen(env.PORT, () => {
   );
   console.log(`   Frontend: ${env.FRONTEND_URL}\n`);
 
-  warmupTts([`Hi, I'm ${BRAND.agentName}. What do you need priced today?`]).catch((err) =>
-    console.warn("[tts] warmup failed:", err.message)
-  );
+  const { SCRIPTED_REPLAY_LINES } = require("./lib/scriptedLines");
+  warmupTts([
+    `Hi, I'm ${BRAND.agentName}. What do you need priced today?`,
+    ...SCRIPTED_REPLAY_LINES,
+  ]).catch((err) => console.warn("[tts] warmup failed:", err.message));
 
   const { checkSttHealth } = require("./services/sttService");
   checkSttHealth()

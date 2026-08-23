@@ -65,6 +65,7 @@ export default function ResultsView() {
   const [explanationCaption, setExplanationCaption] = useState("");
   const [explanationSpeaking, setExplanationSpeaking] = useState(false);
   const [walkthroughDone, setWalkthroughDone] = useState(false);
+  const [conductorFailed, setConductorFailed] = useState(false);
   const [presentationPulse, setPresentationPulse] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +128,19 @@ export default function ResultsView() {
     [executiveSummary, patientProfile, facilities, scrapeEvents]
   );
 
+  /**
+   * The Groq conductor only drives the dashboard when the session already shipped
+   * a presentation; otherwise the local walkthrough plays, so results are never
+   * presented in silence.
+   */
+  const conductorEnabled =
+    AGENTIC_RESULTS &&
+    Object.keys(facilities).length > 0 &&
+    Boolean(sessionPresentation?.steps?.length || sessionPresentation?.spokenScript);
+
+  /** Aria narrates locally unless a prebuilt presentation is driving the dashboard. */
+  const localWalkthrough = !conductorEnabled || conductorFailed;
+
   const cacheHits = useMemo(
     () => scrapeEvents.filter((e) => e.event === "mrf_downloaded" && e.cache_hit).length,
     [scrapeEvents]
@@ -178,11 +192,12 @@ export default function ResultsView() {
     );
     const allRanked = summary.ranked.filter((o) => entries.some(([id]) => id === o.id));
 
-    if (AGENTIC_RESULTS || !llmExplanation || walkthroughDone) return allRanked;
+    if (!localWalkthrough || !llmExplanation || walkthroughDone) return allRanked;
 
     const revealed = new Set([...revealedCardIds, ...dashState.revealedFacilities]);
     return allRanked.filter((o) => revealed.has(o.id));
   }, [
+    localWalkthrough,
     walkthroughDone,
     llmExplanation,
     revealedCardIds,
@@ -239,7 +254,7 @@ export default function ResultsView() {
   });
 
   const { conducting: autonomousConducting } = useResultsConductor({
-    enabled: AGENTIC_RESULTS && Object.keys(facilities).length > 0,
+    enabled: conductorEnabled,
     profile: patientProfile,
     facilities,
     presentationMode: scrapePresentationMode,
@@ -250,7 +265,7 @@ export default function ResultsView() {
     onCaptionChange: setExplanationCaption,
     onSpeakingChange: setExplanationSpeaking,
     onPresentationStep: () => setPresentationPulse((n) => n + 1),
-    onComplete: () => setWalkthroughDone(true),
+    onComplete: (ok) => (ok ? setWalkthroughDone(true) : setConductorFailed(true)),
   });
 
   useEffect(() => {
@@ -412,7 +427,7 @@ export default function ResultsView() {
 
       <ScrapeDemoActions />
 
-      {autonomousConducting && AGENTIC_RESULTS && (
+      {autonomousConducting && conductorEnabled && (
         <p className="text-xs text-center text-violet-300/90 py-2" aria-live="polite">
           Aria is analyzing your results and reshaping the dashboard…
         </p>
@@ -429,9 +444,10 @@ export default function ResultsView() {
 
       {walkthroughExplanation && (
         <ExplanationStage
+          key={localWalkthrough ? "walkthrough-local" : "walkthrough-conducted"}
           explanation={walkthroughExplanation}
           facilities={facilities}
-          autoPlay={!AGENTIC_RESULTS && !walkthroughDone}
+          autoPlay={localWalkthrough && !walkthroughDone}
           onSectionReveal={handleExplanationReveal}
           onUiActions={applyActions}
           onSpeakingChange={setExplanationSpeaking}
@@ -452,7 +468,7 @@ export default function ResultsView() {
           dashState.layoutMode === "explore" ? <ExecutiveSummaryPanel summary={summary} /> : undefined
         }
         flashcards={
-          (AGENTIC_RESULTS || walkthroughDone) &&
+          (!localWalkthrough || walkthroughDone) &&
           flashcardInsights.length > 0 &&
           dashState.layoutMode !== "trustGaps" ? (
             <FacilityFlashcards
@@ -513,7 +529,7 @@ export default function ResultsView() {
         }
         cards={
           <section className="space-y-4 w-full" aria-live="polite" aria-atomic="false">
-            {llmExplanation && !walkthroughDone && !AGENTIC_RESULTS && cardsToShow.length === 0 && (
+            {llmExplanation && !walkthroughDone && localWalkthrough && cardsToShow.length === 0 && (
               <p className="text-sm text-[var(--color-text-secondary)] glass rounded-2xl p-4">
                 Hospitals appear here as Aria walks through each option.
               </p>

@@ -129,14 +129,17 @@ async function synthesizeSpeech(text, options = {}) {
 }
 
 async function warmupTts(texts) {
-  for (const text of texts) {
-    try {
-      const { provider, buffer } = await synthesizeSpeech(text);
-      console.log(`[tts] warmup ${provider} (${buffer.length} bytes)`);
-    } catch (err) {
-      console.warn("[tts] warmup skipped:", err.message);
-    }
-  }
+  // Edge can stall ~19s on a cold socket, so warm the whole script concurrently.
+  await Promise.all(
+    texts.map(async (text) => {
+      try {
+        const { provider, buffer } = await synthesizeSpeech(text);
+        console.log(`[tts] warmup ${provider} (${buffer.length} bytes)`);
+      } catch (err) {
+        console.warn("[tts] warmup skipped:", err.message);
+      }
+    })
+  );
 }
 
 async function checkTtsHealth() {

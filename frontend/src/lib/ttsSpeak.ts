@@ -173,6 +173,11 @@ export async function ensureTtsReady(text: string): Promise<void> {
 export interface SpeakTtsOptions {
   onPlaying?: () => void;
   audioRef?: { current: HTMLAudioElement | null };
+  /**
+   * Scripted lines (scrape replay, results walkthrough) are prefetched, so it is
+   * worth waiting this long for the hosted clip instead of using the browser voice.
+   */
+  hostedWaitMs?: number;
 }
 
 function playBuffer(
@@ -313,9 +318,20 @@ export async function speakTts(text: string, options?: SpeakTtsOptions): Promise
   registerVoiceStop(localStop);
 
   try {
-    const cached = blobCache.get(cacheKey(clean));
-    if (cached) {
-      const buffer = await decodeBlob(clean, cached);
+    let hosted = blobCache.get(cacheKey(clean));
+
+    if (!hosted && options?.hostedWaitMs) {
+      hosted = await Promise.race([
+        getTtsBlob(clean).catch(() => undefined),
+        new Promise<undefined>((resolve) =>
+          window.setTimeout(() => resolve(undefined), options.hostedWaitMs)
+        ),
+      ]);
+      if (gen !== currentVoiceGeneration()) return;
+    }
+
+    if (hosted) {
+      const buffer = await decodeBlob(clean, hosted);
       if (gen !== currentVoiceGeneration()) return;
       await getAudioContext()?.resume();
       await playBuffer(buffer, gen, options);
@@ -363,6 +379,14 @@ export function speakTtsQueued(text: string, options?: SpeakTtsOptions): Promise
   const run = () => speakTts(text, options);
   voiceQueue = voiceQueue.then(run, run);
   return voiceQueue;
+}
+
+/** Fixed demo script: hold out for the Edge clip so the voice stays consistent. */
+export function speakScriptedQueued(
+  text: string,
+  options?: SpeakTtsOptions
+): Promise<void> {
+  return speakTtsQueued(text, { hostedWaitMs: 4000, ...options });
 }
 
 export function resetVoiceQueue(): void {
