@@ -9,7 +9,7 @@ import {
 } from "@/lib/uiActions";
 import { matchFollowUpIntent } from "@/lib/followUpIntents";
 import type { JourneyPhase, PatientProfile, VapiMessage, FacilityResult, ScrapePresentationMode } from "@/lib/types";
-import { VOICE_COPY, getOnboardingWelcomeSpoken, getOnboardingWelcomeCaption, getOnboardingWelcomeMessage } from "@/lib/voiceCopy";
+import { VOICE_COPY, getOnboardingWelcomeSpoken, getOnboardingWelcomeCaption, getOnboardingWelcomeMessage, getOnboardingWelcomeChunks } from "@/lib/voiceCopy";
 import { deriveVoiceState, resolveActivityLabel } from "@/lib/voiceState";
 import type { VoiceState } from "@/lib/voiceState";
 import type { ScrapeExecutiveSummary } from "@/lib/scrapeExecutiveSummary";
@@ -517,10 +517,14 @@ export function useAriaAgent(options: UseAriaAgentOptions): UseAriaAgentReturn {
 
         try {
           if (phase === "onboarding") {
-            await speakTts(greetingText, {
-              audioRef: ttsAudioRef,
-              onPlaying: () => startSpeakLevelSim(),
-            });
+            const chunks = getOnboardingWelcomeChunks();
+            for (const chunk of chunks) {
+              setCaption(chunk);
+              await speakTts(chunk, {
+                audioRef: ttsAudioRef,
+                onPlaying: () => startSpeakLevelSim(),
+              });
+            }
             setCaption(getOnboardingWelcomeCaption());
           } else {
             prefetchTts(greeting);

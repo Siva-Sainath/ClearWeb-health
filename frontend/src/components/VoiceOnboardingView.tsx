@@ -10,7 +10,7 @@ import { useScrapeJob } from "@/hooks/useScrapeJob";
 import { useZipCacheProbe } from "@/hooks/useZipCacheProbe";
 import { prefetchTtsLines } from "@/lib/ttsSpeak";
 import { getOnboardingWelcomeChunks } from "@/lib/voiceCopy";
-import { COVERAGE_PROCEDURES, COVERAGE_INSURERS } from "@/lib/coverageFacts";
+import { COVERAGE_PROCEDURES, COVERAGE_INSURERS, COVERAGE_ZIPS, COVERAGE_HOSPITALS } from "@/lib/coverageFacts";
 import InteractionStage from "@/components/InteractionStage";
 import OnboardingProgress from "@/components/OnboardingProgress";
 import VoiceShell from "@/components/VoiceShell";
@@ -179,10 +179,24 @@ export default function VoiceOnboardingView() {
   return (
     <div className="pb-24">
       <div className="px-6 pt-6 max-w-lg mx-auto">
-        <p className="text-[11px] leading-relaxed text-[var(--color-text-tertiary)] text-center mb-3">
-          Coverage now: Austin 787xx only. Cached care: {COVERAGE_PROCEDURES.join(", ")}.
-          Payers in file: {COVERAGE_INSURERS.join(", ")}.
-        </p>
+        <div className="text-[11px] leading-relaxed text-[var(--color-text-tertiary)] text-left mb-3 space-y-1.5">
+          <p>
+            <span className="font-medium text-[var(--color-text-secondary)]">ZIPs: </span>
+            {COVERAGE_ZIPS.join(", ")}
+          </p>
+          <p>
+            <span className="font-medium text-[var(--color-text-secondary)]">Hospitals: </span>
+            {COVERAGE_HOSPITALS.join("; ")}
+          </p>
+          <p>
+            <span className="font-medium text-[var(--color-text-secondary)]">Cached care: </span>
+            {COVERAGE_PROCEDURES.join("; ")}
+          </p>
+          <p>
+            <span className="font-medium text-[var(--color-text-secondary)]">Payers: </span>
+            {COVERAGE_INSURERS.join(", ")}
+          </p>
+        </div>
         <OnboardingProgress profile={patientProfile} />
         <CacheStatusBanner zipProbe={zipProbe} />
         {canPullPrices && !transitioning && (

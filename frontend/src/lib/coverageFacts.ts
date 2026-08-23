@@ -1,34 +1,105 @@
 /** Honest Austin demo coverage — keep in sync with backend/lib/coverageFacts.js */
 
-export const COVERAGE_AREA =
-  "Austin metro only — ZIP codes 78701 through 78759. Downtown 78701 is the best demo ZIP. Houston, Dallas, and San Antonio are not in the consumer price cache.";
+/** ZIPs in ZIP_COORDS that the matcher will price (Austin metro). */
+export const COVERAGE_ZIPS = [
+  "78701",
+  "78702",
+  "78703",
+  "78704",
+  "78705",
+  "78712",
+  "78731",
+  "78732",
+  "78733",
+  "78734",
+  "78735",
+  "78741",
+  "78744",
+  "78745",
+  "78746",
+  "78747",
+  "78748",
+  "78749",
+  "78750",
+  "78751",
+  "78752",
+  "78753",
+  "78754",
+  "78756",
+  "78757",
+  "78758",
+  "78759",
+] as const;
+
+export const COVERAGE_CITIES =
+  "Austin, Round Rock, and the rest of Travis County in those ZIPs — not Houston, Dallas, San Antonio, or El Paso";
+
+export const COVERAGE_HOSPITALS = [
+  "St. David's Medical Center",
+  "St. David's South Austin Medical Center",
+  "St. David's North Austin Medical Center",
+  "St. David's Round Rock Medical Center",
+  "Heart Hospital of Austin",
+  "Baylor Scott & White Medical Center — Austin",
+  "Baylor Scott & White Medical Center — Round Rock",
+  "Dell Seton Medical Center at UT",
+  "Ascension Seton Medical Center Austin",
+  "Encompass Health Rehabilitation Hospital of Austin",
+  "Encompass Health Rehabilitation Hospital of Round Rock",
+  "Shriners Children's Texas",
+] as const;
 
 export const COVERAGE_PROCEDURES = [
-  "lumbar / lower-back MRI",
-  "colonoscopy",
-  "brain MRI",
-  "knee replacement",
-  "appendectomy",
-  "some emergency-department visits",
+  "lumbar MRI without contrast (CPT 72148) — 12 hospitals",
+  "lumbar MRI with contrast (CPT 72149)",
+  "lumbar MRI without then with contrast (CPT 72158)",
+  "diagnostic colonoscopy (CPT 45378)",
+  "brain MRI without then with contrast (CPT 70553)",
+  "total knee replacement (CPT 27447)",
+  "appendectomy (CPT 44950)",
+  "emergency department visit, low MDM (CPT 99283)",
 ] as const;
 
 export const COVERAGE_INSURERS = [
   "Aetna",
-  "Blue Cross Blue Shield",
+  "Aetna Better Health",
+  "Meritain (Aetna)",
+  "Blue Cross Blue Shield of Texas",
   "Cigna",
   "UnitedHealthcare",
   "Humana",
   "Oscar",
-  "Molina",
-  "Superior / Sendero Medicaid plans",
+  "Molina Healthcare",
+  "Superior Health Plan",
+  "Sendero",
+  "Amerigroup",
+  "Moda Health",
+  "MultiPlan / PHCS",
+  "Healthcare Highways",
+  "Harbor Health",
+  "Curative",
+  "Evry Health",
+  "Nomi Health",
+  "Covenant Management Systems",
+  "American Health Plan",
+  "Careworks workers' compensation",
+  "cash / self-pay",
 ] as const;
 
+function speakZip(zip: string): string {
+  return zip.split("").join(" ");
+}
+
+export function getCoverageWelcomeChunks(agentName: string): string[] {
+  const zips = COVERAGE_ZIPS.map(speakZip).join(", ");
+  return [
+    `Hi, I'm ${agentName}. I only have consumer prices for Austin metro. The ZIPs I can search are ${zips}.`,
+    `Hospitals already in the cache: ${COVERAGE_HOSPITALS.join("; ")}.`,
+    `Treatments with real scraped rows: ${COVERAGE_PROCEDURES.join("; ")}.`,
+    `Insurers in those files: ${COVERAGE_INSURERS.join(", ")}. I do not have Houston or Dallas consumer prices. What do you need priced today?`,
+  ];
+}
+
 export function getCoverageWelcomeSpoken(agentName: string): string {
-  return (
-    `Hi, I'm ${agentName}. I have real scraped hospital prices for Austin metro — any 787 ZIP, ` +
-    `especially 78701 downtown. I already have files for lumbar MRI, colonoscopy, brain MRI, ` +
-    `knee replacement, appendectomy, and some ER visits, matched to Aetna, Blue Cross, Cigna, ` +
-    `United, Humana, Oscar, and Molina. Houston and Dallas aren't in this cache yet. ` +
-    `What do you need priced today?`
-  );
+  return getCoverageWelcomeChunks(agentName).join(" ");
 }

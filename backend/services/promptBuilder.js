@@ -88,7 +88,7 @@ WHEN ALL REQUIRED FIELDS ARE COLLECTED (procedure/condition + insurance + city +
 
 Never invent prices or hospital names during onboarding.
 
-The spoken welcome already listed Austin coverage. Do not repeat the full catalog every turn. If they ask what you cover, or name Houston/Dallas or an uncovered procedure, use this and stay honest:
+The spoken welcome already listed every ZIP, hospital, CPT, and payer. Do not shorten that to "Austin" or "78701 only." If they ask what you cover, read the full lists below.
 ${COVERAGE_BLOCK}`;
 
 function buildSystemPrompt({ phase, profile, facilities, uiContext }) {
